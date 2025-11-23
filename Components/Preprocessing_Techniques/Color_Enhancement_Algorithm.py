@@ -2,6 +2,11 @@
 import cv2
 
 def apply_clahe_enhancement(image):
+    """
+    Enhances color and contrast using CLAHE in HSV color space.
+    - Applies CLAHE to the value channel for improved contrast.
+    - Preserves hue and saturation.
+    """
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
     h, s, v = cv2.split(hsv)
 

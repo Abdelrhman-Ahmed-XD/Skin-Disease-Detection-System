@@ -13,6 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "Components", "Preproces
 from Hair_And_Artifact_Removal_Algorithm import remove_hair_and_artifacts
 from Denoising_Algorithm import denoise_skin_image
 from Color_Enhancement_Algorithm import apply_clahe_enhancement
+from Resizing_Normalization_Algorithm import apply_resize_normalization
 
 # ============================================================
 # Directories
@@ -20,29 +21,25 @@ from Color_Enhancement_Algorithm import apply_clahe_enhancement
 base = os.path.dirname(__file__)
 
 orig_dir = os.path.join(base, "Test Images", "Original_Images")
-hair_removed_dir = os.path.join(base, "Test Results", "Hair_Artifact_Removal_Images")
+hair_removed_dir = os.path.join(base, "Test Results", "Hair & Artifact_Removal_Images")
 denoised_dir = os.path.join(base, "Test Results", "Denoising_Images")
 enhanced_dir = os.path.join(base, "Test Results", "Color_Enhancement_Images")
+resized_norm_dir = os.path.join(base, "Test Results", "Resized & Normalized_Images")
 
 plot_hair = os.path.join(base, "Test Results", "Before_VS_After_Hair_Artifact_Removal")
 plot_denoise = os.path.join(base, "Test Results", "Before_VS_After_Denoising")
 plot_enhance = os.path.join(base, "Test Results", "Before VS After_Color_Enhancement")
+plot_resize_norm = os.path.join(base, "Test Results", "Before_VS_After_Resize_Normalization")
 plot_final = os.path.join(base, "Test Results", "Original_VS_Final_Result_Images")
 
-for folder in [hair_removed_dir, denoised_dir, enhanced_dir,
-               plot_hair, plot_denoise, plot_enhance, plot_final]:
+for folder in [hair_removed_dir, denoised_dir, enhanced_dir, resized_norm_dir,
+               plot_hair, plot_denoise, plot_enhance, plot_resize_norm, plot_final]:
     os.makedirs(folder, exist_ok=True)
-
 
 # ============================================================
 # COMPARISON IMAGE CREATOR
 # ============================================================
 def create_comparison(original, processed, technique_name):
-    """
-    Creates a clean comparison image:
-        Technique Name (AUTO-FIT)
-        ORIGINAL        RESULT
-    """
     H = 500
 
     def to_rgb(img):
@@ -65,7 +62,6 @@ def create_comparison(original, processed, technique_name):
 
     orig_resized, w1 = resize_and_pad(original)
     proc_resized, w2 = resize_and_pad(processed)
-
     max_w = max(w1, w2)
     if w1 < max_w:
         orig_resized = cv2.copyMakeBorder(orig_resized, 0, 0, 0, max_w - w1, cv2.BORDER_CONSTANT, value=(255, 255, 255))
@@ -80,22 +76,18 @@ def create_comparison(original, processed, technique_name):
     font_scale = 1.3
     thickness = 3
     text_size = cv2.getTextSize(technique_name, font, font_scale, thickness)[0]
-
     while text_size[0] > w - 40 and font_scale > 0.7:
         font_scale -= 0.05
         text_size = cv2.getTextSize(technique_name, font, font_scale, thickness)[0]
 
     x = (w - text_size[0]) // 2
     cv2.putText(canvas, technique_name, (x, 70), font, font_scale, (0, 0, 0), thickness)
-
     canvas[title_h:title_h + H, 40:40 + max_w] = orig_resized
     canvas[title_h:title_h + H, 40 + max_w + 40:40 + max_w + 40 + max_w] = proc_resized
-
     cv2.putText(canvas, "Original", (max_w // 2 - 70, title_h + H + 60), font, 1.3, (0, 0, 0), 3)
     cv2.putText(canvas, "Result", (max_w + max_w // 2 + 30, title_h + H + 60), font, 1.3, (0, 120, 0), 3)
 
     return canvas
-
 
 # ============================================================
 # MAIN LOOP
@@ -115,24 +107,27 @@ for img_path in tqdm(images, desc="Processing Images", unit="img", colour="green
     original = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     name = img_path.stem
 
-    # Individual techniques (each applied on original)
+    # Individual techniques (each applied directly on original)
     no_hair, _ = remove_hair_and_artifacts(original.copy())
     denoised = denoise_skin_image(original.copy())
     enhanced = apply_clahe_enhancement(original.copy())
+    resized_norm = apply_resize_normalization(original.copy())
 
     # Full sequential pipeline
     step1 = no_hair
     step2 = denoise_skin_image(step1.copy())
-    full = apply_clahe_enhancement(step2.copy())
+    step3 = apply_clahe_enhancement(step2.copy())
+    full = apply_resize_normalization(step3.copy())
 
-    # === SAVE ACTUAL PROCESSED IMAGES TO MAIN DIRECTORIES ===
+    # Save processed images
     cv2.imwrite(os.path.join(hair_removed_dir, f"{name}.jpg"), cv2.cvtColor(no_hair, cv2.COLOR_RGB2BGR))
     cv2.imwrite(os.path.join(denoised_dir, f"{name}.jpg"), cv2.cvtColor(denoised, cv2.COLOR_RGB2BGR))
     cv2.imwrite(os.path.join(enhanced_dir, f"{name}.jpg"), cv2.cvtColor(enhanced, cv2.COLOR_RGB2BGR))
+    cv2.imwrite(os.path.join(resized_norm_dir, f"{name}.jpg"), cv2.cvtColor(resized_norm, cv2.COLOR_RGB2BGR))
 
-    # === FINAL TITLES — CLEAN & PROFESSIONAL WITH TECH NAMES ===
+    # Save comparison images with professional titles
     cv2.imwrite(os.path.join(plot_hair, f"{name}_comparison.jpg"),
-                cv2.cvtColor(create_comparison(original, no_hair, "Hair Removal (DullRazor + Inpainting)"),
+                cv2.cvtColor(create_comparison(original, no_hair, "Hair & Artifact Removal (DullRazor + Inpainting)"),
                              cv2.COLOR_RGB2BGR))
 
     cv2.imwrite(os.path.join(plot_denoise, f"{name}_comparison.jpg"),
@@ -140,11 +135,17 @@ for img_path in tqdm(images, desc="Processing Images", unit="img", colour="green
                              cv2.COLOR_RGB2BGR))
 
     cv2.imwrite(os.path.join(plot_enhance, f"{name}_comparison.jpg"),
-                cv2.cvtColor(create_comparison(original, enhanced, "Color Enhancement (CLAHE-HSV)"), cv2.COLOR_RGB2BGR))
+                cv2.cvtColor(create_comparison(original, enhanced, "Color Enhancement (CLAHE-HSV)"),
+                             cv2.COLOR_RGB2BGR))
+
+    cv2.imwrite(os.path.join(plot_resize_norm, f"{name}_comparison.jpg"),
+                cv2.cvtColor(create_comparison(original, resized_norm, "Resize 224x224 + Normalization"),
+                             cv2.COLOR_RGB2BGR))
 
     cv2.imwrite(os.path.join(plot_final, f"{name}_full_comparison.jpg"),
-                cv2.cvtColor(
-                    create_comparison(original, full, "Full Pipeline (DullRazor -> Bilateral+Wavelet -> CLAHE-HSV)"),
-                    cv2.COLOR_RGB2BGR))
+                cv2.cvtColor(create_comparison(original, full,
+                                               "Full Pipeline ( ( DullRazor + Inpainting ) -> ( Bilateral + Wavelet ) -> CLAHE-HSV -> ( Resize 224x224 + Normalization ) )"),
+                             cv2.COLOR_RGB2BGR))
 
-print("\nAll comparison images created successfully! Titles now show exact techniques used.")
+print("\nAll 4 techniques + full pipeline completed successfully!")
+print("Check the 'Test Results' folder — you now have perfect before/after comparisons for every step.")
