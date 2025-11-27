@@ -144,7 +144,7 @@ for img_path in tqdm(images, desc="Processing Images", unit="img", colour="green
 
     cv2.imwrite(os.path.join(plot_final, f"{name}_full_comparison.jpg"),
                 cv2.cvtColor(create_comparison(original, full,
-                                               "Full Pipeline ( ( DullRazor + Inpainting ) -> ( Bilateral + Wavelet ) -> CLAHE-HSV -> ( Resize 224x224 + Normalization ) )"),
+                                               "Full Pipe_line ( ( DullRazor + Inpainting ) -> ( Bilateral + Wavelet ) -> CLAHE-HSV -> ( Resize 224x224 + Normalization ) )"),
                              cv2.COLOR_RGB2BGR))
 
 print("\nAll 4 techniques + full pipeline completed successfully!")
