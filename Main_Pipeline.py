@@ -1,4 +1,4 @@
-# Main_Pipeline.py
+# Main_Pipeline.py (FIXED - Uses Your Trained SMP U-Net Model)
 import os
 import cv2
 import numpy as np
@@ -16,7 +16,7 @@ from Hair_And_Artifact_Removal_Algorithm import remove_hair_and_artifacts
 from Denoising_Algorithm import denoise_skin_image
 from Color_Enhancement_Algorithm import apply_clahe_enhancement
 from Resizing_Normalization_Algorithm import apply_resize_normalization
-from Unet_Segmentation_Algorithm import apply_unet_segmentation
+from SMP_Unet_Segmentation_Algorithm import apply_smp_segmentation  # FIXED: Changed to SMP
 
 # ============================================================
 # Directories
@@ -30,7 +30,7 @@ enhanced_dir = os.path.join(base, "Test Results", "Color_Enhancement_Images")
 resized_norm_dir = os.path.join(base, "Test Results", "Resized_Normalized_Images")
 segmented_dir = os.path.join(base, "Test Results", "Unet_Segmented_Images")
 
-# ONE MAIN COMPARISONS FOLDER — ALL SUBFOLDERS INSIDE IT
+# ONE MAIN COMPARISONS FOLDER
 comparisons_root = os.path.join(base, "Test Results", "Comparisons")
 plot_hair        = os.path.join(comparisons_root, "Before_VS_After_Hair_Artifact_Removal")
 plot_denoise     = os.path.join(comparisons_root, "Before_VS_After_Denoising")
@@ -40,12 +40,12 @@ plot_segment     = os.path.join(comparisons_root, "Before_VS_After_Unet_Segmenta
 plot_final       = os.path.join(comparisons_root, "Original_VS_Final_Result_Images")
 
 for folder in [hair_removed_dir, denoised_dir, enhanced_dir, resized_norm_dir, segmented_dir,
-               comparisons_root,  # Main folder
+               comparisons_root,
                plot_hair, plot_denoise, plot_enhance, plot_resize_norm, plot_segment, plot_final]:
     os.makedirs(folder, exist_ok=True)
 
 # ============================================================
-# COMPARISON IMAGE CREATOR (100% unchanged)
+# COMPARISON IMAGE CREATOR
 # ============================================================
 def create_comparison(original, processed, technique_name):
     H = 500
@@ -109,7 +109,6 @@ images = sorted(list(image_paths))
 
 print(f"Found {len(images)} images. Starting processing...\n")
 
-# Dictionary to hold all comparisons (you wanted this too)
 all_comparisons = {}
 
 for img_path in tqdm(images, desc="Processing Images", unit="img", colour="green"):
@@ -125,14 +124,14 @@ for img_path in tqdm(images, desc="Processing Images", unit="img", colour="green
     denoised = denoise_skin_image(original.copy())
     enhanced = apply_clahe_enhancement(original.copy())
     resized_norm = apply_resize_normalization(original.copy())
-    segmented = apply_unet_segmentation(original.copy())
+    segmented = apply_smp_segmentation(original.copy())  # FIXED: Using trained SMP model
 
     # Full sequential pipeline
     step1 = no_hair
     step2 = denoise_skin_image(step1.copy())
     step3 = apply_clahe_enhancement(step2.copy())
     step4 = apply_resize_normalization(step3.copy())
-    full = apply_unet_segmentation(step4.copy())
+    full = apply_smp_segmentation(step4.copy())  # FIXED: Using trained SMP model
 
     # Save processed images
     cv2.imwrite(os.path.join(hair_removed_dir, f"{name}.jpg"), cv2.cvtColor(no_hair, cv2.COLOR_RGB2BGR))
@@ -141,7 +140,7 @@ for img_path in tqdm(images, desc="Processing Images", unit="img", colour="green
     cv2.imwrite(os.path.join(resized_norm_dir, f"{name}.jpg"), cv2.cvtColor(resized_norm, cv2.COLOR_RGB2BGR))
     cv2.imwrite(os.path.join(segmented_dir, f"{name}.jpg"), cv2.cvtColor(segmented, cv2.COLOR_RGB2BGR))
 
-    # Save comparison images — now all inside Test Results/Comparisons/
+    # Save comparison images
     cv2.imwrite(os.path.join(plot_hair, f"{name}_comparison.jpg"),
                 cv2.cvtColor(create_comparison(original, no_hair, "Hair & Artifact Removal (DullRazor + Inpainting)"),
                              cv2.COLOR_RGB2BGR))
@@ -159,11 +158,11 @@ for img_path in tqdm(images, desc="Processing Images", unit="img", colour="green
                              cv2.COLOR_RGB2BGR))
 
     cv2.imwrite(os.path.join(plot_segment, f"{name}_comparison.jpg"),
-                cv2.cvtColor(create_comparison(original, segmented, "U-Net Lesion Segmentation (PyTorch)"),
+                cv2.cvtColor(create_comparison(original, segmented, "U-Net Lesion Segmentation  (Pytorch-Trained on ISIC-2019)"),
                              cv2.COLOR_RGB2BGR))
 
     final_comp = create_comparison(original, full,
-                                   "Final Result → Full Pipeline + U-Net Segmentation (PyTorch)")
+                                   "Final Result -> Preprocessing_Techniques  + Trained U-Net Segmentation (Pytorch)")
     cv2.imwrite(os.path.join(plot_final, f"{name}_full_comparison.jpg"),
                 cv2.cvtColor(final_comp, cv2.COLOR_RGB2BGR))
 
@@ -189,4 +188,4 @@ for img_path in tqdm(images, desc="Processing Images", unit="img", colour="green
 print("\nPipeline completed!")
 print("All comparison images saved in:")
 print("   → Test Results/Comparisons/")
-print(f"   → {len(all_comparisons)} images processed + dictionary ready")
+print(f"   → {len(all_comparisons)} images processed with YOUR TRAINED MODEL!")

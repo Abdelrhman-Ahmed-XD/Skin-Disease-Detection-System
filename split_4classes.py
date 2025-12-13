@@ -18,7 +18,7 @@ print("=" * 80)
 # ============================================================
 # Configuration
 # ============================================================
-IMAGES_DIR = "Dataset/ISIC2019/all_4classes"
+IMAGES_DIR = "Dataset/ISIC2019/all_4classes/images"
 MASKS_DIR = "Dataset/ISIC2019/masks_4classes_filtered"  # Using filtered masks!
 TRAIN_IMG_DIR = "Dataset/ISIC2019/train/images"
 TRAIN_MASK_DIR = "Dataset/ISIC2019/train/masks"
