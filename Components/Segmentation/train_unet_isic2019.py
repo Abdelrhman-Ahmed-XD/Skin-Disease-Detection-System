@@ -34,10 +34,10 @@ print("=" * 80)
 # ============================================================
 class Config:
     # Dataset Paths
-    TRAIN_IMG_DIR = "Dataset/ISIC2019/train/images"
-    TRAIN_MASK_DIR = "Dataset/ISIC2019/train/masks"
-    VAL_IMG_DIR = "Dataset/ISIC2019/val/images"
-    VAL_MASK_DIR = "Dataset/ISIC2019/val/masks"
+    TRAIN_IMG_DIR = "../../Dataset/ISIC2019/train/images"
+    TRAIN_MASK_DIR = "../../Dataset/ISIC2019/train/masks"
+    VAL_IMG_DIR = "../../Dataset/ISIC2019/val/images"
+    VAL_MASK_DIR = "../../Dataset/ISIC2019/val/masks"
 
     # Model Architecture
     ARCHITECTURE = "Unet"
@@ -59,10 +59,10 @@ class Config:
     NUM_WORKERS = 4
 
     # Saving
-    CHECKPOINT_DIR = "Components/Segmentation"
+    CHECKPOINT_DIR = ""
     MODEL_NAME = "unet_pretrained.pth"
-    LOG_DIR = "training_logs"
-    PLOT_DIR = "training_plots"
+    LOG_DIR = "../../training_logs"
+    PLOT_DIR = "../../training_plots"
 
     # Logging
     LOG_FILE = "training_log.json"

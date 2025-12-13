@@ -18,12 +18,12 @@ print("=" * 80)
 # ============================================================
 # Configuration
 # ============================================================
-IMAGES_DIR = "Dataset/ISIC2019/all_4classes/images"
-MASKS_DIR = "Dataset/ISIC2019/masks_4classes_filtered"  # Using filtered masks!
-TRAIN_IMG_DIR = "Dataset/ISIC2019/train/images"
-TRAIN_MASK_DIR = "Dataset/ISIC2019/train/masks"
-VAL_IMG_DIR = "Dataset/ISIC2019/val/images"
-VAL_MASK_DIR = "Dataset/ISIC2019/val/masks"
+IMAGES_DIR = "../../Dataset/ISIC2019/all_4classes/images"
+MASKS_DIR = "../../Dataset/ISIC2019/masks_4classes_filtered"  # Using filtered masks!
+TRAIN_IMG_DIR = "../../Dataset/ISIC2019/train/images"
+TRAIN_MASK_DIR = "../../Dataset/ISIC2019/train/masks"
+VAL_IMG_DIR = "../../Dataset/ISIC2019/val/images"
+VAL_MASK_DIR = "../../Dataset/ISIC2019/val/masks"
 
 TRAIN_RATIO = 0.9  # 90% train, 10% validation
 RANDOM_SEED = 42
@@ -80,7 +80,7 @@ for img_path in tqdm(image_paths, desc="Matching pairs", colour="blue"):
     # Determine disease class from original folder
     disease = None
     for d in disease_classes:
-        original_path = Path("Dataset/ISIC2019") / d / img_path.name
+        original_path = Path("../../Dataset/ISIC2019") / d / img_path.name
         if original_path.exists():
             disease = d
             break
