@@ -124,14 +124,14 @@ for img_path in tqdm(images, desc="Processing Images", unit="img", colour="green
     denoised = denoise_skin_image(original.copy())
     enhanced = apply_clahe_enhancement(original.copy())
     resized_norm = apply_resize_normalization(original.copy())
-    segmented = apply_smp_segmentation(original.copy())  # FIXED: Using trained SMP model
+    segmented = apply_smp_segmentation(original.copy())
 
     # Full sequential pipeline
     step1 = no_hair
     step2 = denoise_skin_image(step1.copy())
     step3 = apply_clahe_enhancement(step2.copy())
     step4 = apply_resize_normalization(step3.copy())
-    full = apply_smp_segmentation(step4.copy())  # FIXED: Using trained SMP model
+    full = apply_smp_segmentation(step4.copy())
 
     # Save processed images
     cv2.imwrite(os.path.join(hair_removed_dir, f"{name}.jpg"), cv2.cvtColor(no_hair, cv2.COLOR_RGB2BGR))
