@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "SkinDisease",
+    "slug": "SkinDisease",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "assets/images/logo.png",
+    "scheme": "skindisease",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "skipValidateProjectName": true,
+    "ios": {
+      "supportsTablet": true,
+      "plugins": ["expo-router"]
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "assets/images/logo.png",
+        "backgroundColor": "#E6F4FE"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.samuelmilad.skindisease"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "assets/images/splash-screen.png",
+          "imageWidth": 200,
+          "resizeMode": "cover",
+          "backgroundColor": "#D8E9F0",
+          "dark": {
+            "backgroundColor": "#D8E9F0"
+          }
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-font"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "21938bae-4442-487d-ad2e-648c1ef2f8a0"
+      }
+    }
+  }
+}
