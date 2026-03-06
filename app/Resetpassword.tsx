@@ -105,8 +105,8 @@ export default function Resetpassword() {
         <SafeAreaView style={styles.container} edges={['top']}>
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                behavior="padding"
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 30}
             >
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
@@ -145,29 +145,27 @@ export default function Resetpassword() {
                     </View>
                     {!!passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
 
-                    {/* Password strength indicators */}
-                    {password.length > 0 && (
-                        <View style={styles.strengthContainer}>
-                            {[
-                                { label: '8+ characters',                   pass: password.length >= 8 },
-                                { label: 'Uppercase letter (A-Z)',          pass: /[A-Z]/.test(password) },
-                                { label: 'Lowercase letter (a-z)',          pass: /[a-z]/.test(password) },
-                                { label: 'Number (0-9)',                    pass: /[0-9]/.test(password) },
-                                { label: 'Special character (@, #, !...)',  pass: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) },
-                            ].map((item) => (
-                                <View key={item.label} style={styles.strengthRow}>
-                                    <Ionicons
-                                        name={item.pass ? 'checkmark-circle' : 'ellipse-outline'}
-                                        size={16}
-                                        color={item.pass ? '#22C55E' : '#9CA3AF'}
-                                    />
-                                    <Text style={[styles.strengthText, { color: item.pass ? '#22C55E' : '#9CA3AF' }]}>
-                                        {item.label}
-                                    </Text>
-                                </View>
-                            ))}
-                        </View>
-                    )}
+                    {/* Password strength indicators — always rendered to prevent layout shift */}
+                    <View style={[styles.strengthContainer, { opacity: password.length > 0 ? 1 : 0 }]}>
+                        {[
+                            { label: '8+ characters',                   pass: password.length >= 8 },
+                            { label: 'Uppercase letter (A-Z)',          pass: /[A-Z]/.test(password) },
+                            { label: 'Lowercase letter (a-z)',          pass: /[a-z]/.test(password) },
+                            { label: 'Number (0-9)',                    pass: /[0-9]/.test(password) },
+                            { label: 'Special character (@, #, !...)',  pass: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) },
+                        ].map((item) => (
+                            <View key={item.label} style={styles.strengthRow}>
+                                <Ionicons
+                                    name={item.pass ? 'checkmark-circle' : 'ellipse-outline'}
+                                    size={16}
+                                    color={item.pass ? '#22C55E' : '#9CA3AF'}
+                                />
+                                <Text style={[styles.strengthText, { color: item.pass ? '#22C55E' : '#9CA3AF' }]}>
+                                    {item.label}
+                                </Text>
+                            </View>
+                        ))}
+                    </View>
 
                     {/* Confirm Password Field */}
                     <Text style={[styles.label, { marginTop: 24 }]}>Confirm Password</Text>

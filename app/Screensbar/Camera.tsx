@@ -29,8 +29,8 @@ const MOLES_STORAGE_KEY = 'savedMoles';
 const { width } = Dimensions.get('window');
 
 // ── Cloudinary config ───────────────────────────────────────────
-const CLOUDINARY_CLOUD_NAME = 'dignpxpgy';
-const CLOUDINARY_UPLOAD_PRESET = 'skinsight_uploads';
+const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME!;
+const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
 type Mole = {

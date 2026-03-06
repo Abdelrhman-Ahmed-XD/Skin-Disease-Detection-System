@@ -1,7 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, getFirestore, updateDoc, setDoc } from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { auth } from "../Firebase/firebaseConfig";
+import { getApp } from "firebase/app";
 
 type ThemeContextType = {
   isDark: boolean;
@@ -56,17 +58,53 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [isDark, setIsDark] = useState(false);
   const uidRef = useRef<string | null>(null);
 
+  // Save dark mode to Firestore
+  const saveDarkModeToFirestore = async (uid: string, value: boolean) => {
+    try {
+      const db  = getFirestore(getApp());
+      const ref = doc(db, "users", uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        await updateDoc(ref, { darkMode: value });
+      } else {
+        await setDoc(ref, { darkMode: value }, { merge: true });
+      }
+      console.log("✅ Dark mode saved to Firestore:", value);
+    } catch (e) {
+      console.log("⚠️ Could not save dark mode to Firestore:", e);
+    }
+  };
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       const uid = user?.uid ?? null;
       uidRef.current = uid;
+
       // Remove old shared key so it never bleeds between users
       try { await AsyncStorage.removeItem("darkMode"); } catch {}
-      // Load this user's theme preference
-      try {
-        const val = await AsyncStorage.getItem(themeKey(uid));
-        setIsDark(val === "true");
-      } catch {
+
+      if (uid) {
+        // 1. Load from AsyncStorage instantly (no flicker)
+        try {
+          const val = await AsyncStorage.getItem(themeKey(uid));
+          if (val !== null) setIsDark(val === "true");
+        } catch {}
+
+        // 2. Override with Firestore (source of truth)
+        try {
+          const db   = getFirestore(getApp());
+          const snap = await getDoc(doc(db, "users", uid));
+          if (snap.exists() && snap.data()?.darkMode !== undefined) {
+            const firestoreDark = snap.data()!.darkMode as boolean;
+            setIsDark(firestoreDark);
+            await AsyncStorage.setItem(themeKey(uid), String(firestoreDark));
+            console.log("✅ Dark mode loaded from Firestore:", firestoreDark);
+          }
+        } catch (e) {
+          console.log("⚠️ Could not load dark mode from Firestore:", e);
+        }
+      } else {
+        // Logged out — reset to light
         setIsDark(false);
       }
     });
@@ -76,7 +114,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = () => {
     setIsDark((prev) => {
       const next = !prev;
+      // Save to AsyncStorage immediately
       AsyncStorage.setItem(themeKey(uidRef.current), String(next));
+      // Save to Firestore in background
+      if (uidRef.current) saveDarkModeToFirestore(uidRef.current, next);
       return next;
     });
   };

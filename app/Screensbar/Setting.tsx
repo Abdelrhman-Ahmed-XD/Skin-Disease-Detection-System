@@ -20,12 +20,12 @@ const CUSTOMIZE_KEY = 'appCustomizeSettings';
 export default function SettingsPage() {
   const router = useRouter();
   const { isDark, toggleTheme, colors } = useTheme();
-  const { settings } = useCustomize();
+  const { settings, effectiveTextColor } = useCustomize();
   const { t, isArabic } = useTranslation(settings.language);
 
   const customText = {
     fontSize:   settings.fontSize,
-    color:      settings.textColor,
+    color:      effectiveTextColor(isDark),
     fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
   };
 
@@ -72,10 +72,20 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     try {
+      const uid = auth.currentUser?.uid ?? null;
       await signOut(auth);
-      // Clear all local data — customize settings will be restored
-      // from Firestore automatically on next login
-      await AsyncStorage.clear();
+
+      // Only clear user-specific data — preserve nothing sensitive
+      const keysToRemove = [
+        'signupDraft',
+        'savedMoles',
+      ];
+      if (uid) {
+        keysToRemove.push(`appCustomizeSettings_${uid}`);
+        keysToRemove.push(`darkMode_${uid}`);
+      }
+      await AsyncStorage.multiRemove(keysToRemove);
+
       setLogoutModalVisible(false);
       router.replace('/StartUp');
     } catch (error: any) {

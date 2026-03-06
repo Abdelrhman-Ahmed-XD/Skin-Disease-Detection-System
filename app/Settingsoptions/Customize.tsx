@@ -54,26 +54,26 @@ function FontSlider({ value, onChange }: { value: number; onChange: (v: number) 
   const fillWidth = trackW * progress;
   const thumbLeft = trackW * progress - THUMB_SIZE / 2;
   return (
-      <View style={sliderSt.wrapper}>
-        <View
-            style={sliderSt.trackContainer}
-            onLayout={(e: LayoutChangeEvent) => {
-              trackWidth.current = e.nativeEvent.layout.width;
-              setTrackW(e.nativeEvent.layout.width);
-            }}
-            {...panResponder.panHandlers}
-        >
-          <View style={sliderSt.trackBg} />
-          <View style={[sliderSt.trackFill, { width: fillWidth }]} />
-          <View style={[sliderSt.thumb, { left: thumbLeft }]}>
-            <Text style={sliderSt.thumbLabel}>{value}</Text>
-          </View>
-        </View>
-        <View style={sliderSt.labels}>
-          <Text style={sliderSt.labelText}>{MIN_FONT}</Text>
-          <Text style={sliderSt.labelText}>{MAX_FONT}</Text>
+    <View style={sliderSt.wrapper}>
+      <View
+        style={sliderSt.trackContainer}
+        onLayout={(e: LayoutChangeEvent) => {
+          trackWidth.current = e.nativeEvent.layout.width;
+          setTrackW(e.nativeEvent.layout.width);
+        }}
+        {...panResponder.panHandlers}
+      >
+        <View style={sliderSt.trackBg} />
+        <View style={[sliderSt.trackFill, { width: fillWidth }]} />
+        <View style={[sliderSt.thumb, { left: thumbLeft }]}>
+          <Text style={sliderSt.thumbLabel}>{value}</Text>
         </View>
       </View>
+      <View style={sliderSt.labels}>
+        <Text style={sliderSt.labelText}>{MIN_FONT}</Text>
+        <Text style={sliderSt.labelText}>{MAX_FONT}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -91,27 +91,27 @@ const sliderSt = StyleSheet.create({
 function Dropdown<T extends string>({ options, value, onChange, colors, customText }: { options: T[]; value: T; onChange: (v: T) => void; colors: any; customText: any }) {
   const [open, setOpen] = useState(false);
   return (
-      <View style={dd.wrapper}>
-        <TouchableOpacity style={[dd.button, { backgroundColor: colors.primary }]} onPress={() => setOpen((o) => !o)} activeOpacity={0.85}>
-          <Text style={[dd.buttonText, { fontFamily: customText.fontFamily }]}>{value}</Text>
-          <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color="#FFFFFF" />
-        </TouchableOpacity>
-        {open && (
-            <View style={[dd.menu, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              {options.map((opt) => (
-                  <TouchableOpacity
-                      key={opt}
-                      style={[dd.menuItem, opt === value && { backgroundColor: colors.border }]}
-                      onPress={() => { onChange(opt); setOpen(false); }}
-                  >
-                    <Text style={[dd.menuText, customText, opt === value && { color: colors.primary, fontWeight: '700' }]}>
-                      {opt}
-                    </Text>
-                  </TouchableOpacity>
-              ))}
-            </View>
-        )}
-      </View>
+    <View style={dd.wrapper}>
+      <TouchableOpacity style={[dd.button, { backgroundColor: colors.primary }]} onPress={() => setOpen((o) => !o)} activeOpacity={0.85}>
+        <Text style={[dd.buttonText, { fontFamily: customText.fontFamily }]}>{value}</Text>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color="#FFFFFF" />
+      </TouchableOpacity>
+      {open && (
+        <View style={[dd.menu, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {options.map((opt) => (
+            <TouchableOpacity
+              key={opt}
+              style={[dd.menuItem, opt === value && { backgroundColor: colors.border }]}
+              onPress={() => { onChange(opt); setOpen(false); }}
+            >
+              <Text style={[dd.menuText, customText, opt === value && { color: colors.primary, fontWeight: '700' }]}>
+                {opt}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -126,9 +126,9 @@ const dd = StyleSheet.create({
 
 function ColorSwatch({ color, selected, onPress, dark }: { color: string; selected: boolean; onPress: () => void; dark?: boolean }) {
   return (
-      <TouchableOpacity onPress={onPress} style={[sw.swatch, { backgroundColor: color }, color === '#FFFFFF' && sw.swatchBorder]} activeOpacity={0.8}>
-        {selected && <Ionicons name="checkmark" size={16} color={dark || color === '#1F2937' ? '#FFFFFF' : '#1F2937'} />}
-      </TouchableOpacity>
+    <TouchableOpacity onPress={onPress} style={[sw.swatch, { backgroundColor: color }, color === '#FFFFFF' && sw.swatchBorder]} activeOpacity={0.8}>
+      {selected && <Ionicons name="checkmark" size={16} color={dark || color === '#1F2937' ? '#FFFFFF' : '#1F2937'} />}
+    </TouchableOpacity>
   );
 }
 const sw = StyleSheet.create({
@@ -138,13 +138,13 @@ const sw = StyleSheet.create({
 
 export default function CustomizePage() {
   const { colors, isDark } = useTheme();
-  const { settings, saveSettings, effectiveTextColor } = useCustomize();
+  const { settings, saveSettings } = useCustomize();
   const [draft, setDraft] = useState<CustomizeSettings>({ ...settings });
   const { t, isArabic } = useTranslation(draft.language);
 
   const customText = {
     fontSize:   settings.fontSize,
-    color:      effectiveTextColor(isDark),
+    color:      settings.textColor,
     fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
   };
 
@@ -160,144 +160,144 @@ export default function CustomizePage() {
   const previewFont = draft.fontFamily === 'System' ? undefined : draft.fontFamily;
 
   return (
-      <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
-        <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
+    <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
+      <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.card }]}>
-          <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
-            <Ionicons name={isArabic ? 'chevron-back' : 'chevron-back'} size={24} color={colors.text} />
-          </TouchableOpacity>
-          <View style={styles.headerTitleRow}>
-            <Text style={[styles.headerTitle, customText]}>{t('customize')}</Text>
-          </View>
-          <TouchableOpacity style={[styles.resetButton, { borderColor: colors.border }]} onPress={() => setDraft({ ...DEFAULT_SETTINGS })}>
-            <Ionicons name="refresh-outline" size={18} color={colors.subText} />
-          </TouchableOpacity>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: colors.card }]}>
+        <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
+          <Ionicons name={isArabic ? 'chevron-back' : 'chevron-back'} size={24} color={colors.text} />
+        </TouchableOpacity>
+        <View style={styles.headerTitleRow}>
+          <Text style={[styles.headerTitle, customText]}>{t('customize')}</Text>
+        </View>
+        <TouchableOpacity style={[styles.resetButton, { borderColor: colors.border }]} onPress={() => setDraft({ ...DEFAULT_SETTINGS })}>
+          <Ionicons name="refresh-outline" size={18} color={colors.subText} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+      >
+        {/* Live Preview */}
+        <View style={[styles.previewCard, { backgroundColor: draft.backgroundColor }]}>
+          <Text style={[styles.previewLabel, { color: draft.textColor, fontSize: 11, fontFamily: previewFont }]}>{t('preview')}</Text>
+          <Text style={{ fontSize: draft.fontSize, color: draft.textColor, fontFamily: previewFont, fontWeight: '500', textAlign: 'center', marginTop: 6 }}>
+            {t('previewText')}
+          </Text>
         </View>
 
-        <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            nestedScrollEnabled={true}
-        >
-          {/* Live Preview */}
-          <View style={[styles.previewCard, { backgroundColor: draft.backgroundColor }]}>
-            <Text style={[styles.previewLabel, { color: draft.textColor, fontSize: 11, fontFamily: previewFont }]}>{t('preview')}</Text>
-            <Text style={{ fontSize: draft.fontSize, color: draft.textColor, fontFamily: previewFont, fontWeight: '500', textAlign: 'center', marginTop: 6 }}>
-              {t('previewText')}
-            </Text>
+        {/* Settings Card */}
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+
+          {/* Language - zIndex عالي */}
+          <View style={[styles.row, styles.rowBorder, {
+            borderBottomColor: colors.border,
+            flexDirection: isArabic ? 'row-reverse' : 'row',
+            zIndex: 999,
+            elevation: 999,
+          }]}>
+            <View style={[styles.labelRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1A3040' : '#EAF4FB' }]}>
+                <Ionicons name="language-outline" size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.label, customText]}>{t('language')}</Text>
+            </View>
+            <Dropdown<Language>
+              options={LANGUAGES}
+              value={draft.language}
+              onChange={(v) => setDraft((d) => ({ ...d, language: v }))}
+              colors={colors}
+              customText={customText}
+            />
           </View>
 
-          {/* Settings Card */}
-          <View style={[styles.card, { backgroundColor: colors.card }]}>
-
-            {/* Language - zIndex عالي */}
-            <View style={[styles.row, styles.rowBorder, {
-              borderBottomColor: colors.border,
-              flexDirection: isArabic ? 'row-reverse' : 'row',
-              zIndex: 999,
-              elevation: 999,
-            }]}>
-              <View style={[styles.labelRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1A3040' : '#EAF4FB' }]}>
-                  <Ionicons name="language-outline" size={20} color={colors.primary} />
-                </View>
-                <Text style={[styles.label, customText]}>{t('language')}</Text>
+          {/* Font Type - zIndex أقل */}
+          <View style={[styles.row, styles.rowBorder, {
+            borderBottomColor: colors.border,
+            flexDirection: isArabic ? 'row-reverse' : 'row',
+            zIndex: 998,
+            elevation: 998,
+          }]}>
+            <View style={[styles.labelRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1A3040' : '#EAF4FB' }]}>
+                <Text style={[styles.iconText, customText, { color: colors.primary }]}>T</Text>
               </View>
-              <Dropdown<Language>
-                  options={LANGUAGES}
-                  value={draft.language}
-                  onChange={(v) => setDraft((d) => ({ ...d, language: v }))}
-                  colors={colors}
-                  customText={customText}
-              />
+              <Text style={[styles.label, customText]}>{t('fontType')}</Text>
             </View>
-
-            {/* Font Type - zIndex أقل */}
-            <View style={[styles.row, styles.rowBorder, {
-              borderBottomColor: colors.border,
-              flexDirection: isArabic ? 'row-reverse' : 'row',
-              zIndex: 998,
-              elevation: 998,
-            }]}>
-              <View style={[styles.labelRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1A3040' : '#EAF4FB' }]}>
-                  <Text style={[styles.iconText, customText, { color: colors.primary }]}>T</Text>
-                </View>
-                <Text style={[styles.label, customText]}>{t('fontType')}</Text>
-              </View>
-              <Dropdown<FontFamily>
-                  options={FONT_FAMILIES}
-                  value={draft.fontFamily}
-                  onChange={(v) => setDraft((d) => ({ ...d, fontFamily: v }))}
-                  colors={colors}
-                  customText={customText}
-              />
-            </View>
-
-            {/* Font Size */}
-            <View style={[styles.row, styles.rowBorder, {
-              borderBottomColor: colors.border,
-              zIndex: 1,
-              elevation: 1,
-            }]}>
-              <View style={styles.fullWidth}>
-                <View style={[styles.labelRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                  <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1A3040' : '#EAF4FB' }]}>
-                    <Text style={[styles.iconTextSm, customText, { color: colors.primary }]}>Aa</Text>
-                  </View>
-                  <Text style={[styles.label, customText]}>{t('fontSize')}</Text>
-                </View>
-                <FontSlider value={draft.fontSize} onChange={(v) => setDraft((d) => ({ ...d, fontSize: v }))} />
-              </View>
-            </View>
-
-            {/* Text Color */}
-            <View style={[styles.colorBlock, styles.rowBorder, {
-              borderBottomColor: colors.border,
-              zIndex: 1,
-              elevation: 1,
-            }]}>
-              <View style={[styles.labelRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1A3040' : '#EAF4FB' }]}>
-                  <Ionicons name="brush-outline" size={18} color={colors.primary} />
-                </View>
-                <Text style={[styles.label, customText]}>{t('textColor')}</Text>
-              </View>
-              <View style={[styles.swatchRow, { marginLeft: 44, marginTop: 10 }]}>
-                {TEXT_COLORS.map((c) => (
-                    <ColorSwatch key={c.value} color={c.value} selected={draft.textColor === c.value} onPress={() => setDraft((d) => ({ ...d, textColor: c.value }))} dark={c.value === '#1F2937'} />
-                ))}
-              </View>
-            </View>
-
-            {/* Background Color */}
-            <View style={[styles.colorBlock, { zIndex: 1, elevation: 1 }]}>
-              <View style={[styles.labelRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1A3040' : '#EAF4FB' }]}>
-                  <Ionicons name="color-fill-outline" size={18} color={colors.primary} />
-                </View>
-                <Text style={[styles.label, customText]}>{t('backgroundColor')}</Text>
-              </View>
-              <View style={[styles.swatchRow, { marginLeft: 44, marginTop: 10 }]}>
-                {BG_COLORS.map((c) => (
-                    <ColorSwatch key={c.value} color={c.value} selected={draft.backgroundColor === c.value} onPress={() => setDraft((d) => ({ ...d, backgroundColor: c.value }))} />
-                ))}
-              </View>
-            </View>
-
+            <Dropdown<FontFamily>
+              options={FONT_FAMILIES}
+              value={draft.fontFamily}
+              onChange={(v) => setDraft((d) => ({ ...d, fontFamily: v }))}
+              colors={colors}
+              customText={customText}
+            />
           </View>
 
-          {/* Confirm */}
-          <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: colors.primary }]} onPress={handleConfirm} activeOpacity={0.85}>
-            <Text style={[styles.confirmBtnText, { fontFamily: customText.fontFamily, fontSize: settings.fontSize }]}>{t('confirm')}</Text>
-          </TouchableOpacity>
+          {/* Font Size */}
+          <View style={[styles.row, styles.rowBorder, {
+            borderBottomColor: colors.border,
+            zIndex: 1,
+            elevation: 1,
+          }]}>
+            <View style={styles.fullWidth}>
+              <View style={[styles.labelRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+                <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1A3040' : '#EAF4FB' }]}>
+                  <Text style={[styles.iconTextSm, customText, { color: colors.primary }]}>Aa</Text>
+                </View>
+                <Text style={[styles.label, customText]}>{t('fontSize')}</Text>
+              </View>
+              <FontSlider value={draft.fontSize} onChange={(v) => setDraft((d) => ({ ...d, fontSize: v }))} />
+            </View>
+          </View>
 
-          <View style={{ height: 30 }} />
-        </ScrollView>
-      </SafeAreaView>
+          {/* Text Color */}
+          <View style={[styles.colorBlock, styles.rowBorder, {
+            borderBottomColor: colors.border,
+            zIndex: 1,
+            elevation: 1,
+          }]}>
+            <View style={[styles.labelRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1A3040' : '#EAF4FB' }]}>
+                <Ionicons name="brush-outline" size={18} color={colors.primary} />
+              </View>
+              <Text style={[styles.label, customText]}>{t('textColor')}</Text>
+            </View>
+            <View style={[styles.swatchRow, { marginLeft: 44, marginTop: 10 }]}>
+              {TEXT_COLORS.map((c) => (
+                <ColorSwatch key={c.value} color={c.value} selected={draft.textColor === c.value} onPress={() => setDraft((d) => ({ ...d, textColor: c.value, textColorCustomized: true }))} dark={c.value === '#1F2937'} />
+              ))}
+            </View>
+          </View>
+
+          {/* Background Color */}
+          <View style={[styles.colorBlock, { zIndex: 1, elevation: 1 }]}>
+            <View style={[styles.labelRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1A3040' : '#EAF4FB' }]}>
+                <Ionicons name="color-fill-outline" size={18} color={colors.primary} />
+              </View>
+              <Text style={[styles.label, customText]}>{t('backgroundColor')}</Text>
+            </View>
+            <View style={[styles.swatchRow, { marginLeft: 44, marginTop: 10 }]}>
+              {BG_COLORS.map((c) => (
+                <ColorSwatch key={c.value} color={c.value} selected={draft.backgroundColor === c.value} onPress={() => setDraft((d) => ({ ...d, backgroundColor: c.value }))} />
+              ))}
+            </View>
+          </View>
+
+        </View>
+
+        {/* Confirm */}
+        <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: colors.primary }]} onPress={handleConfirm} activeOpacity={0.85}>
+          <Text style={[styles.confirmBtnText, { fontFamily: customText.fontFamily, fontSize: settings.fontSize }]}>{t('confirm')}</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 30 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
