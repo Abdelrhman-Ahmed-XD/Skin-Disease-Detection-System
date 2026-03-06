@@ -11,23 +11,12 @@ python-dotenv==1.0.0
 # Cloudinary (image storage)
 cloudinary==1.36.0
 
-# TensorFlow / Keras (CNN model)
-tensorflow==2.13.0
-keras==2.13.1
-
-# PyTorch (UNet segmentation model)
-torch==2.1.0
-torchvision==0.16.0
-
 # Image Processing
-opencv-python==4.8.1.78
 Pillow==10.0.1
 numpy==1.24.3
 
 # Utilities
-scikit-learn==1.3.2
-matplotlib==3.7.3
-pandas==2.1.1
+requests==2.31.0
 
 # Server
 gunicorn==21.2.0
@@ -36,4 +25,16 @@ Werkzeug==2.3.7
 # Social Auth (Google & Facebook token verification)
 google-auth==2.23.4
 google-auth-oauthlib==1.1.0
-requests==2.31.0
+
+# ─────────────────────────────────────────────────────────────────
+# NOTE: AI model dependencies are commented out until models are
+# connected. Uncomment these when you're ready to add the AI:
+# ─────────────────────────────────────────────────────────────────
+# tensorflow==2.13.0
+# keras==2.13.1
+# torch==2.1.0
+# torchvision==0.16.0
+# opencv-python==4.8.1.78
+# scikit-learn==1.3.2
+# matplotlib==3.7.3
+# pandas==2.1.1
