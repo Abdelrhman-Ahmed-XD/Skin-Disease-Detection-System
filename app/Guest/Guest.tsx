@@ -192,17 +192,9 @@ export default function Guest() {
         },
     })).current;
 
-    // ── Guest counter ──────────────────────────────────────────
+    // ── Guest name (no counter) ────────────────────────────────
     useEffect(() => {
-        const assignGuestName = async () => {
-            try {
-                const countStr = await AsyncStorage.getItem('guest_count');
-                const count    = countStr ? parseInt(countStr) + 1 : 1;
-                await AsyncStorage.setItem('guest_count', String(count));
-                setUserName(`Guest ${count}`);
-            } catch {}
-        };
-        assignGuestName();
+        setUserName('Guest');
     }, []);
 
     useFocusEffect(
@@ -433,7 +425,7 @@ export default function Guest() {
                 <View style={styles.headerContent}>
                     <TouchableOpacity style={styles.profileIconContainer}>
                         {/* ── Custom person icon ── */}
-                        <Image source={Icons.person} style={styles.navIconImg} resizeMode="contain" />
+                        <Image source={Icons.person} style={styles.headerIconImg} resizeMode="contain" />
                     </TouchableOpacity>
                     <View style={styles.welcomeContainer}>
                         <Text style={styles.welcomeLabel}>Welcome,</Text>
@@ -530,7 +522,7 @@ export default function Guest() {
                         );
                     })}
                 </View>
-                {/* Camera center button — keep Ionicons since no camera.png provided */}
+                {/* Camera center button */}
                 <TouchableOpacity
                     style={[styles.cameraButton, activeTab === 'Camera' && styles.cameraButtonActive]}
                     onPress={() => handleTabPress('Camera')}
@@ -622,6 +614,7 @@ const styles = StyleSheet.create({
     navIcon:              { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F9FAFB', justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
     navIconActive:        { backgroundColor: '#E8F4F8', borderWidth: 2, borderColor: '#C5E3ED' },
     navIconImg:           { width: 34, height: 34 },
+    headerIconImg:        { width: 40, height: 40 },
     notifIconImg:         { width: 36, height: 36 },
     navText:              { fontSize: 11, color: '#6B7280', fontWeight: '500' },
     navTextActive:        { fontSize: 11, color: '#004F7F', fontWeight: '700' },
