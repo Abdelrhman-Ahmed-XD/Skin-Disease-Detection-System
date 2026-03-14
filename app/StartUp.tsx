@@ -5,27 +5,48 @@ export default function StartUp() {
   const [showImage] = useState(true);
   return (
     <>
-      
       <View style={styles.container}>
         {showImage && (
-          <Image
-            source={require("../assets/images/The Buzz 1.png")}
-            style={styles.image}
-            resizeMode="cover"
-          />
+          <>
+            <Image
+              source={require("../assets/images/The Buzz 1.png")}
+              style={{ width: "100%", height: "100%", position: "absolute" }}
+              resizeMode="cover"
+            />
+            {/* Logo on top */}
+            <Image
+              source={require("../assets/images/Skinsignt.png")}
+              style={{
+                position: "absolute",
+                top: 55,
+                width: 350, // ← كانت 200
+                height: 150, // ← كانت 100
+                resizeMode: "contain",
+              }}
+            />
+          </>
         )}
-        <TouchableOpacity style={styles.button1} onPress={()=>router.push("/Login1")}>
+        <TouchableOpacity
+          style={styles.button1}
+          onPress={() => router.push("/Login1")}
+        >
           <Text style={styles.text1}>Login</Text>
-        </TouchableOpacity >
-        <TouchableOpacity style={styles.button2 } onPress={()=>router.push("/SignUp")}>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.button2}
+          onPress={() => router.push("/SignUp")}
+        >
           <Text style={styles.text2}>Sign UP</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button3} onPress={()=>router.push("/Guest/Guest")}>
+        <TouchableOpacity
+          style={styles.button3}
+          onPress={() => router.push("/Guest/Guest")}
+        >
           <Text style={styles.text3}>Guest</Text>
         </TouchableOpacity>
       </View>
     </>
-  )
+  );
 };
 const styles = StyleSheet.create({
   container: {

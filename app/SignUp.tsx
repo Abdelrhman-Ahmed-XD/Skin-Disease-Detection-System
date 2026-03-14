@@ -187,7 +187,7 @@ export default function SignUp() {
                     </Pressable>
 
                     <Image
-                        source={require("../assets/images/Skinsight.png")}
+                        source={require("../assets/images/Splashscreen1 .png")}
                         style={styles.logo}
                         resizeMode="contain"
                     />

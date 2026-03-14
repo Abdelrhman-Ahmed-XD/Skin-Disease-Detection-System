@@ -377,7 +377,7 @@ export default function Login1() {
                         <Ionicons name="arrow-back" size={28} color="black" />
                     </Pressable>
 
-                    <Image source={require("../assets/images/Skinsight.png")} style={styles.logo} resizeMode="contain" />
+                    <Image source={require("../assets/images/Splashscreen1 .png")} style={styles.logo} resizeMode="contain" />
                     <Text style={styles.title}>Log in</Text>
 
                     <Text style={styles.label}>Email</Text>

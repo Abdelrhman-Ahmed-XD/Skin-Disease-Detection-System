@@ -7,7 +7,7 @@ import { I18nManager, Image, StyleSheet, View } from "react-native";
 if (I18nManager.isRTL) {
   I18nManager.allowRTL(false);
   I18nManager.forceRTL(false);
-  Updates.reloadAsync(); // ← ده المهم! بيعمل restart لو الـ RTL اتغير
+  Updates.reloadAsync();
 }
 
 export default function Index() {
@@ -25,11 +25,27 @@ export default function Index() {
     <>
       <View style={styles.container}>
         {showImage && (
-          <Image
-            source={require("../assets/images/splash-screen.png")}
-            style={styles.image}
-            resizeMode="cover"
-          />
+          <View style={{ flex: 1, width: "100%" }}>
+            {/* Background Image */}
+            <Image
+              source={require("../assets/images/splash-screen.png")}
+              style={{ width: "100%", height: "100%", position: "absolute" }}
+              resizeMode="cover"
+            />
+            {/* Logo in center */}
+            <Image
+              source={require("../assets/images/Logo4.png")}
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "45%",
+                transform: [{ translateX: -150 }, { translateY: -75 }],
+                width: 380,
+                height: 150,
+                resizeMode: "contain",
+              }}
+            />
+          </View>
         )}
         {!showImage && <StartUp />}
       </View>
