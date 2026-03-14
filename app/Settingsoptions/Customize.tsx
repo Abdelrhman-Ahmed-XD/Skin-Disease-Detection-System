@@ -143,9 +143,10 @@ export default function CustomizePage() {
   const { t, isArabic } = useTranslation(draft.language);
 
   const customText = {
-    fontSize:   settings.fontSize,
-    color:      settings.textColor,
-    fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
+    fontSize: settings.fontSize,
+    color: isDark ? "#FFFFFF" : settings.textColor,
+    fontFamily:
+      settings.fontFamily === "System" ? undefined : settings.fontFamily,
   };
 
   const pageBg = isDark ? colors.background : settings.backgroundColor;

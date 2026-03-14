@@ -26,9 +26,10 @@ export default function NotificationsPage() {
   const { t, isArabic } = useTranslation(settings.language);
 
   const customText = {
-    fontSize:   settings.fontSize,
-    color:      settings.textColor,
-    fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
+    fontSize: settings.fontSize,
+    color: isDark ? "#FFFFFF" : settings.textColor,
+    fontFamily:
+      settings.fontFamily === "System" ? undefined : settings.fontFamily,
   };
 
   // ✅ background من settings في light mode
@@ -148,54 +149,197 @@ export default function NotificationsPage() {
                 styles.notifCard,
                 { backgroundColor: notif.read ? cardBg : cardUnreadBg },
                 isOpen && { borderColor: accentColor, elevation: 3 },
-                !notif.read && { borderColor: isDark ? '#2A5570' : '#BEE0F0' },
+                !notif.read && { borderColor: isDark ? "#2A5570" : "#BEE0F0" },
               ]}
             >
-              {!notif.read && <View style={[styles.unreadDot, { backgroundColor: accentColor }]} />}
+              {!notif.read && (
+                <View
+                  style={[styles.unreadDot, { backgroundColor: accentColor }]}
+                />
+              )}
 
-              <View style={[styles.notifRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                <Image source={{ uri: notif.image }} style={[styles.notifImage, isOpen && styles.notifImageOpen]} resizeMode="cover" />
-                <View style={[styles.notifTextBlock, { alignItems: isArabic ? 'flex-end' : 'flex-start' }]}>
-                  <Text style={[styles.notifLabel, customText]}>{t('skinDiseaseDetected')}</Text>
-                  <Text style={[styles.notifDisease, customText, { color: isOpen ? accentColor : settings.textColor }]}>{notif.disease}</Text>
-                  <Text style={[styles.notifTime, customText]}>{notif.time}</Text>
+              <View
+                style={[
+                  styles.notifRow,
+                  { flexDirection: isArabic ? "row-reverse" : "row" },
+                ]}
+              >
+                <Image
+                  source={{ uri: notif.image }}
+                  style={[styles.notifImage, isOpen && styles.notifImageOpen]}
+                  resizeMode="cover"
+                />
+                <View
+                  style={[
+                    styles.notifTextBlock,
+                    { alignItems: isArabic ? "flex-end" : "flex-start" },
+                  ]}
+                >
+                  <Text style={[styles.notifLabel, customText]}>
+                    {t("skinDiseaseDetected")}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.notifDisease,
+                      customText,
+                      {
+                        color: isOpen
+                          ? accentColor
+                          : isDark
+                            ? "#FFFFFF"
+                            : settings.textColor,
+                      },
+                    ]}
+                  >
+                    {notif.disease}
+                  </Text>
+                  <Text style={[styles.notifTime, customText]}>
+                    {notif.time}
+                  </Text>
                 </View>
-                <View style={[styles.arrowBox, { borderColor: accentColor }, isOpen && { backgroundColor: accentColor }]}>
-                  <Ionicons name={isOpen ? 'chevron-down' : (isArabic ? 'chevron-back' : 'chevron-forward')} size={15} color={isOpen ? '#FFFFFF' : accentColor} />
+                <View
+                  style={[
+                    styles.arrowBox,
+                    { borderColor: accentColor },
+                    isOpen && { backgroundColor: accentColor },
+                  ]}
+                >
+                  <Ionicons
+                    name={
+                      isOpen
+                        ? "chevron-down"
+                        : isArabic
+                          ? "chevron-back"
+                          : "chevron-forward"
+                    }
+                    size={15}
+                    color={isOpen ? "#FFFFFF" : accentColor}
+                  />
                 </View>
               </View>
 
               {isOpen && (
                 <View style={styles.expandedContent}>
-                  <View style={[styles.expandedDivider, { backgroundColor: isDark ? '#2A3F50' : '#E5F0F6' }]} />
+                  <View
+                    style={[
+                      styles.expandedDivider,
+                      { backgroundColor: isDark ? "#2A3F50" : "#E5F0F6" },
+                    ]}
+                  />
 
-                  <View style={[styles.confidenceRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                    <Ionicons name="analytics-outline" size={15} color={accentColor} />
-                    <Text style={[styles.confidenceLabel, customText]}>{t('aiConfidence')}</Text>
-                    <View style={[styles.confidenceBadge, { backgroundColor: isDark ? '#1A3040' : '#E8F4FA' }]}>
-                      <Text style={[styles.confidenceBadgeText, customText, { color: accentColor }]}>{notif.details.confidence}</Text>
+                  <View
+                    style={[
+                      styles.confidenceRow,
+                      { flexDirection: isArabic ? "row-reverse" : "row" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="analytics-outline"
+                      size={15}
+                      color={accentColor}
+                    />
+                    <Text style={[styles.confidenceLabel, customText]}>
+                      {t("aiConfidence")}
+                    </Text>
+                    <View
+                      style={[
+                        styles.confidenceBadge,
+                        { backgroundColor: isDark ? "#1A3040" : "#E8F4FA" },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.confidenceBadgeText,
+                          customText,
+                          { color: accentColor },
+                        ]}
+                      >
+                        {notif.details.confidence}
+                      </Text>
                     </View>
                   </View>
 
                   <View style={styles.expandedSection}>
-                    <View style={[styles.expandedSectionHeader, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                      <Ionicons name="information-circle-outline" size={15} color={accentColor} />
-                      <Text style={[styles.expandedSectionTitle, customText]}>{t('aboutCondition')}</Text>
+                    <View
+                      style={[
+                        styles.expandedSectionHeader,
+                        { flexDirection: isArabic ? "row-reverse" : "row" },
+                      ]}
+                    >
+                      <Ionicons
+                        name="information-circle-outline"
+                        size={15}
+                        color={accentColor}
+                      />
+                      <Text style={[styles.expandedSectionTitle, customText]}>
+                        {t("aboutCondition")}
+                      </Text>
                     </View>
-                    <Text style={[styles.expandedText, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{notif.details.description}</Text>
+                    <Text
+                      style={[
+                        styles.expandedText,
+                        customText,
+                        { textAlign: isArabic ? "right" : "left" },
+                      ]}
+                    >
+                      {notif.details.description}
+                    </Text>
                   </View>
 
-                  <View style={[styles.expandedSection, styles.recommendationBox, { backgroundColor: isDark ? '#1A3040' : '#F0F9FF', borderLeftColor: accentColor }]}>
-                    <View style={[styles.expandedSectionHeader, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                      <Ionicons name="medkit-outline" size={15} color={accentColor} />
-                      <Text style={[styles.expandedSectionTitle, customText]}>{t('recommendation')}</Text>
+                  <View
+                    style={[
+                      styles.expandedSection,
+                      styles.recommendationBox,
+                      {
+                        backgroundColor: isDark ? "#1A3040" : "#F0F9FF",
+                        borderLeftColor: accentColor,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.expandedSectionHeader,
+                        { flexDirection: isArabic ? "row-reverse" : "row" },
+                      ]}
+                    >
+                      <Ionicons
+                        name="medkit-outline"
+                        size={15}
+                        color={accentColor}
+                      />
+                      <Text style={[styles.expandedSectionTitle, customText]}>
+                        {t("recommendation")}
+                      </Text>
                     </View>
-                    <Text style={[styles.expandedText, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{notif.details.recommendation}</Text>
+                    <Text
+                      style={[
+                        styles.expandedText,
+                        customText,
+                        { textAlign: isArabic ? "right" : "left" },
+                      ]}
+                    >
+                      {notif.details.recommendation}
+                    </Text>
                   </View>
 
-                  <TouchableOpacity style={[styles.consultButton, { backgroundColor: accentColor, flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+                  <TouchableOpacity
+                    style={[
+                      styles.consultButton,
+                      {
+                        backgroundColor: accentColor,
+                        flexDirection: isArabic ? "row-reverse" : "row",
+                      },
+                    ]}
+                  >
                     <Ionicons name="person-outline" size={15} color="#FFFFFF" />
-                    <Text style={[styles.consultButtonText, { fontFamily: customText.fontFamily }]}>{t('consultDoctor')}</Text>
+                    <Text
+                      style={[
+                        styles.consultButtonText,
+                        { fontFamily: customText.fontFamily },
+                      ]}
+                    >
+                      {t("consultDoctor")}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}

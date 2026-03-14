@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     navItem:              { flex: 1, alignItems: 'center', justifyContent: 'center' },
     navIcon:              { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F9FAFB', justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
     navIconActive:        { backgroundColor: '#E8F4F8', borderWidth: 2, borderColor: '#C5E3ED' },
-    navIconImg:           { width: 34, height: 34 },
+    navIconImg:           { width: 44, height: 44 },
     headerIconImg:        { width: 40, height: 40 },
     notifIconImg:         { width: 36, height: 36 },
     navText:              { fontSize: 11, color: '#6B7280', fontWeight: '500' },

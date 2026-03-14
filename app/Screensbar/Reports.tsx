@@ -317,142 +317,341 @@ export default function ReportsPage() {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
-            <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: pageBg }]}
+        edges={["top"]}
+      >
+        <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
-            <View style={[styles.header, { backgroundColor: colors.card }]}>
-                <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
-                    <Ionicons name="chevron-back" size={24} color={colors.text} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, customText]}>{t('reports')}</Text>
-                <View style={{ width: 40 }} />
+        <View style={[styles.header, { backgroundColor: colors.card }]}>
+          <TouchableOpacity
+            style={[styles.backButton, { borderColor: colors.border }]}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text
+            style={[
+              styles.headerTitle,
+              customText,
+              { color: isDark ? "#fff" : "#374151" },
+            ]}
+          >
+            {t("reports")}
+          </Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, customText]}>
+                {t("loadingReports")}
+              </Text>
             </View>
-
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                {loading ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color={colors.primary} />
-                        <Text style={[styles.loadingText, customText]}>{t('loadingReports')}</Text>
-                    </View>
-                ) : moles.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Image source={Icons.reports} style={styles.emptyIcon} resizeMode="contain" />
-                        <Text style={[styles.emptyTitle, customText]}>{t('noReportsYet')}</Text>
-                        <Text style={[styles.emptyText, customText, { color: colors.subText }]}>{t('noReportsSubtitle')}</Text>
-                    </View>
-                ) : (
-                    <>
-                        {moles.map((mole, index) => (
-                            <View key={mole.id} style={[styles.reportCard, { backgroundColor: colors.card }]}>
-                                <TouchableOpacity
-                                    style={styles.imageContainer}
-                                    onPress={() => router.push({ pathname: "/Screensbar/Reportdetails", params: { moleId: mole.id, photoUri: mole.photoUri, timestamp: mole.timestamp.toString(), bodyView: mole.bodyView, x: mole.x.toString(), y: mole.y.toString(), analysis: mole.analysis || '', reportIndex: index.toString() } })}
-                                    activeOpacity={0.9}
-                                >
-                                    <Image source={{ uri: mole.photoUri }} style={styles.reportImage} resizeMode="cover" />
-                                    <View style={styles.imageBadge}>
-                                        <Text style={styles.imageBadgeText}>{mole.bodyView === 'front' ? t('frontBody') : t('backBody')}</Text>
-                                    </View>
-                                    <View style={styles.expandIcon}>
-                                        <Ionicons name="expand-outline" size={20} color="#FFFFFF" />
-                                    </View>
-                                </TouchableOpacity>
-
-                                <View style={styles.reportContent}>
-                                    <View style={[styles.reportHeader, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                                        <Text style={[styles.reportTitle, customText]}>{t('reportNum')}{index + 1}</Text>
-                                        <Text style={[styles.reportDate, customText, { color: colors.subText, fontSize: Math.max(11, settings.fontSize - 3) }]}>{formatDate(mole.timestamp)}</Text>
-                                    </View>
-                                    <Text style={[styles.reportText, customText, { color: colors.subText, textAlign: isArabic ? 'right' : 'left' }]}>
-                                        {mole.analysis || t('analysisInProgress')}
-                                    </Text>
-                                    <TouchableOpacity
-                                        style={[styles.downloadButton, { backgroundColor: isDark ? '#1E3A4A' : '#E8F4F8', borderColor: isDark ? '#374151' : '#C5E3ED', flexDirection: isArabic ? 'row-reverse' : 'row', alignSelf: isArabic ? 'flex-start' : 'flex-end', opacity: (downloadingId || downloadingAll) ? 0.5 : 1 }]}
-                                        onPress={() => downloadSingleReport(mole, index)}
-                                        activeOpacity={0.8}
-                                        disabled={!!downloadingId || downloadingAll}
-                                    >
-                                        {downloadingId === mole.id ? (
-                                            <ActivityIndicator size="small" color={colors.primary} />
-                                        ) : (
-                                            <>
-                                                <Ionicons name="download-outline" size={18} color={colors.primary} />
-                                                <Text style={[styles.downloadButtonText, { color: colors.primary }]}>{t('downloadPDF')}</Text>
-                                            </>
-                                        )}
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        ))}
-
-                        <TouchableOpacity
-                            style={[styles.downloadAllButton, { backgroundColor: colors.primary, flexDirection: isArabic ? 'row-reverse' : 'row' }]}
-                            onPress={downloadAllReports}
-                            disabled={downloadingAll}
-                            activeOpacity={0.8}
-                        >
-                            {downloadingAll ? (
-                                <ActivityIndicator size="small" color="#FFFFFF" />
-                            ) : (
-                                <>
-                                    <Ionicons name="cloud-download-outline" size={22} color="#FFFFFF" />
-                                    <Text style={styles.downloadAllText}>{t('downloadAll')}</Text>
-                                </>
-                            )}
-                        </TouchableOpacity>
-                    </>
-                )}
-            </ScrollView>
-
-            <View style={styles.bottomNavContainer}>
-                <View style={[styles.bottomNav, { backgroundColor: colors.navBg, borderTopColor: colors.border }]}>
-                    {['Home', 'Reports'].map((tabName) => {
-                        const tab = bottomTabs.find(t => t.name === tabName)!;
-                        const isActive = activeTab === tab.name;
-                        return (
-                            <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                                <View style={[styles.navIcon, { backgroundColor: isDark ? '#152030' : '#F9FAFB' }, isActive && { backgroundColor: isDark ? '#1E3A4A' : '#E8F4F8', borderWidth: 2, borderColor: isDark ? '#374151' : '#C5E3ED' }]}>
-                                    <Image
-                                        source={tab.iconImg}
-                                        style={styles.navIconImg}
-                                        resizeMode="contain"
-                                    />
-                                </View>
-                                <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: '700' }]}>
-                                    {tabLabels[tabName]}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                    <View style={styles.navCenterSpacer} />
-                    {['History', 'Settings'].map((tabName) => {
-                        const tab = bottomTabs.find(t => t.name === tabName)!;
-                        const isActive = activeTab === tab.name;
-                        return (
-                            <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                                <View style={[styles.navIcon, { backgroundColor: isDark ? '#152030' : '#F9FAFB' }, isActive && { backgroundColor: isDark ? '#1E3A4A' : '#E8F4F8', borderWidth: 2, borderColor: isDark ? '#374151' : '#C5E3ED' }]}>
-                                    <Image
-                                        source={tab.iconImg}
-                                        style={styles.navIconImg}
-                                        resizeMode="contain"
-                                    />
-                                </View>
-                                <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: '700' }]}>
-                                    {tabLabels[tabName]}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-                <TouchableOpacity
-                    style={[styles.cameraButton, { backgroundColor: colors.navBg, borderColor: isDark ? '#374151' : '#C5E3ED' }, activeTab === 'Camera' && { borderColor: colors.navActive, backgroundColor: isDark ? '#1E3A4A' : '#E8F4F8' }]}
-                    onPress={() => handleTabPress('Camera')}
-                    activeOpacity={0.85}
+          ) : moles.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Image
+                source={Icons.reports}
+                style={styles.emptyIcon}
+                resizeMode="contain"
+              />
+              <Text
+                style={[
+                  styles.emptyTitle,
+                  customText,
+                  { color: isDark ? "#fff" : "#374151" },
+                ]}
+              >
+                {t("noReportsYet")}
+              </Text>
+              <Text
+                style={[
+                  styles.emptyText,
+                  customText,
+                  { color: colors.subText },
+                ]}
+              >
+                {t("noReportsSubtitle")}
+              </Text>
+            </View>
+          ) : (
+            <>
+              {moles.map((mole, index) => (
+                <View
+                  key={mole.id}
+                  style={[styles.reportCard, { backgroundColor: colors.card }]}
                 >
-                    <Ionicons name="camera-outline" size={30} color={activeTab === 'Camera' ? colors.navActive : colors.navText} />
+                  <TouchableOpacity
+                    style={styles.imageContainer}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/Screensbar/Reportdetails",
+                        params: {
+                          moleId: mole.id,
+                          photoUri: mole.photoUri,
+                          timestamp: mole.timestamp.toString(),
+                          bodyView: mole.bodyView,
+                          x: mole.x.toString(),
+                          y: mole.y.toString(),
+                          analysis: mole.analysis || "",
+                          reportIndex: index.toString(),
+                        },
+                      })
+                    }
+                    activeOpacity={0.9}
+                  >
+                    <Image
+                      source={{ uri: mole.photoUri }}
+                      style={styles.reportImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.imageBadge}>
+                      <Text style={styles.imageBadgeText}>
+                        {mole.bodyView === "front"
+                          ? t("frontBody")
+                          : t("backBody")}
+                      </Text>
+                    </View>
+                    <View style={styles.expandIcon}>
+                      <Ionicons
+                        name="expand-outline"
+                        size={20}
+                        color="#FFFFFF"
+                      />
+                    </View>
+                  </TouchableOpacity>
+
+                  <View style={styles.reportContent}>
+                    <View
+                      style={[
+                        styles.reportHeader,
+                        { flexDirection: isArabic ? "row-reverse" : "row" },
+                      ]}
+                    >
+                      <Text style={[styles.reportTitle, customText]}>
+                        {t("reportNum")}
+                        {index + 1}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.reportDate,
+                          customText,
+                          {
+                            color: colors.subText,
+                            fontSize: Math.max(11, settings.fontSize - 3),
+                          },
+                        ]}
+                      >
+                        {formatDate(mole.timestamp)}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.reportText,
+                        customText,
+                        {
+                          color: colors.subText,
+                          textAlign: isArabic ? "right" : "left",
+                        },
+                      ]}
+                    >
+                      {mole.analysis || t("analysisInProgress")}
+                    </Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.downloadButton,
+                        {
+                          backgroundColor: isDark ? "#004F7F" : "#E8F4F8",
+                          borderColor: isDark ? "#374151" : "#C5E3ED",
+                          flexDirection: isArabic ? "row-reverse" : "row",
+                          alignSelf: isArabic ? "flex-start" : "flex-end",
+                          opacity: downloadingId || downloadingAll ? 0.5 : 1,
+                        },
+                      ]}
+                      onPress={() => downloadSingleReport(mole, index)}
+                      activeOpacity={0.8}
+                      disabled={!!downloadingId || downloadingAll}
+                    >
+                      {downloadingId === mole.id ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={colors.primary}
+                        />
+                      ) : (
+                        <>
+                          <Ionicons
+                            name="download-outline"
+                            size={18}
+                            color={isDark ? "#E8F4F8" : "#374151"}
+                          />
+                          <Text
+                            style={[
+                              styles.downloadButtonText,
+                              { color: isDark ? "#E8F4F8" : "#374151" },
+                            ]}
+                          >
+                            {t("downloadPDF")}
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+
+              <TouchableOpacity
+                style={[
+                  styles.downloadAllButton,
+                  {
+                    backgroundColor: colors.primary,
+                    flexDirection: isArabic ? "row-reverse" : "row",
+                  },
+                ]}
+                onPress={downloadAllReports}
+                disabled={downloadingAll}
+                activeOpacity={0.8}
+              >
+                {downloadingAll ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="cloud-download-outline"
+                      size={22}
+                      color="#FFFFFF"
+                    />
+                    <Text style={styles.downloadAllText}>
+                      {t("downloadAll")}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
+        </ScrollView>
+
+        <View style={styles.bottomNavContainer}>
+          <View
+            style={[
+              styles.bottomNav,
+              { backgroundColor: colors.navBg, borderTopColor: colors.border },
+            ]}
+          >
+            {["Home", "Reports"].map((tabName) => {
+              const tab = bottomTabs.find((t) => t.name === tabName)!;
+              const isActive = activeTab === tab.name;
+              return (
+                <TouchableOpacity
+                  key={tab.name}
+                  style={styles.navItem}
+                  onPress={() => handleTabPress(tab.name)}
+                >
+                  <View
+                    style={[
+                      styles.navIcon,
+                      {
+                        backgroundColor: isDark ? "#152030" : "#F9FAFB",
+                      },
+                      isActive && {
+                        backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                        borderWidth: 2,
+                        borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={tab.iconImg}
+                      style={styles.navIconImg}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.navText,
+                      {
+                        color: isActive ? colors.navActive : colors.navText,
+                      },
+                      isActive && { fontWeight: "700" },
+                    ]}
+                  >
+                    {tabLabels[tabName]}
+                  </Text>
                 </TouchableOpacity>
-            </View>
-        </SafeAreaView>
+              );
+            })}
+            <View style={styles.navCenterSpacer} />
+            {["History", "Settings"].map((tabName) => {
+              const tab = bottomTabs.find((t) => t.name === tabName)!;
+              const isActive = activeTab === tab.name;
+              return (
+                <TouchableOpacity
+                  key={tab.name}
+                  style={styles.navItem}
+                  onPress={() => handleTabPress(tab.name)}
+                >
+                  <View
+                    style={[
+                      styles.navIcon,
+                      {
+                        backgroundColor: isDark ? "#152030" : "#F9FAFB",
+                      },
+                      isActive && {
+                        backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                        borderWidth: 2,
+                        borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={tab.iconImg}
+                      style={styles.navIconImg}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.navText,
+                      {
+                        color: isActive ? colors.navActive : colors.navText,
+                      },
+                      isActive && { fontWeight: "700" },
+                    ]}
+                  >
+                    {tabLabels[tabName]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.cameraButton,
+              {
+                backgroundColor: colors.navBg,
+                borderColor: isDark ? "#374151" : "#C5E3ED",
+              },
+              activeTab === "Camera" && {
+                borderColor: colors.navActive,
+                backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+              },
+            ]}
+            onPress={() => handleTabPress("Camera")}
+            activeOpacity={0.85}
+          >
+            <Ionicons
+              name="camera-outline"
+              size={30}
+              color={activeTab === "Camera" ? colors.navActive : colors.navText}
+            />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
 }
 
@@ -489,7 +688,7 @@ const styles = StyleSheet.create({
     navCenterSpacer:    { flex: 1 },
     navItem:            { flex: 1, alignItems: 'center', justifyContent: 'center' },
     navIcon:            { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-    navIconImg:         { width: 24, height: 24 },
+    navIconImg:         { width: 44, height: 44 },
     navText:            { fontSize: 11, fontWeight: '500' },
     cameraButton:       { position: 'absolute', top: -26, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', borderWidth: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 6 },
 });

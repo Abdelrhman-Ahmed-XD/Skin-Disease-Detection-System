@@ -47,9 +47,10 @@ export default function HelpPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const customText = {
-    fontSize:   settings.fontSize,
-    color:      settings.textColor,
-    fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
+    fontSize: settings.fontSize,
+    color: isDark ? "#FFFFFF" : settings.textColor,
+    fontFamily:
+      settings.fontFamily === "System" ? undefined : settings.fontFamily,
   };
 
   // ✅ الـ background بيجي من settings.backgroundColor لما مش dark، وفي dark بيجي colors.background
@@ -82,27 +83,88 @@ export default function HelpPage() {
         {faqs.map((faq, index) => {
           const isOpen = openIndex === index;
           return (
-            <View key={index} style={[styles.card, { backgroundColor: colors.card }, isOpen && { borderColor: accentColor }]}>
+            <View
+              key={index}
+              style={[
+                styles.card,
+                { backgroundColor: colors.card },
+                isOpen && { borderColor: accentColor },
+              ]}
+            >
               <TouchableOpacity
-                style={[styles.questionRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}
+                style={[
+                  styles.questionRow,
+                  { flexDirection: isArabic ? "row-reverse" : "row" },
+                ]}
                 onPress={() => toggle(index)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.questionText, customText, { color: isOpen ? accentColor : settings.textColor, textAlign: isArabic ? 'right' : 'left' }]}>
+                <Text
+                  style={[
+                    styles.questionText,
+                    customText,
+                    {
+                      color: isOpen
+                        ? accentColor
+                        : isDark
+                          ? "#FFFFFF"
+                          : settings.textColor,
+                      textAlign: isArabic ? "right" : "left",
+                    },
+                  ]}
+                >
+                  {" "}
                   {faq.question}
                 </Text>
-                <View style={[styles.arrowWrapper, { borderColor: accentColor }, isOpen && { backgroundColor: accentColor }]}>
-                  <Ionicons name={isOpen ? 'chevron-down' : (isArabic ? 'chevron-back' : 'chevron-forward')} size={16} color={isOpen ? '#FFFFFF' : accentColor} />
+                <View
+                  style={[
+                    styles.arrowWrapper,
+                    { borderColor: accentColor },
+                    isOpen && { backgroundColor: accentColor },
+                  ]}
+                >
+                  <Ionicons
+                    name={
+                      isOpen
+                        ? "chevron-down"
+                        : isArabic
+                          ? "chevron-back"
+                          : "chevron-forward"
+                    }
+                    size={16}
+                    color={isOpen ? "#FFFFFF" : accentColor}
+                  />
                 </View>
               </TouchableOpacity>
 
               {isOpen && (
                 <View style={styles.answersContainer}>
-                  <View style={[styles.divider, { backgroundColor: isDark ? '#2A3F50' : '#E5F0F6' }]} />
+                  <View
+                    style={[
+                      styles.divider,
+                      { backgroundColor: isDark ? "#2A3F50" : "#E5F0F6" },
+                    ]}
+                  />
                   {faq.answers.map((answer, i) => (
-                    <View key={i} style={[styles.answerRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                      <Text style={[styles.bullet, { color: accentColor }]}>←</Text>
-                      <Text style={[styles.answerText, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{answer}</Text>
+                    <View
+                      key={i}
+                      style={[
+                        styles.answerRow,
+                        { flexDirection: isArabic ? "row-reverse" : "row" },
+                      ]}
+                    >
+                      <Text style={[styles.bullet, { color: accentColor }]}>
+                        →
+                      </Text>
+                      <Text
+                        style={[
+                          styles.answerText,
+                          customText,
+                          { textAlign: isArabic ? "right" : "left" },
+                        ]}
+                      >
+                        {answer}
+                      </Text>
                     </View>
                   ))}
                 </View>

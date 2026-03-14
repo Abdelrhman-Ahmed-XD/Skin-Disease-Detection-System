@@ -15,7 +15,7 @@ import { useTranslation } from "../Customize/translations";
 import { useTheme } from "../ThemeContext";
 import { loadProfileFromFirestore, saveProfileToFirestore } from "../../Firebase/firestoreProfileService";
 
-const STORAGE_KEY = "signupDraft";
+const STORAGE_KEY       = "signupDraft";
 const CLOUDINARY_CLOUD  = "dignpxpgy";
 const CLOUDINARY_PRESET = "skinsight_uploads";
 
@@ -48,22 +48,21 @@ export default function EditProfile() {
     const { t, isArabic } = useTranslation(settings.language);
 
     const customText = {
-        fontSize:   settings.fontSize,
-        color:      settings.textColor,
-        fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
+      fontSize:   settings.fontSize,
+      color:      isDark ? "#FFFFFF" : settings.textColor,
+      fontFamily: settings.fontFamily === "System" ? undefined : settings.fontFamily,
     };
 
-    // ✅ background من settings في light mode
     const pageBg = isDark ? colors.background : settings.backgroundColor;
 
-    const [loading, setLoading]     = useState(true);
-    const [saving, setSaving]       = useState(false);
-    const [isDirty, setIsDirty]     = useState(false);
-    const [photoUri, setPhotoUri]   = useState<string | null>(null);
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName]   = useState("");
-    const [email, setEmail]         = useState("");
-    const [birthDay, setBirthDay]   = useState<number | null>(null);
+    const [loading, setLoading]       = useState(true);
+    const [saving, setSaving]         = useState(false);
+    const [isDirty, setIsDirty]       = useState(false);
+    const [photoUri, setPhotoUri]     = useState<string | null>(null);
+    const [firstName, setFirstName]   = useState("");
+    const [lastName, setLastName]     = useState("");
+    const [email, setEmail]           = useState("");
+    const [birthDay, setBirthDay]     = useState<number | null>(null);
     const [birthMonth, setBirthMonth] = useState<number | null>(null);
     const [birthYear, setBirthYear]   = useState<number | null>(null);
     const [gender, setGender]         = useState<"male" | "female" | null>(null);
@@ -73,19 +72,18 @@ export default function EditProfile() {
     const [emailError, setEmailError]           = useState("");
     const [showPicker, setShowPicker] = useState(false);
     const [pickerDate, setPickerDate] = useState(new Date(2000, 0, 1));
-    const [skinColor, setSkinColor] = useState<string | null>(null);
-    const [eyeColor, setEyeColor]   = useState<string | null>(null);
-    const [hairColor, setHairColor] = useState<string | null>(null);
-    const [skinOpen, setSkinOpen] = useState(false);
-    const [eyeOpen, setEyeOpen]   = useState(false);
-    const [hairOpen, setHairOpen] = useState(false);
+    const [skinColor, setSkinColor]   = useState<string | null>(null);
+    const [eyeColor, setEyeColor]     = useState<string | null>(null);
+    const [hairColor, setHairColor]   = useState<string | null>(null);
+    const [skinOpen, setSkinOpen]     = useState(false);
+    const [eyeOpen, setEyeOpen]       = useState(false);
+    const [hairOpen, setHairOpen]     = useState(false);
 
     useFocusEffect(
         useCallback(() => {
             const load = async () => {
                 setLoading(true);
                 try {
-                    // Load from Firestore first, falls back to AsyncStorage automatically
                     const data = await loadProfileFromFirestore();
                     if (data) {
                         setFirstName(data.firstName || ""); setLastName(data.lastName || "");
@@ -117,7 +115,6 @@ export default function EditProfile() {
         setIsEmailVerified(isSame);
     };
 
-    // Navigate to VerifyEmailChange screen — full screen doppelganger of Verifyemail
     const handleSendVerifyOtp = async () => {
         if (!email || !!emailError) return;
         const saved = await AsyncStorage.getItem(STORAGE_KEY);
@@ -165,9 +162,7 @@ export default function EditProfile() {
     const handlePhotoSelected = async (localUri: string) => {
         setPhotoUri(localUri); setIsDirty(true); setSaving(true);
         try {
-            console.log('☁️ Uploading profile photo to Cloudinary...');
             const cloudUrl = await uploadPhotoToCloudinary(localUri);
-            console.log('✅ Profile photo uploaded:', cloudUrl);
             setPhotoUri(cloudUrl);
             const saved = await AsyncStorage.getItem(STORAGE_KEY);
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...(saved ? JSON.parse(saved) : {}), photoUri: cloudUrl }));
@@ -190,25 +185,38 @@ export default function EditProfile() {
         try {
             setSaving(true);
             const profileUpdate = { firstName, lastName, email, gender, birthDay, birthMonth, birthYear, skinColor, eyeColor, hairColor, photoUri, isEmailVerified };
-
-            // 1. Save to AsyncStorage (offline cache)
             const saved = await AsyncStorage.getItem(STORAGE_KEY);
             const data = saved ? JSON.parse(saved) : {};
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, ...profileUpdate }));
-
-            // 2. Save to Firestore
             await saveProfileToFirestore(profileUpdate);
-
             Alert.alert(t('profileSaved'), t('profileUpdated'), [{ text: t('ok'), onPress: () => router.back() }]);
         } catch (err) {
             console.error('handleSave error:', err);
             Alert.alert(t('error'), t('tryAgain'));
-        }
-        finally { setSaving(false); }
+        } finally { setSaving(false); }
     };
 
-    const inputStyle = [styles.input, customText, { backgroundColor: colors.input, borderColor: colors.border, color: settings.textColor }];
-    const inputTouchStyle = [styles.input, { fontSize: customText.fontSize, fontFamily: customText.fontFamily, backgroundColor: colors.input, borderColor: colors.border }];
+    // ── التعديل: لون النص داخل الـ TextInput حسب الثيم ──
+    const inputStyle = [
+        styles.input,
+        customText,
+        {
+            backgroundColor: colors.input,
+            borderColor:     colors.border,
+            color:           isDark ? '#FFFFFF' : '#000000',  // ← هنا
+        }
+    ];
+
+    const inputTouchStyle = [
+        styles.input,
+        {
+            fontSize:   customText.fontSize,
+            fontFamily: customText.fontFamily,
+            backgroundColor: colors.input,
+            borderColor:     colors.border,
+        }
+    ];
+
     const dropdownCardStyle = [styles.dropdownCard, { backgroundColor: colors.card, borderColor: colors.border }];
 
     if (loading) {
@@ -225,7 +233,7 @@ export default function EditProfile() {
 
             <View style={[styles.header, { backgroundColor: colors.card }]}>
                 <TouchableOpacity style={[styles.backBtn, { borderColor: colors.border }]} onPress={() => router.back()}>
-                    <Ionicons name={isArabic ? "chevron-back" : "chevron-back"} size={24} color={colors.text} />
+                    <Ionicons name="chevron-back" size={24} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, customText]}>{t('editProfile')}</Text>
                 <View style={{ width: 40 }} />
@@ -234,11 +242,11 @@ export default function EditProfile() {
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
                 <TouchableOpacity style={styles.avatarWrap} onPress={handlePickImage} activeOpacity={0.8}>
-                    <View style={[styles.avatar, { backgroundColor: isDark ? '#2A3F50' : '#E8F4F8', borderColor: isDark ? '#374151' : '#C5E3ED' }]}>
+                    <View style={[styles.avatar, { backgroundColor: isDark ? '#E8F4F8' : '#2a3f50', borderColor: isDark ? '#00A3A3' : '#C5E3ED' }]}>
                         {photoUri ? <Image source={{ uri: photoUri }} style={styles.avatarImage} resizeMode="cover" /> : <Ionicons name="person-outline" size={44} color={colors.primary} />}
                     </View>
-                    <View style={[styles.avatarEditBtn, { backgroundColor: colors.card, borderColor: isDark ? '#374151' : '#C5E3ED' }]}>
-                        <Ionicons name="create-outline" size={14} color={colors.primary} />
+                    <View style={[styles.avatarEditBtn, { backgroundColor: colors.card, borderColor: isDark ? '#00A3A3' : '#374151' }]}>
+                        <Ionicons name="create-outline" size={14} color={isDark?"#C5E3ED":"#004f7f"} />
                     </View>
                 </TouchableOpacity>
 
@@ -298,7 +306,9 @@ export default function EditProfile() {
                 <Text style={[styles.label, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{t('age')}</Text>
                 <TouchableOpacity style={inputTouchStyle} onPress={() => setShowPicker(true)} activeOpacity={0.8}>
                     <View style={[styles.dobRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                        <Text style={[styles.inputText, customText, { color: birthDay ? settings.textColor : colors.subText }]}>{formatDOB()}</Text>
+                        <Text style={[styles.inputText, customText, { color: birthDay ? (isDark ? '#FFFFFF' : '#000000') : colors.subText }]}>
+                            {formatDOB()}
+                        </Text>
                         <Ionicons name="calendar-outline" size={20} color={colors.subText} />
                     </View>
                 </TouchableOpacity>
@@ -332,7 +342,9 @@ export default function EditProfile() {
                         {gender ? (
                             <View style={[styles.genderValueRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
                                 <Ionicons name={gender === "male" ? "male" : "female"} size={18} color={gender === "male" ? colors.primary : "#E6007A"} />
-                                <Text style={[styles.inputText, customText]}>{gender === "male" ? t('male') : t('female')}</Text>
+                                <Text style={[styles.inputText, customText, { color: isDark ? '#FFFFFF' : '#000000' }]}>
+                                    {gender === "male" ? t('male') : t('female')}
+                                </Text>
                             </View>
                         ) : (
                             <Text style={[styles.genderPlaceholder, customText, { color: colors.subText }]}>{t('chooseGender')}</Text>
@@ -365,7 +377,9 @@ export default function EditProfile() {
                         {skinColor ? (
                             <View style={[styles.genderValueRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
                                 <View style={[styles.colorCircle, { backgroundColor: skinColor }]} />
-                                <Text style={[styles.inputText, customText]}>{skinColors.find(s => s.color === skinColor)?.label || skinColor}</Text>
+                                <Text style={[styles.inputText, customText, { color: isDark ? '#FFFFFF' : '#000000' }]}>
+                                    {skinColors.find(s => s.color === skinColor)?.label || skinColor}
+                                </Text>
                             </View>
                         ) : (
                             <Text style={[styles.genderPlaceholder, customText, { color: colors.subText }]}>{t('chooseSkinTone')}</Text>
@@ -398,7 +412,9 @@ export default function EditProfile() {
                         {eyeColor ? (
                             <View style={[styles.genderValueRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
                                 <View style={[styles.colorCircle, { backgroundColor: eyeColorOptions.find(e => e.name === eyeColor)?.color }]} />
-                                <Text style={[styles.inputText, customText]}>{eyeColor}</Text>
+                                <Text style={[styles.inputText, customText, { color: isDark ? '#FFFFFF' : '#000000' }]}>
+                                    {eyeColor}
+                                </Text>
                             </View>
                         ) : (
                             <Text style={[styles.genderPlaceholder, customText, { color: colors.subText }]}>{t('chooseEyeColor')}</Text>
@@ -431,7 +447,9 @@ export default function EditProfile() {
                         {hairColor ? (
                             <View style={[styles.genderValueRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
                                 <View style={[styles.colorCircle, { backgroundColor: hairColorOptions.find(h => h.name === hairColor)?.color }]} />
-                                <Text style={[styles.inputText, customText]}>{hairColor}</Text>
+                                <Text style={[styles.inputText, customText, { color: isDark ? '#FFFFFF' : '#000000' }]}>
+                                    {hairColor}
+                                </Text>
                             </View>
                         ) : (
                             <Text style={[styles.genderPlaceholder, customText, { color: colors.subText }]}>{t('chooseHairColor')}</Text>

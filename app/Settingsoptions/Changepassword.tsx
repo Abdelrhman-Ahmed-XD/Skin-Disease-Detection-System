@@ -19,9 +19,10 @@ export default function ChangePassword() {
   const { t, isArabic } = useTranslation(settings.language);
 
   const customText = {
-    fontSize:   settings.fontSize,
-    color:      settings.textColor,
-    fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
+    fontSize: settings.fontSize,
+    color: isDark ? "#FFFFFF" : settings.textColor,
+    fontFamily:
+      settings.fontFamily === "System" ? undefined : settings.fontFamily,
   };
 
   const pageBg = isDark ? colors.background : settings.backgroundColor;
@@ -104,11 +105,9 @@ export default function ChangePassword() {
       await updatePassword(user, newPassword);
       console.log('✅ Password updated successfully');
 
-      Alert.alert(
-          '✅ Password Changed',
-          'Your password has been updated successfully.',
-          [{ text: 'OK', onPress: () => router.back() }]
-      );
+     router.push(
+       "/Settingsoptions/ConfirmCP",
+     );
     } catch (err: any) {
       console.log('❌ Change password error:', err.code, err.message);
 

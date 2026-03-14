@@ -14,7 +14,6 @@ import { useTranslation } from '../Customize/translations';
 import { NOTIFICATIONS_ENABLED_KEY } from '../Screensbar/notificationsData';
 import { useTheme } from "../ThemeContext";
 
-// ── Custom Icon Images ─────────────────────────────────────────
 const Icons = {
   home:         require('../../assets/Icons/home.png'),
   reports:      require('../../assets/Icons/Reports.png'),
@@ -29,8 +28,7 @@ const Icons = {
   logout:       require('../../assets/Icons/logout.png'),
 };
 
-const STORAGE_KEY   = 'signupDraft';
-const CUSTOMIZE_KEY = 'appCustomizeSettings';
+const STORAGE_KEY = 'signupDraft';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -54,26 +52,26 @@ export default function SettingsPage() {
   const [profileEmail, setProfileEmail]                 = useState('');
 
   useFocusEffect(
-      React.useCallback(() => {
-        setActiveTab('Settings');
-        const loadData = async () => {
-          try {
-            const saved = await AsyncStorage.getItem(STORAGE_KEY);
-            if (saved) {
-              const data = JSON.parse(saved);
-              setPhotoUri(data.photoUri || null);
-              const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
-              setProfileName(fullName || 'No Name');
-              setProfileEmail(data.email || '');
-            }
-            const notifSetting = await AsyncStorage.getItem(NOTIFICATIONS_ENABLED_KEY);
-            setNotificationsEnabled(notifSetting === null ? true : notifSetting === 'true');
-          } catch (err) {
-            console.log('Settings load error:', err);
+    React.useCallback(() => {
+      setActiveTab('Settings');
+      const loadData = async () => {
+        try {
+          const saved = await AsyncStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            const data = JSON.parse(saved);
+            setPhotoUri(data.photoUri || null);
+            const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
+            setProfileName(fullName || 'No Name');
+            setProfileEmail(data.email || '');
           }
-        };
-        loadData();
-      }, [])
+          const notifSetting = await AsyncStorage.getItem(NOTIFICATIONS_ENABLED_KEY);
+          setNotificationsEnabled(notifSetting === null ? true : notifSetting === 'true');
+        } catch (err) {
+          console.log('Settings load error:', err);
+        }
+      };
+      loadData();
+    }, [])
   );
 
   const handleNotificationsToggle = async (value: boolean) => {
@@ -89,14 +87,12 @@ export default function SettingsPage() {
     try {
       const uid = auth.currentUser?.uid ?? null;
       await signOut(auth);
-
       const keysToRemove = ['signupDraft', 'savedMoles'];
       if (uid) {
         keysToRemove.push(`appCustomizeSettings_${uid}`);
         keysToRemove.push(`darkMode_${uid}`);
       }
       await AsyncStorage.multiRemove(keysToRemove);
-
       setLogoutModalVisible(false);
       router.replace('/StartUp');
     } catch (error: any) {
@@ -114,277 +110,573 @@ export default function SettingsPage() {
   const handleTabPress = (tabName: string) => {
     setActiveTab(tabName);
     switch (tabName) {
-      case 'Home':     router.push('/Screensbar/FirstHomePage'); break;
-      case 'Camera':   router.push('/Screensbar/Camera');        break;
-      case 'History':  router.push('/Screensbar/History');       break;
-      case 'Reports':  router.push('/Screensbar/Reports');       break;
+      case 'Home':    router.push('/Screensbar/FirstHomePage'); break;
+      case 'Camera':  router.push('/Screensbar/Camera');        break;
+      case 'History': router.push('/Screensbar/History');       break;
+      case 'Reports': router.push('/Screensbar/Reports');       break;
     }
   };
 
-  // ── Settings Row with custom image icon ───────────────────────
+  // ── التعديل: ضفنا iconSize في الـ type ──
   type SettingsRowProps = {
-    iconImg: any;
-    iconColor?: string;
-    label: string;
-    onPress?: () => void;
+    iconImg:       any;
+    iconColor?:    string;
+    iconSize?:     { width: number; height: number };  // ← جديد
+    label:         string;
+    onPress?:      () => void;
     rightElement?: React.ReactNode;
-    isLast?: boolean;
+    isLast?:       boolean;
   };
 
+  // ── التعديل: ضفنا iconSize في الـ destructuring وشلنا الـ background ──
   const SettingsRow: React.FC<SettingsRowProps> = ({
-    iconImg, iconColor = colors.primary, label, onPress, rightElement, isLast = false,
+    iconImg, iconColor = colors.primary, iconSize, label, onPress, rightElement, isLast = false,
   }) => (
-      <TouchableOpacity
-          style={[
-            styles.settingsRow,
-            { flexDirection: isArabic ? 'row-reverse' : 'row' },
-            !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border },
-          ]}
-          onPress={onPress}
-          activeOpacity={onPress ? 0.7 : 1}
-      >
-        <View style={[
-          styles.settingsIconWrap,
-          { backgroundColor: iconColor + '22' },
-          { marginRight: isArabic ? 0 : 14, marginLeft: isArabic ? 14 : 0 },
-        ]}>
-          <Image
-            source={iconImg}
-            style={styles.settingsIconImg}
-            resizeMode="contain"
-          />
-        </View>
-        <Text style={[
-          styles.settingsLabel,
-          customText,
-          { textAlign: isArabic ? 'right' : 'left' },
-        ]}>
-          {label}
-        </Text>
-        {rightElement ?? (onPress ? (
-            <Ionicons name="chevron-forward" size={18} color={colors.border} />
-        ) : null)}
-      </TouchableOpacity>
+    <TouchableOpacity
+      style={[
+        styles.settingsRow,
+        { flexDirection: isArabic ? 'row-reverse' : 'row' },
+        !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border },
+      ]}
+      onPress={onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+    >
+      <View style={[
+        styles.settingsIconWrap,
+        // ── شلنا backgroundColor من هنا ──
+        { marginRight: isArabic ? 0 : 14, marginLeft: isArabic ? 14 : 0 },
+      ]}>
+        <Image
+          source={iconImg}
+          // ── لو في iconSize يستخدمه، لو مفيش يرجع 28 ──
+          style={{ width: iconSize?.width ?? 28, height: iconSize?.height ?? 28 }}
+          resizeMode="contain"
+        />
+      </View>
+      <Text style={[styles.settingsLabel, customText, { textAlign: isArabic ? 'right' : 'left' }]}>
+        {label}
+      </Text>
+      {rightElement ?? (onPress ? (
+        <Ionicons name="chevron-forward" size={18} color={colors.border} />
+      ) : null)}
+    </TouchableOpacity>
   );
 
   return (
-      <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
-        <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: pageBg }]}
+      edges={["top"]}
+    >
+      <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
-        {/* Logout Modal */}
-        <Modal transparent visible={logoutModalVisible} animationType="fade" onRequestClose={() => setLogoutModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalBox, { backgroundColor: colors.card }]}>
-              <View style={styles.modalIconWrap}>
-                <Image source={Icons.logout} style={styles.modalIconImg} resizeMode="contain" />
-              </View>
-              <Text style={[styles.modalTitle, customText]}>
-                {t('logoutConfirmTitle')}
-              </Text>
-              <Text style={styles.modalEmail}>{profileEmail}</Text>
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={[styles.stayButton, { backgroundColor: colors.primary }]} onPress={() => setLogoutModalVisible(false)} activeOpacity={0.8}>
-                  <Text style={styles.stayButtonText}>{t('stay')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
-                  <Text style={styles.logoutButtonText}>{t('logout')}</Text>
-                </TouchableOpacity>
-              </View>
+      {/* Logout Modal */}
+      <Modal
+        transparent
+        visible={logoutModalVisible}
+        animationType="fade"
+        onRequestClose={() => setLogoutModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalBox, { backgroundColor: colors.card }]}>
+            <View style={styles.modalIconWrap}>
+              <Image
+                source={Icons.logout}
+                style={styles.modalIconImg}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={[styles.modalTitle, customText]}>
+              {t("logoutConfirmTitle")}
+            </Text>
+            <Text style={styles.modalEmail}>{profileEmail}</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.stayButton, { backgroundColor: colors.primary }]}
+                onPress={() => setLogoutModalVisible(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.stayButtonText}>{t("stay")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.logoutButtonText}>{t("logout")}</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
-
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, customText]}>{t('settings')}</Text>
-          <View style={{ width: 40 }} />
         </View>
+      </Modal>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      {/* Header */}
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        <TouchableOpacity
+          style={[styles.backButton, { borderColor: colors.border }]}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, customText]}>{t("settings")}</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
-          {/* Profile Card */}
-          <TouchableOpacity
-              style={[styles.profileCard, { backgroundColor: colors.card, flexDirection: isArabic ? 'row-reverse' : 'row' }]}
-              onPress={() => router.push('/Settingsoptions/Editprofile')}
-              activeOpacity={0.8}
-          >
-            <View style={[
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Card */}
+        <TouchableOpacity
+          style={[
+            styles.profileCard,
+            {
+              backgroundColor: colors.card,
+              flexDirection: isArabic ? "row-reverse" : "row",
+            },
+          ]}
+          onPress={() => router.push("/Settingsoptions/Editprofile")}
+          activeOpacity={0.8}
+        >
+          <View
+            style={[
               styles.profileAvatar,
-              { backgroundColor: isDark ? '#2A3F50' : '#C5E3ED' },
+              { backgroundColor: isDark ? "#E8F4F8" : "#C5E3ED", borderColor: isDark ? "#00A3A3" : "#C5E3ED" },
               { marginRight: isArabic ? 0 : 14, marginLeft: isArabic ? 14 : 0 },
-            ]}>
-              {photoUri ? (
-                  <Image source={{ uri: photoUri }} style={styles.profileAvatarImage} resizeMode="cover" />
-              ) : (
-                  // ── Custom person icon ──
-                  <Image source={Icons.person} style={styles.profileAvatarIconImg} resizeMode="contain" />
-              )}
-            </View>
-            <View style={[styles.profileInfo, { alignItems: isArabic ? 'flex-end' : 'flex-start' }]}>
-              <Text style={[styles.profileName, customText, { fontWeight: '700' }]}>{profileName || 'No Name'}</Text>
-              <Text style={[styles.profileEmail, customText, { color: colors.subText, fontSize: Math.max(11, settings.fontSize - 3) }]}>{profileEmail || 'No Email'}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.subText} />
-          </TouchableOpacity>
-
-          {/* Preferences Section */}
-          <Text style={[styles.sectionTitle, customText, { color: colors.subText, textAlign: isArabic ? 'right' : 'left' }]}>
-            {t('preferences')}
-          </Text>
-          <View style={[styles.card, { backgroundColor: colors.card }]}>
-            <SettingsRow
-                iconImg={Icons.notification}
-                label={t('notifications')}
-                rightElement={
-                  <Switch
-                      value={notificationsEnabled}
-                      onValueChange={handleNotificationsToggle}
-                      trackColor={{ false: colors.border, true: '#C5E3ED' }}
-                      thumbColor={notificationsEnabled ? colors.primary : colors.subText}
-                  />
-                }
-            />
-            <SettingsRow
-                iconImg={Icons.darkMode}
-                label={t('darkMode')}
-                rightElement={
-                  <Switch
-                      value={isDark}
-                      onValueChange={toggleTheme}
-                      trackColor={{ false: colors.border, true: '#C5E3ED' }}
-                      thumbColor={isDark ? colors.primary : colors.subText}
-                  />
-                }
-            />
-            <SettingsRow
-                iconImg={Icons.customize}
-                label={t('customize')}
-                onPress={() => router.push('/Settingsoptions/Customize')}
-                isLast
-            />
-          </View>
-
-          {/* App Section */}
-          <Text style={[styles.sectionTitle, customText, { color: colors.subText, textAlign: isArabic ? 'right' : 'left' }]}>
-            {t('app')}
-          </Text>
-          <View style={[styles.card, { backgroundColor: colors.card }]}>
-            <SettingsRow
-                iconImg={Icons.about}
-                label={t('about')}
-                onPress={() => router.push('/Settingsoptions/About')}
-            />
-            <SettingsRow
-                iconImg={Icons.help}
-                label={t('helpSupport')}
-                onPress={() => router.push('/Settingsoptions/Help')}
-                isLast
-            />
-          </View>
-
-          {/* Logout */}
-          <View style={[styles.card, { backgroundColor: colors.card }]}>
-            <SettingsRow
-                iconImg={Icons.logout}
-                iconColor="#E74C3C"
-                label={t('logout')}
-                onPress={() => setLogoutModalVisible(true)}
-                isLast
-            />
-          </View>
-        </ScrollView>
-
-        {/* Bottom Navigation */}
-        <View style={styles.bottomNavContainer}>
-          <View style={[styles.bottomNav, { backgroundColor: colors.navBg, borderTopColor: colors.border }]}>
-            {['Home', 'Reports'].map((tabName) => {
-              const tab = bottomTabs.find(t => t.name === tabName)!;
-              const isActive = activeTab === tab.name;
-              const label = tabName === 'Home' ? t('home') : t('reportsTab');
-              return (
-                  <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                    <View style={[styles.navIcon, isActive && { backgroundColor: isDark ? '#1E3A4A' : '#E8F4F8', borderWidth: 2, borderColor: isDark ? '#374151' : '#C5E3ED' }]}>
-                      <Image
-                        source={tab.iconImg}
-                        style={styles.navIconImg}
-                        resizeMode="contain"
-                      />
-                    </View>
-                    <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: '700' }]}>{label}</Text>
-                  </TouchableOpacity>
-              );
-            })}
-            <View style={styles.navCenterSpacer} />
-            {['History', 'Settings'].map((tabName) => {
-              const tab = bottomTabs.find(t => t.name === tabName)!;
-              const isActive = activeTab === tab.name;
-              const label = tabName === 'History' ? t('historyTab') : t('settingsTab');
-              return (
-                  <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                    <View style={[styles.navIcon, isActive && { backgroundColor: isDark ? '#1E3A4A' : '#E8F4F8', borderWidth: 2, borderColor: isDark ? '#374151' : '#C5E3ED' }]}>
-                      <Image
-                        source={tab.iconImg}
-                        style={styles.navIconImg}
-                        resizeMode="contain"
-                      />
-                    </View>
-                    <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: '700' }]}>{label}</Text>
-                  </TouchableOpacity>
-              );
-            })}
-          </View>
-          <TouchableOpacity
-              style={[styles.cameraButton, { backgroundColor: colors.navBg, borderColor: isDark ? '#374151' : '#C5E3ED' }, activeTab === 'Camera' && { borderColor: colors.navActive, backgroundColor: isDark ? '#1E3A4A' : '#E8F4F8' }]}
-              onPress={() => handleTabPress('Camera')}
-              activeOpacity={0.85}
+            ]}
           >
-            <Ionicons name="camera-outline" size={30} color={activeTab === 'Camera' ? colors.navActive : colors.navText} />
-          </TouchableOpacity>
+            {photoUri ? (
+              <Image
+                source={{ uri: photoUri }}
+                style={styles.profileAvatarImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Image
+                source={Icons.person}
+                style={styles.profileAvatarIconImg}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+          <View
+            style={[
+              styles.profileInfo,
+              { alignItems: isArabic ? "flex-end" : "flex-start" },
+            ]}
+          >
+            <Text
+              style={[styles.profileName, customText, { fontWeight: "700" }]}
+            >
+              {profileName || "No Name"}
+            </Text>
+            <Text
+              style={[
+                styles.profileEmail,
+                customText,
+                {
+                  color: colors.subText,
+                  fontSize: Math.max(11, settings.fontSize - 3),
+                },
+              ]}
+            >
+              {profileEmail || "No Email"}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.subText} />
+        </TouchableOpacity>
+
+        {/* Preferences Section */}
+        <Text
+          style={[
+            styles.sectionTitle,
+            customText,
+            { color: colors.subText, textAlign: isArabic ? "right" : "left" },
+          ]}
+        >
+          {t("preferences")}
+        </Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <SettingsRow
+            iconImg={Icons.notification}
+            iconSize={{ width: 52, height: 52 }}
+            label={t("notifications")}
+            // ── مفيش iconSize → هيبقى 28 تلقائي ──
+            rightElement={
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={handleNotificationsToggle}
+                trackColor={{ false: colors.border, true: "#C5E3ED" }}
+                thumbColor={
+                  notificationsEnabled ? colors.primary : colors.subText
+                }
+              />
+            }
+          />
+          <SettingsRow
+            iconImg={Icons.darkMode}
+            iconSize={{ width: 34, height: 34 }} // ← الدارك مود بس عنده مقاس مختلف
+            label={t("darkMode")}
+            rightElement={
+              <Switch
+                value={isDark}
+                onValueChange={toggleTheme}
+                trackColor={{ false: colors.border, true: "#C5E3ED" }}
+                thumbColor={isDark ? colors.primary : colors.subText}
+              />
+            }
+          />
+          <SettingsRow
+            iconImg={Icons.customize}
+            iconSize={{ width: 54, height: 54 }}
+            label={t("customize")}
+            // ── مفيش iconSize → هيبقى 28 تلقائي ──
+            onPress={() => router.push("/Settingsoptions/Customize")}
+            isLast
+          />
         </View>
-      </SafeAreaView>
+
+        {/* App Section */}
+        <Text
+          style={[
+            styles.sectionTitle,
+            customText,
+            { color: colors.subText, textAlign: isArabic ? "right" : "left" },
+          ]}
+        >
+          {t("app")}
+        </Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <SettingsRow
+            iconImg={Icons.about}
+            iconSize={{ width: 28, height: 28 }}
+            label={t("about")}
+            onPress={() => router.push("/Settingsoptions/About")}
+          />
+          <SettingsRow
+            iconImg={Icons.help}
+            iconSize={{ width: 28, height: 28 }}
+            label={t("helpSupport")}
+            onPress={() => router.push("/Settingsoptions/Help")}
+            isLast
+          />
+        </View>
+
+        {/* Logout */}
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <SettingsRow
+            iconImg={Icons.logout}
+            iconColor="#E74C3C"
+            label={t("logout")}
+            iconSize={{ width: 28, height: 28 }}
+            onPress={() => setLogoutModalVisible(true)}
+            isLast
+          />
+        </View>
+      </ScrollView>
+
+      {/* Bottom Navigation */}
+      <View style={styles.bottomNavContainer}>
+        <View
+          style={[
+            styles.bottomNav,
+            { backgroundColor: colors.navBg, borderTopColor: colors.border },
+          ]}
+        >
+          {["Home", "Reports"].map((tabName) => {
+            const tab = bottomTabs.find((t) => t.name === tabName)!;
+            const isActive = activeTab === tab.name;
+            const label = tabName === "Home" ? t("home") : t("reportsTab");
+            return (
+              <TouchableOpacity
+                key={tab.name}
+                style={styles.navItem}
+                onPress={() => handleTabPress(tab.name)}
+              >
+                <View
+                  style={[
+                    styles.navIcon,
+                    isActive && {
+                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                      borderWidth: 2,
+                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                    },
+                  ]}
+                >
+                  <Image
+                    source={tab.iconImg}
+                    style={styles.navIconImg}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.navText,
+                    { color: isActive ? colors.navActive : colors.navText },
+                    isActive && { fontWeight: "700" },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+          <View style={styles.navCenterSpacer} />
+          {["History", "Settings"].map((tabName) => {
+            const tab = bottomTabs.find((t) => t.name === tabName)!;
+            const isActive = activeTab === tab.name;
+            const label =
+              tabName === "History" ? t("historyTab") : t("settingsTab");
+            return (
+              <TouchableOpacity
+                key={tab.name}
+                style={styles.navItem}
+                onPress={() => handleTabPress(tab.name)}
+              >
+                <View
+                  style={[
+                    styles.navIcon,
+                    isActive && {
+                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                      borderWidth: 2,
+                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                    },
+                  ]}
+                >
+                  <Image
+                    source={tab.iconImg}
+                    style={styles.navIconImg}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.navText,
+                    { color: isActive ? colors.navActive : colors.navText },
+                    isActive && { fontWeight: "700" },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <TouchableOpacity
+          style={[
+            styles.cameraButton,
+            {
+              backgroundColor: colors.navBg,
+              borderColor: isDark ? "#374151" : "#C5E3ED",
+            },
+            activeTab === "Camera" && {
+              borderColor: colors.navActive,
+              backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+            },
+          ]}
+          onPress={() => handleTabPress("Camera")}
+          activeOpacity={0.85}
+        >
+          <Ionicons
+            name="camera-outline"
+            size={30}
+            color={activeTab === "Camera" ? colors.navActive : colors.navText}
+          />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container:            { flex: 1 },
-  modalOverlay:         { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
-  modalBox:             { borderRadius: 24, paddingVertical: 32, paddingHorizontal: 28, width: '82%', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 10 },
-  modalIconWrap:        { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FDECEA', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  modalIconImg:         { width: 36, height: 36 },
-  modalTitle:           { fontSize: 16, fontWeight: '600', textAlign: 'center', lineHeight: 24, marginBottom: 8 },
-  modalEmail:           { fontSize: 14, fontWeight: '700', color: '#004F7F', textDecorationLine: 'underline', marginBottom: 28 },
-  modalButtons:         { flexDirection: 'row', gap: 12, width: '100%' },
-  stayButton:           { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  stayButtonText:       { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  logoutButton:         { flex: 1, backgroundColor: '#E74C3C', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  logoutButtonText:     { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  header:               { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
-  backButton:           { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  headerTitle:          { fontSize: 20, fontWeight: 'bold' },
-  scrollView:           { flex: 1 },
-  scrollContent:        { padding: 16, paddingBottom: 110 },
-  profileCard:          { borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
-  profileAvatar:        { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  profileAvatarImage:   { width: 52, height: 52, borderRadius: 26 },
-  profileAvatarIconImg: { width: 42, height: 42 },
-  profileInfo:          { flex: 1 },
-  profileName:          { fontSize: 16, fontWeight: '700' },
-  profileEmail:         { fontSize: 13, marginTop: 2 },
-  sectionTitle:         { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, marginLeft: 4 },
-  card:                 { borderRadius: 16, marginBottom: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
-  settingsRow:          { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
-  settingsIconWrap:     { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  settingsIconImg:      { width: 28, height: 28 },
-  settingsLabel:        { flex: 1, fontSize: 15, fontWeight: '500' },
-  bottomNavContainer:   { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' },
-  bottomNav:            { flexDirection: 'row', paddingVertical: 10, borderTopWidth: 1, width: '100%', paddingBottom: 16, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  navCenterSpacer:      { flex: 1 },
-  navItem:              { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  navIcon:              { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  navIconImg:           { width: 34, height: 34 },
-  navText:              { fontSize: 11, fontWeight: '500' },
-  cameraButton:         { position: 'absolute', top: -26, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', borderWidth: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 6 },
+  container: { flex: 1 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBox: {
+    borderRadius: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 28,
+    width: "82%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  modalIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FDECEA",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalIconImg: { width: 36, height: 36 },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 8,
+  },
+  modalEmail: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#004F7F",
+    textDecorationLine: "underline",
+    marginBottom: 28,
+  },
+  modalButtons: { flexDirection: "row", gap: 12, width: "100%" },
+  stayButton: {
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  stayButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  logoutButton: {
+    flex: 1,
+    backgroundColor: "#E74C3C",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  logoutButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+    margin: 15,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: { fontSize: 20, fontWeight: "bold" },
+  scrollView: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 110 },
+  profileCard: {
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  profileAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  profileAvatarImage: { width: 52, height: 52, borderRadius: 26 },
+  profileAvatarIconImg: { width: 52, height: 52 },
+  profileInfo: { flex: 1 },
+  profileName: { fontSize: 16, fontWeight: "700" },
+  profileEmail: { fontSize: 13, marginTop: 2 },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  card: {
+    borderRadius: 16,
+    marginBottom: 20,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  settingsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  settingsIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  settingsLabel: { flex: 1, fontSize: 15, fontWeight: "500" },
+  bottomNavContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  bottomNav: {
+    flexDirection: "row",
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    width: "100%",
+    paddingBottom: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  navCenterSpacer: { flex: 1 },
+  navItem: { flex: 1, alignItems: "center", justifyContent: "center" },
+  navIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  navIconImg: { width: 44, height: 44 },
+  navText: { fontSize: 11, fontWeight: "500" },
+  cameraButton: {
+    position: "absolute",
+    top: -26,
+    alignSelf: "center",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 6,
+  },
 });

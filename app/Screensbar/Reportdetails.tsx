@@ -373,138 +373,403 @@ export default function ReportDetailsPage() {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
-            <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: pageBg }]}
+        edges={["top"]}
+      >
+        <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
-            {/* Header */}
-            <View style={[styles.header, { backgroundColor: colors.card }]}>
-                <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
-                    <Ionicons name="chevron-back" size={24} color={colors.text} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, customText]}>{t('reportDetails')}</Text>
-                <TouchableOpacity
-                    style={[styles.downloadHeaderButton, { backgroundColor: isDark ? '#1A3040' : '#E8F4F8' }]}
-                    onPress={downloadReport}
-                    disabled={isDownloading}
-                >
-                    {isDownloading
-                        ? <ActivityIndicator size="small" color={colors.primary} />
-                        : <Ionicons name="download-outline" size={24} color={colors.primary} />
-                    }
-                </TouchableOpacity>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.card }]}>
+          <TouchableOpacity
+            style={[styles.backButton, { borderColor: colors.border }]}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text
+            style={[
+              styles.headerTitle,
+              customText,
+              { color: isDark ? "#fff" : "#000" },
+            ]}
+          >
+            {t("reportDetails")}
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.downloadHeaderButton,
+              { backgroundColor: isDark ? "#004f7f" : "#E8F4F8" },
+            ]}
+            onPress={downloadReport}
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons
+                name="download-outline"
+                size={24}
+                color={isDark ? "#fff" : "#004f7f"}
+                style={{ borderColor: "#004f7f" }}
+              />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Scan Image */}
+          <View style={styles.imageContainer}>
+            {photoUri ? (
+              <Image
+                source={{ uri: photoUri }}
+                style={styles.mainImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View
+                style={[
+                  styles.mainImage,
+                  {
+                    backgroundColor: colors.card,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="image-outline"
+                  size={48}
+                  color={colors.subText}
+                />
+              </View>
+            )}
+            <View style={styles.imageBadge}>
+              <Text
+                style={[
+                  styles.imageBadgeText,
+                  { fontFamily: customText.fontFamily },
+                ]}
+              >
+                {bodyView === "front" ? t("frontBody") : t("backBody")}
+              </Text>
             </View>
+          </View>
 
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
-                {/* Scan Image */}
-                <View style={styles.imageContainer}>
-                    {photoUri ? (
-                        <Image source={{ uri: photoUri }} style={styles.mainImage} resizeMode="cover" />
-                    ) : (
-                        <View style={[styles.mainImage, { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }]}>
-                            <Ionicons name="image-outline" size={48} color={colors.subText} />
-                        </View>
-                    )}
-                    <View style={styles.imageBadge}>
-                        <Text style={[styles.imageBadgeText, { fontFamily: customText.fontFamily }]}>
-                            {bodyView === 'front' ? t('frontBody') : t('backBody')}
-                        </Text>
-                    </View>
-                </View>
-
-                {/* Patient Info Card */}
-                <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
-                    <View style={[styles.infoHeader, { borderBottomColor: colors.border }]}>
-                        <Ionicons name="person-outline" size={20} color={colors.primary} />
-                        <Text style={[styles.sectionTitle, customText]}>Patient Information</Text>
-                    </View>
-                    <View style={styles.patientGrid}>
-                        {[
-                            { label: 'Name',       value: patientName },
-                            { label: 'Age',        value: age         },
-                            { label: 'Gender',     value: gender      },
-                            { label: 'Hair Color', value: hairColor   },
-                            { label: 'Eye Color',  value: eyeColor    },
-                            { label: 'Skin Tone',  value: skinColor   },
-                        ].map(item => (
-                            <View key={item.label} style={[styles.patientItem, { backgroundColor: isDark ? '#1A2F3F' : '#F4FBFF', borderColor: colors.border }]}>
-                                <Text style={[styles.infoLabel, customText]}>{item.label}</Text>
-                                <Text style={[styles.infoValue, customText, { color: colors.primary }]}>{item.value}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-
-                {/* Scan Info Card */}
-                <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
-                    <View style={[styles.infoHeader, { borderBottomColor: colors.border, flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                        <Text style={[styles.reportNumber, customText, { color: colors.primary }]}>{t('reportNum')}{reportIndex + 1}</Text>
-                        <Text style={[styles.dateText, customText]}>{formatDate(timestamp)}</Text>
-                    </View>
-                    <View style={styles.infoGrid}>
-                        <View style={[styles.infoItem, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                            <Ionicons name="location-outline" size={20} color={colors.primary} />
-                            <View style={[styles.infoTextContainer, { alignItems: isArabic ? 'flex-end' : 'flex-start' }]}>
-                                <Text style={[styles.infoLabel, customText]}>{t('location')}</Text>
-                                <Text style={[styles.infoValue, customText]}>{bodyView === 'front' ? t('frontBody') : t('backBody')} Body</Text>
-                            </View>
-                        </View>
-                        <View style={[styles.infoItem, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                            <Ionicons name="navigate-outline" size={20} color={colors.primary} />
-                            <View style={[styles.infoTextContainer, { alignItems: isArabic ? 'flex-end' : 'flex-start' }]}>
-                                <Text style={[styles.infoLabel, customText]}>{t('coordinates')}</Text>
-                                <Text style={[styles.infoValue, customText]}>x: {x.toFixed(1)}, y: {y.toFixed(1)}</Text>
-                            </View>
-                        </View>
-                        <View style={[styles.infoItem, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                            <Ionicons name="finger-print-outline" size={20} color={colors.primary} />
-                            <View style={[styles.infoTextContainer, { alignItems: isArabic ? 'flex-end' : 'flex-start' }]}>
-                                <Text style={[styles.infoLabel, customText]}>{t('reportId')}</Text>
-                                <Text style={[styles.infoValue, customText]}>{moleId.substring(0, 12)}...</Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Analysis Card */}
-                <View style={[styles.analysisCard, { backgroundColor: colors.card }]}>
-                    <View style={[styles.analysisHeader, { borderBottomColor: colors.border, flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                        <Ionicons name="document-text" size={24} color={colors.primary} />
-                        <Text style={[styles.analysisTitle, customText]}>{t('analysisResults')}</Text>
-                    </View>
-                    <Text style={[styles.analysisText, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{analysis}</Text>
-                </View>
-
-                {/* Download Button */}
-                <TouchableOpacity
-                    style={[styles.downloadButton, { backgroundColor: colors.primary, flexDirection: isArabic ? 'row-reverse' : 'row' }]}
-                    onPress={downloadReport}
-                    activeOpacity={0.8}
-                    disabled={isDownloading}
+          {/* Patient Info Card */}
+          <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
+            <View
+              style={[styles.infoHeader, { borderBottomColor: colors.border }]}
+            >
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color={isDark ? "#fff" : "#004f7f"}
+              />
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  customText,
+                  { color: isDark ? "#fff" : "#004f7f" },
+                ]}
+              >
+                Patient Information
+              </Text>
+            </View>
+            <View style={[styles.patientGrid]}>
+              {[
+                { label: "Name", value: patientName },
+                { label: "Age", value: age },
+                { label: "Gender", value: gender },
+                { label: "Hair Color", value: hairColor },
+                { label: "Eye Color", value: eyeColor },
+                { label: "Skin Tone", value: skinColor },
+              ].map((item) => (
+                <View
+                  key={item.label}
+                  style={[
+                    styles.patientItem,
+                    {
+                      backgroundColor: isDark ? "#004f7f" : "#F4FBFF",
+                      borderColor: "#fff",
+                    },
+                  ]}
                 >
-                    {isDownloading ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <ActivityIndicator size="small" color="#fff" />
-                            <Text style={[styles.downloadButtonText, { fontFamily: customText.fontFamily }]}>Generating PDF...</Text>
-                        </View>
-                    ) : (
-                        <>
-                            <Ionicons name="cloud-download-outline" size={24} color="#FFFFFF" />
-                            <Text style={[styles.downloadButtonText, { fontFamily: customText.fontFamily }]}>{t('downloadAsPDF')}</Text>
-                        </>
-                    )}
-                </TouchableOpacity>
-
-                {/* Disclaimer */}
-                <View style={[styles.warningCard, { backgroundColor: isDark ? '#2D2000' : '#FEF3C7', borderColor: isDark ? '#5C4000' : '#FCD34D', flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
-                    <Ionicons name="information-circle-outline" size={20} color="#F59E0B" />
-                    <Text style={[styles.warningText, customText, { color: isDark ? '#FCD34D' : '#92400E', textAlign: isArabic ? 'right' : 'left' }]}>
-                        {t('medicalDisclaimer')}
-                    </Text>
+                  <Text
+                    style={[
+                      styles.infoLabel,
+                      customText,
+                      { color: isDark ? "#fff" : "#004f7f" },
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.infoValue,
+                      customText,
+                      { color: isDark ? "#fff" : "#004f7f" },
+                    ]}
+                  >
+                    {item.value}
+                  </Text>
                 </View>
+              ))}
+            </View>
+          </View>
 
-            </ScrollView>
-        </SafeAreaView>
+          {/* Scan Info Card */}
+          <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
+            <View
+              style={[
+                styles.infoHeader,
+                {
+                  borderBottomColor: colors.border,
+                  flexDirection: isArabic ? "row-reverse" : "row",
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.reportNumber,
+                  customText,
+                  { color: isDark ? "#fff" : "#004f7f" },
+                ]}
+              >
+                {t("reportNum")}
+                {reportIndex + 1}
+              </Text>
+              <Text
+                style={[
+                  styles.dateText,
+                  { color: isDark ? "#fff" : "#004f7f" },
+                ]}
+              >
+                {formatDate(timestamp)}
+              </Text>
+            </View>
+            <View style={[styles.infoGrid]}>
+              <View
+                style={[
+                  styles.infoItem,
+                  { flexDirection: isArabic ? "row-reverse" : "row" },
+                ]}
+              >
+                <Ionicons
+                  name="location-outline"
+                  size={20}
+                  color={isDark ? "#fff" : "#004f7f"}
+                />
+                <View
+                  style={[
+                    styles.infoTextContainer,
+                    { alignItems: isArabic ? "flex-end" : "flex-start" },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.infoLabel,
+                      { color: isDark ? "#fff" : "#004f7f" },
+                    ]}
+                  >
+                    {t("location")}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.infoValue,
+                      { color: isDark ? "#fff" : "#004f7f" },
+                    ]}
+                  >
+                    {bodyView === "front" ? t("frontBody") : t("backBody")} Body
+                  </Text>
+                </View>
+              </View>
+              <View
+                style={[
+                  styles.infoItem,
+                  { flexDirection: isArabic ? "row-reverse" : "row" },
+                ]}
+              >
+                <Ionicons
+                  name="navigate-outline"
+                  size={20}
+                  color={isDark ? "#fff" : "#004f7f"}
+                />
+                <View
+                  style={[
+                    styles.infoTextContainer,
+                    { alignItems: isArabic ? "flex-end" : "flex-start" },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.infoLabel,
+                      { color: isDark ? "#fff" : "#004f7f" },
+                    ]}
+                  >
+                    {t("coordinates")}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.infoValue,
+                      { color: isDark ? "#fff" : "#004f7f" },
+                    ]}
+                  >
+                    x: {x.toFixed(1)}, y: {y.toFixed(1)}
+                  </Text>
+                </View>
+              </View>
+              <View
+                style={[
+                  styles.infoItem,
+                  { flexDirection: isArabic ? "row-reverse" : "row" },
+                ]}
+              >
+                <Ionicons
+                  name="finger-print-outline"
+                  size={20}
+                  color={isDark ? "#fff" : "#004f7f"}
+                />
+                <View
+                  style={[
+                    styles.infoTextContainer,
+                    { alignItems: isArabic ? "flex-end" : "flex-start" },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.infoLabel,
+                      { color: isDark ? "#fff" : "#004f7f" },
+                    ]}
+                  >
+                    {t("reportId")}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.infoValue,
+                      { color: isDark ? "#fff" : "#004f7f" },
+                    ]}
+                  >
+                    {moleId.substring(0, 12)}...
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Analysis Card */}
+          <View style={[styles.analysisCard, { backgroundColor: colors.card }]}>
+            <View
+              style={[
+                styles.analysisHeader,
+                {
+                  borderBottomColor: colors.border,
+                  flexDirection: isArabic ? "row-reverse" : "row",
+                },
+              ]}
+            >
+              <Ionicons name="document-text" size={24}  color={isDark?"#fff":"#004f7f"} />
+              <Text
+                style={[
+                  styles.analysisTitle,
+                  { color: isDark ? "#fff" : "#004f7f" },
+                ]}
+              >
+                {t("analysisResults")}
+              </Text>
+            </View>
+            <Text
+              style={[{color:isDark?"#fff":"#004f7f"},
+                styles.analysisText,
+                 {color:isDark?"#fff":"#004f7f"},
+                { textAlign: isArabic ? "right" : "left" },
+              ]}
+            >
+              {analysis}
+            </Text>
+          </View>
+
+          {/* Download Button */}
+          <TouchableOpacity
+            style={[
+              styles.downloadButton,
+              {
+                backgroundColor: colors.primary,
+                flexDirection: isArabic ? "row-reverse" : "row",
+              },
+            ]}
+            onPress={downloadReport}
+            activeOpacity={0.8}
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+              >
+                <ActivityIndicator size="small" color="#fff" />
+                <Text
+                  style={[
+                    styles.downloadButtonText,
+                    { fontFamily: customText.fontFamily },
+                  ]}
+                >
+                  Generating PDF...
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Ionicons
+                  name="cloud-download-outline"
+                  size={24}
+                  color="#FFFFFF"
+                />
+                <Text
+                  style={[
+                    styles.downloadButtonText,
+                    { fontFamily: customText.fontFamily },
+                  ]}
+                >
+                  {t("downloadAsPDF")}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Disclaimer */}
+          <View
+            style={[
+              styles.warningCard,
+              {
+                backgroundColor: isDark ? "#2D2000" : "#FEF3C7",
+                borderColor: isDark ? "#5C4000" : "#FCD34D",
+                flexDirection: isArabic ? "row-reverse" : "row",
+              },
+            ]}
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color="#F59E0B"
+            />
+            <Text
+              style={[
+                styles.warningText,
+                customText,
+                {
+                  color: isDark ? "#FCD34D" : "#92400E",
+                  textAlign: isArabic ? "right" : "left",
+                },
+              ]}
+            >
+              {t("medicalDisclaimer")}
+            </Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     );
 }
 
@@ -525,7 +790,7 @@ const styles = StyleSheet.create({
     sectionTitle:         { fontSize: 16, fontWeight: '700' },
     reportNumber:         { fontSize: 20, fontWeight: '700' },
     dateText:             { fontSize: 13, marginLeft: 'auto' },
-    patientGrid:          { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    patientGrid:          { flexDirection: 'row', flexWrap: 'wrap', gap: 10,color:"#fff" },
     patientItem:          { width: '30%', flexGrow: 1, borderRadius: 10, padding: 10, borderWidth: 1 },
     infoGrid:             { gap: 16 },
     infoItem:             { flexDirection: 'row', alignItems: 'center', gap: 12 },

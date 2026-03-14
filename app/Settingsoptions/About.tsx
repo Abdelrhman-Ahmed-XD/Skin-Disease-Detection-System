@@ -12,9 +12,10 @@ export default function AboutPage() {
   const { t, isArabic } = useTranslation(settings.language);
 
   const customText = {
-    fontSize:   settings.fontSize,
-    color:      settings.textColor,
-    fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
+    fontSize: settings.fontSize,
+    color: isDark ? "#FFFFFF" : settings.textColor,
+    fontFamily:
+      settings.fontFamily === "System" ? undefined : settings.fontFamily,
   };
 
   // ✅ background من settings في light mode

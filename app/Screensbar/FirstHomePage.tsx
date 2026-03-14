@@ -2,7 +2,7 @@ import { DancingScript_700Bold, useFonts } from '@expo-google-fonts/dancing-scri
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { doc, getDoc } from "firebase/firestore";
+import { deleteDoc, doc as firestoreDoc, getDoc } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Alert,
@@ -26,7 +26,6 @@ import {
 } from '../Screensbar/notificationsData';
 import { useTheme } from '../ThemeContext';
 
-// ── Custom Icon Images ─────────────────────────────────────────
 const Icons = {
   home:         require('../../assets/Icons/home.png'),
   reports:      require('../../assets/Icons/Reports.png'),
@@ -38,6 +37,7 @@ const Icons = {
 
 const STORAGE_KEY       = 'signupDraft';
 const MOLES_STORAGE_KEY = 'savedMoles';
+const ONBOARDING_KEY    = 'homeOnboardingSeen';
 const { width, height } = Dimensions.get('window');
 
 function inRect(nx: number, ny: number, x1: number, y1: number, x2: number, y2: number) {
@@ -62,7 +62,7 @@ function checkBodyHit(nx: number, ny: number, view: 'front' | 'back'): boolean {
     return false;
 }
 
-type Mole = { id: string; x: number; y: number; timestamp: number; photoUri?: string; bodyView: 'front' | 'back'; firestoreId?: string; };
+type Mole     = { id: string; x: number; y: number; timestamp: number; photoUri?: string; bodyView: 'front' | 'back'; firestoreId?: string; };
 type BodyView = 'front' | 'back';
 
 export default function FirstHomePage() {
@@ -74,22 +74,38 @@ export default function FirstHomePage() {
     const [fontsLoaded] = useFonts({ DancingScript_700Bold });
 
     const customText = {
-        fontSize:   settings.fontSize,
-        color:      settings.textColor,
-        fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
+      fontSize:   settings.fontSize,
+      color:      isDark ? "#FFFFFF" : settings.textColor,
+      fontFamily: settings.fontFamily === "System" ? undefined : settings.fontFamily,
     };
 
     const pageBg = isDark ? colors.background : settings.backgroundColor;
 
-    const [userName, setUserName]   = useState('');
-    const [photoUri, setPhotoUri]   = useState<string | null>(null);
-    const [bodyView, setBodyView]   = useState<BodyView>('front');
-    const [moles, setMoles]         = useState<Mole[]>([]);
-    const [activeTab, setActiveTab] = useState<string>('Home');
+    const [userName, setUserName]                         = useState('');
+    const [photoUri, setPhotoUri]                         = useState<string | null>(null);
+    const [bodyView, setBodyView]                         = useState<BodyView>('front');
+    const [moles, setMoles]                               = useState<Mole[]>([]);
+    const [activeTab, setActiveTab]                       = useState<string>('Home');
     const [unreadCount, setUnreadCount]                   = useState<number>(0);
     const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
+    const [showOnboarding, setShowOnboarding]             = useState(false);
 
     useEffect(() => { bodyViewRef.current = bodyView; }, [bodyView]);
+
+    useEffect(() => {
+      const checkOnboarding = async () => {
+        try {
+          const seen = await AsyncStorage.getItem(ONBOARDING_KEY);
+          if (!seen) setShowOnboarding(true);
+        } catch {}
+      };
+      checkOnboarding();
+    }, []);
+
+    const dismissOnboarding = async () => {
+      setShowOnboarding(false);
+      try { await AsyncStorage.setItem(ONBOARDING_KEY, 'true'); } catch {}
+    };
 
     const scale      = useRef(new Animated.Value(1)).current;
     const translateX = useRef(new Animated.Value(0)).current;
@@ -222,7 +238,7 @@ export default function FirstHomePage() {
                     }
                     const currentUser = auth.currentUser;
                     if (currentUser) {
-                        const docSnap = await getDoc(doc(db, 'users', currentUser.uid));
+                        const docSnap = await getDoc(firestoreDoc(db, 'users', currentUser.uid));
                         if (docSnap.exists()) {
                             const data = docSnap.data();
                             setUserName(`${data.firstName || ''} ${data.lastName || ''}`.trim());
@@ -251,11 +267,30 @@ export default function FirstHomePage() {
 
     const currentMoles = moles.filter((m) => m.bodyView === bodyView);
 
+    // ── التعديل: deleteMole بتحذف من AsyncStorage + Firestore ──
     const deleteMole = async (moleId: string) => {
+        // ── 1. لقي الـ mole عشان تاخد الـ firestoreId ──
+        const moleToDelete = moles.find((m) => m.id === moleId);
+
+        // ── 2. احذف من AsyncStorage ──
         const updated = moles.filter((m) => m.id !== moleId);
         setMoles(updated);
-        try { await AsyncStorage.setItem(MOLES_STORAGE_KEY, JSON.stringify(updated)); }
-        catch (err) { console.log('Error deleting mole:', err); }
+        try {
+            await AsyncStorage.setItem(MOLES_STORAGE_KEY, JSON.stringify(updated));
+        } catch (err) {
+            console.log('Error deleting mole from AsyncStorage:', err);
+        }
+
+        // ── 3. احذف من Firestore لو في firestoreId ──
+        try {
+            const user = auth.currentUser;
+            if (user && moleToDelete?.firestoreId) {
+                await deleteDoc(firestoreDoc(db, 'users', user.uid, 'scans', moleToDelete.firestoreId));
+                console.log('Deleted from Firestore:', moleToDelete.firestoreId);
+            }
+        } catch (err) {
+            console.log('Error deleting mole from Firestore:', err);
+        }
     };
 
     const toggleBodyView = (view: BodyView) => {
@@ -286,210 +321,179 @@ export default function FirstHomePage() {
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
-            <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
+      <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={["top"]}>
+        <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
-            {/* Header */}
-            <View style={[styles.headerCard, { backgroundColor: colors.card }]}>
-                <View style={[styles.headerContent, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+        {/* Header */}
+        <View style={[styles.headerCard, { backgroundColor: colors.card }]}>
+          <View style={[styles.headerContent, { flexDirection: isArabic ? "row-reverse" : "row" }]}>
+            <TouchableOpacity
+              style={[styles.profileIconContainer, { backgroundColor: "#E8F4F8", borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}
+              onPress={() => router.push("/Settingsoptions/Editprofile")}
+            >
+              {photoUri ? (
+                <Image source={{ uri: photoUri }} style={styles.profilePhoto} resizeMode="cover" />
+              ) : (
+                <Image source={Icons.person} style={styles.headerIconImg} resizeMode="contain" />
+              )}
+            </TouchableOpacity>
+
+            <View style={[styles.welcomeContainer, { marginLeft: isArabic ? 0 : 12, marginRight: isArabic ? 12 : 0, flexDirection: isArabic ? "row-reverse" : "row" }]}>
+              <Text style={[styles.welcomeLabel, { color: "#00A3A3", fontFamily: fontsLoaded ? "DancingScript_700Bold" : undefined }]}>
+                {isArabic ? "أهلاً،" : "Welcome,"}
+              </Text>
+              <Text style={[styles.userName, customText, { marginLeft: isArabic ? 0 : 4, marginRight: isArabic ? 4 : 0 }]}>
+                {userName}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.notificationButton, { backgroundColor: isDark ? "#1E2A35" : "#F9FAFB" }]}
+              onPress={() => router.push("/Screensbar/Notifications")}
+            >
+              <Image source={Icons.notification} style={styles.notifIconImg} resizeMode="contain" />
+              {notificationsEnabled && unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Title */}
+        <View style={styles.titleContainer}>
+          <Text style={[styles.title, customText]}>
+            <Text>{isArabic ? "دعنا نفحص " : "Let's Check your "}</Text>
+            <Text style={[styles.titleBold, { color: "#00A3A3" }]}>{isArabic ? "جلدك" : "Skin"}</Text>
+          </Text>
+        </View>
+
+        {/* Body */}
+        <View style={[styles.bodyMainContainer, { backgroundColor: pageBg }]}>
+          <View style={styles.bodyTouchable} {...panResponder.panHandlers} ref={(r) => { bodyWrapperRef.current = r; }}>
+            <Animated.View style={[styles.bodyImageWrapper, { backgroundColor: pageBg, transform: [{ scale }, { translateX }, { translateY }] }]}>
+              <Image
+                source={bodyView === "front" ? require("../../assets/images/body-front.png") : require("../../assets/images/body-back.png")}
+                style={[styles.bodyImage, { backgroundColor: pageBg }]}
+                resizeMode="contain"
+              />
+              {currentMoles.map((mole) => {
+                const MARKER_SIZE = 28;
+                return (
+                  <View key={mole.id} style={[styles.moleContainer, { left: mole.x - MARKER_SIZE / 2, top: mole.y - MARKER_SIZE / 2 }]} pointerEvents="box-none">
                     <TouchableOpacity
-                        style={[styles.profileIconContainer, { backgroundColor: isDark ? '#2A3F50' : '#E8F4F8', borderColor: isDark ? '#374151' : '#C5E3ED' }]}
-                        onPress={() => router.push('/Settingsoptions/Editprofile')}
+                      activeOpacity={0.8}
+                      delayLongPress={500}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                      onPress={() => router.push({ pathname: "/Screensbar/Camera", params: { tapX: mole.x.toFixed(2), tapY: mole.y.toFixed(2), bodyView: mole.bodyView, moleId: mole.id, existingPhotoUri: mole.photoUri || "", firestoreId: mole.firestoreId || "" } })}
+                      onLongPress={() => Alert.alert("Delete Point", "Are you sure?", [
+                        { text: "Cancel", style: "cancel" },
+                        { text: "Delete", style: "destructive", onPress: () => deleteMole(mole.id) },
+                      ])}
                     >
-                        {photoUri ? (
-                            <Image source={{ uri: photoUri }} style={styles.profilePhoto} resizeMode="cover" />
-                        ) : (
-                            // ── Custom person icon ──
-                            <Image source={Icons.person} style={styles.headerIconImg} resizeMode="contain" />
+                      <View style={[styles.moleContainer, { left: -(MARKER_SIZE / 2), top: -(MARKER_SIZE / 2) }]}>
+                        <View style={styles.moleInner}>
+                          <Text style={styles.moleIcon}>+</Text>
+                        </View>
+                        {mole.photoUri && (
+                          <Image source={{ uri: mole.photoUri }} style={styles.moleThumbnail} />
                         )}
+                      </View>
                     </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </Animated.View>
+          </View>
+        </View>
 
-                    <View style={[styles.welcomeContainer, {
-                        marginLeft: isArabic ? 0 : 12,
-                        marginRight: isArabic ? 12 : 0,
-                        flexDirection: isArabic ? 'row-reverse' : 'row',
-                    }]}>
-                        <Text style={[
-                            styles.welcomeLabel,
-                            {
-                                color: settings.textColor,
-                                fontFamily: fontsLoaded ? 'DancingScript_700Bold' : undefined,
-                            }
-                        ]}>
-                            {isArabic ? 'أهلاً،' : 'Welcome,'}
-                        </Text>
-                        <Text style={[styles.userName, customText, {
-                            marginLeft: isArabic ? 0 : 4,
-                            marginRight: isArabic ? 4 : 0,
-                        }]}>
-                            {userName}
-                        </Text>
-                    </View>
+        {/* Toggle Front/Back */}
+        <View style={styles.bottomControls}>
+          <View style={[styles.toggleWrapper, { backgroundColor: isDark ? "#1E2A35" : "#B8D4DE" }]}>
+            <TouchableOpacity onPress={() => toggleBodyView("front")} style={[styles.toggleButton, bodyView === "front" && styles.toggleButtonActive]}>
+              <Text style={[styles.toggleText, { color: bodyView === "front" ? "#FFFFFF" : colors.subText }]}>
+                {isArabic ? "أمامي" : "Front"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => toggleBodyView("back")} style={[styles.toggleButton, bodyView === "back" && styles.toggleButtonActive]}>
+              <Text style={[styles.toggleText, { color: bodyView === "back" ? "#FFFFFF" : colors.subText }]}>
+                {isArabic ? "خلفي" : "Back"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-                    <TouchableOpacity
-                        style={[styles.notificationButton, { backgroundColor: isDark ? '#1E2A35' : '#F9FAFB' }]}
-                        onPress={() => router.push('/Screensbar/Notifications')}
-                    >
-                        {/* ── Custom notification icon ── */}
-                        <Image
-                            source={Icons.notification}
-                            style={styles.notifIconImg}
-                            resizeMode="contain"
-                        />
-                        {notificationsEnabled && unreadCount > 0 && (
-                            <View style={styles.notifBadge}>
-                                <Text style={styles.notifBadgeText}>
-                                    {unreadCount > 99 ? '99+' : unreadCount}
-                                </Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* Title */}
-            <View style={styles.titleContainer}>
-                <Text style={[styles.title, customText]}>
-                    <Text>{isArabic ? 'دعنا نفحص ' : "Let's Check your "}</Text>
-                    <Text style={[styles.titleBold, customText]}>
-                        {isArabic ? 'جلدك' : 'Skin'}
-                    </Text>
-                </Text>
-            </View>
-
-            {/* Body */}
-            <View style={[styles.bodyMainContainer, { backgroundColor: pageBg }]}>
-                <View style={styles.bodyTouchable} {...panResponder.panHandlers} ref={(r) => { bodyWrapperRef.current = r; }}>
-                    <Animated.View style={[styles.bodyImageWrapper, { backgroundColor: pageBg, transform: [{ scale }, { translateX }, { translateY }] }]}>
-                        <Image
-                            source={bodyView === 'front'
-                                ? require('../../assets/images/body-front.png')
-                                : require('../../assets/images/body-back.png')}
-                            style={[styles.bodyImage, { backgroundColor: pageBg }]}
-                            resizeMode="contain"
-                        />
-                        {currentMoles.map((mole) => {
-                            const MARKER_SIZE = 28;
-                            return (
-                                <View
-                                    key={mole.id}
-                                    style={[styles.moleContainer, { left: mole.x - MARKER_SIZE / 2, top: mole.y - MARKER_SIZE / 2 }]}
-                                    pointerEvents="box-none"
-                                >
-                                    <TouchableOpacity
-                                        activeOpacity={0.8}
-                                        delayLongPress={500}
-                                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-                                        onPress={() => router.push({
-                                            pathname: '/Screensbar/Camera',
-                                            params: {
-                                                tapX: mole.x.toFixed(2),
-                                                tapY: mole.y.toFixed(2),
-                                                bodyView: mole.bodyView,
-                                                moleId: mole.id,
-                                                existingPhotoUri: mole.photoUri || '',
-                                                firestoreId: mole.firestoreId || '',
-                                            }
-                                        })}
-                                        onLongPress={() => Alert.alert('Delete Point', 'Are you sure?', [
-                                            { text: 'Cancel', style: 'cancel' },
-                                            { text: 'Delete', style: 'destructive', onPress: () => deleteMole(mole.id) }
-                                        ])}
-                                    >
-                                        <View style={[styles.moleContainer, { left: -(MARKER_SIZE / 2), top: -(MARKER_SIZE / 2) }]}>
-                                            <View style={styles.moleInner}>
-                                                <Text style={styles.moleIcon}>+</Text>
-                                            </View>
-                                            {mole.photoUri && (
-                                                <Image source={{ uri: mole.photoUri }} style={styles.moleThumbnail} />
-                                            )}
-                                        </View>
-                                    </TouchableOpacity>
-                                </View>
-                            );
-                        })}
-                    </Animated.View>
-                </View>
-            </View>
-
-            {/* Toggle Front/Back */}
-            <View style={styles.bottomControls}>
-                <View style={[styles.toggleWrapper, { backgroundColor: isDark ? '#1E2A35' : '#B8D4DE' }]}>
-                    <TouchableOpacity onPress={() => toggleBodyView('front')} style={[styles.toggleButton, bodyView === 'front' && styles.toggleButtonActive]}>
-                        <Text style={[styles.toggleText, { color: bodyView === 'front' ? '#FFFFFF' : colors.subText }]}>
-                            {isArabic ? 'أمامي' : 'Front'}
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => toggleBodyView('back')} style={[styles.toggleButton, bodyView === 'back' && styles.toggleButtonActive]}>
-                        <Text style={[styles.toggleText, { color: bodyView === 'back' ? '#FFFFFF' : colors.subText }]}>
-                            {isArabic ? 'خلفي' : 'Back'}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* Bottom Nav */}
-            <View style={styles.bottomNavContainer}>
-                <View style={[styles.bottomNav, { backgroundColor: colors.navBg, borderTopColor: colors.border }]}>
-                    {['Home', 'Reports'].map((tabName) => {
-                        const tab = bottomTabs.find(t => t.name === tabName)!;
-                        const isActive = activeTab === tab.name;
-                        return (
-                            <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                                <View style={[
-                                    styles.navIcon,
-                                    { backgroundColor: isDark ? '#152030' : '#F9FAFB' },
-                                    isActive && { backgroundColor: isDark ? '#1E3A4A' : '#E8F4F8', borderWidth: 2, borderColor: isDark ? '#374151' : '#C5E3ED' }
-                                ]}>
-                                    <Image
-                                        source={tab.iconImg}
-                                        style={styles.navIconImg}
-                                        resizeMode="contain"
-                                    />
-                                </View>
-                                <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: '700' }]}>
-                                    {tab.name}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                    <View style={styles.navCenterSpacer} />
-                    {['History', 'Settings'].map((tabName) => {
-                        const tab = bottomTabs.find(t => t.name === tabName)!;
-                        const isActive = activeTab === tab.name;
-                        return (
-                            <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                                <View style={[
-                                    styles.navIcon,
-                                    { backgroundColor: isDark ? '#152030' : '#F9FAFB' },
-                                    isActive && { backgroundColor: isDark ? '#1E3A4A' : '#E8F4F8', borderWidth: 2, borderColor: isDark ? '#374151' : '#C5E3ED' }
-                                ]}>
-                                    <Image
-                                        source={tab.iconImg}
-                                        style={styles.navIconImg}
-                                        resizeMode="contain"
-                                    />
-                                </View>
-                                <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: '700' }]}>
-                                    {tab.name}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-                <TouchableOpacity
-                    style={[
-                        styles.cameraButton,
-                        { backgroundColor: colors.navBg, borderColor: isDark ? '#374151' : '#C5E3ED' },
-                        activeTab === 'Camera' && { borderColor: colors.navActive, backgroundColor: isDark ? '#1E3A4A' : '#E8F4F8' }
-                    ]}
-                    onPress={() => handleTabPress('Camera')}
-                    activeOpacity={0.85}
-                >
-                    <Ionicons name="camera-outline" size={30} color={activeTab === 'Camera' ? colors.navActive : colors.navText} />
+        {/* Bottom Nav */}
+        <View style={styles.bottomNavContainer}>
+          <View style={[styles.bottomNav, { backgroundColor: colors.navBg, borderTopColor: colors.border }]}>
+            {["Home", "Reports"].map((tabName) => {
+              const tab = bottomTabs.find((t) => t.name === tabName)!;
+              const isActive = activeTab === tab.name;
+              return (
+                <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
+                  <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" }, isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
+                    <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
+                  </View>
+                  <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: "700" }]}>
+                    {tab.name}
+                  </Text>
                 </TouchableOpacity>
+              );
+            })}
+            <View style={styles.navCenterSpacer} />
+            {["History", "Settings"].map((tabName) => {
+              const tab = bottomTabs.find((t) => t.name === tabName)!;
+              const isActive = activeTab === tab.name;
+              return (
+                <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
+                  <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" }, isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
+                    <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
+                  </View>
+                  <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: "700" }]}>
+                    {tab.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <TouchableOpacity
+            style={[styles.cameraButton, { backgroundColor: colors.navBg, borderColor: isDark ? "#374151" : "#C5E3ED" }, activeTab === "Camera" && { borderColor: colors.navActive, backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8" }]}
+            onPress={() => handleTabPress("Camera")}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="camera-outline" size={30} color={activeTab === "Camera" ? colors.navActive : colors.navText} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Onboarding Modal */}
+        {showOnboarding && (
+          <View style={styles.onboardingOverlay}>
+            <View style={[styles.onboardingBox, { backgroundColor: colors.card }]}>
+              <Ionicons name="hand-left-outline" size={40} color="#004F7F" style={{ marginBottom: 12 }} />
+              <Text style={[styles.onboardingTitle, { color: isDark ? '#fff' : '#1F2937' }]}>
+                Tips
+              </Text>
+              <View style={styles.onboardingRow}>
+                <Ionicons name="search-outline" size={20} color="#00A3A3" />
+                <Text style={[styles.onboardingText, { color: isDark ? '#ccc' : '#374151' }]}>
+                  You can pinch to zoom in/out on the body map.
+                </Text>
+              </View>
+              <View style={styles.onboardingRow}>
+                <Ionicons name="time-outline" size={20} color="#00A3A3" />
+                <Text style={[styles.onboardingText, { color: isDark ? '#ccc' : '#374151' }]}>
+                  Long press (2 seconds) on a point to delete it.
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.onboardingBtn} onPress={dismissOnboarding} activeOpacity={0.85}>
+                <Text style={styles.onboardingBtnText}>Got it!</Text>
+              </TouchableOpacity>
             </View>
-        </SafeAreaView>
+          </View>
+        )}
+
+      </SafeAreaView>
     );
 }
 
@@ -515,15 +519,15 @@ const styles = StyleSheet.create({
     bottomNav:            { flexDirection: 'row', paddingVertical: 10, borderTopWidth: 1, width: '100%', paddingBottom: 16 },
     navCenterSpacer:      { flex: 1 },
     navItem:              { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    navIcon:              { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-    navIconImg:           { width: 34, height: 34 },
-    headerIconImg:        { width: 40, height: 40 },
-    notifIconImg:         { width: 36, height: 36 },
+    navIcon:              { width: 42, height: 42, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+    navIconImg:           { width: 42, height: 42 },
+    headerIconImg:        { width: 42, height: 42 },
+    notifIconImg:         { width: 56, height: 56 },
     navText:              { fontSize: 11, fontWeight: '500' },
     cameraButton:         { position: 'absolute', top: -26, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', borderWidth: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 6 },
     headerCard:           { marginHorizontal: 16, marginTop: 12, marginBottom: 8, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
     headerContent:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    profileIconContainer: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', borderWidth: 2, overflow: 'hidden' },
+    profileIconContainer: { width: 45, height: 45, borderRadius: 26, justifyContent: 'center', alignItems: 'center', borderWidth: 2, overflow: 'hidden' },
     profilePhoto:         { width: 52, height: 52, borderRadius: 26 },
     welcomeContainer:     { flex: 1, marginLeft: 12, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
     welcomeLabel:         { fontSize: 20 },
@@ -531,4 +535,11 @@ const styles = StyleSheet.create({
     notificationButton:   { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
     notifBadge:           { position: 'absolute', top: 4, right: 4, backgroundColor: '#EF4444', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 1.5, borderColor: '#FFFFFF' },
     notifBadgeText:       { color: '#FFFFFF', fontSize: 10, fontWeight: '800', lineHeight: 13 },
+    onboardingOverlay:    { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center', zIndex: 9999 },
+    onboardingBox:        { width: '80%', borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 10 },
+    onboardingTitle:      { fontSize: 18, fontWeight: '700', marginBottom: 16 },
+    onboardingRow:        { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12, width: '100%' },
+    onboardingText:       { flex: 1, fontSize: 14, lineHeight: 20 },
+    onboardingBtn:        { marginTop: 8, backgroundColor: '#004F7F', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
+    onboardingBtnText:    { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
