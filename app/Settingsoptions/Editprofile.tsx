@@ -242,11 +242,11 @@ export default function EditProfile() {
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
                 <TouchableOpacity style={styles.avatarWrap} onPress={handlePickImage} activeOpacity={0.8}>
-                    <View style={[styles.avatar, { backgroundColor: isDark ? '#E8F4F8' : '#2a3f50', borderColor: isDark ? '#00A3A3' : '#C5E3ED' }]}>
+                    <View style={[styles.avatar, { backgroundColor:"#E8F4F8", borderColor: isDark ? '#00A3A3' : '#004f7f' }]}>
                         {photoUri ? <Image source={{ uri: photoUri }} style={styles.avatarImage} resizeMode="cover" /> : <Ionicons name="person-outline" size={44} color={colors.primary} />}
                     </View>
-                    <View style={[styles.avatarEditBtn, { backgroundColor: colors.card, borderColor: isDark ? '#00A3A3' : '#374151' }]}>
-                        <Ionicons name="create-outline" size={14} color={isDark?"#C5E3ED":"#004f7f"} />
+                    <View style={[styles.avatarEditBtn, { backgroundColor: "#E8F4F8", borderColor: isDark ? '#00A3A3' : '#004f7f' }]}>
+                        <Ionicons name="create-outline" size={14} color={"#004f7f"} />
                     </View>
                 </TouchableOpacity>
 
