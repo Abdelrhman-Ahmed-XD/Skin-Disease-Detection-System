@@ -59,10 +59,15 @@ export default function SettingsPage() {
           const saved = await AsyncStorage.getItem(STORAGE_KEY);
           if (saved) {
             const data = JSON.parse(saved);
-            setPhotoUri(data.photoUri || null);
+            setPhotoUri(auth.currentUser?.photoURL || data.photoUri || null);
             const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
-            setProfileName(fullName || 'No Name');
-            setProfileEmail(data.email || '');
+            setProfileName(auth.currentUser?.displayName || fullName || 'No Name');
+            // FIXED: Reliably pull the email from the logged-in Firebase user, not the cache
+            setProfileEmail(auth.currentUser?.email || data.email || '');
+          } else {
+            setProfileEmail(auth.currentUser?.email || '');
+            setProfileName(auth.currentUser?.displayName || 'No Name');
+            setPhotoUri(auth.currentUser?.photoURL || null);
           }
           const notifSetting = await AsyncStorage.getItem(NOTIFICATIONS_ENABLED_KEY);
           setNotificationsEnabled(notifSetting === null ? true : notifSetting === 'true');
@@ -117,18 +122,16 @@ export default function SettingsPage() {
     }
   };
 
-  // ── التعديل: ضفنا iconSize في الـ type ──
   type SettingsRowProps = {
     iconImg:       any;
     iconColor?:    string;
-    iconSize?:     { width: number; height: number };  // ← جديد
+    iconSize?:     { width: number; height: number };
     label:         string;
     onPress?:      () => void;
     rightElement?: React.ReactNode;
     isLast?:       boolean;
   };
 
-  // ── التعديل: ضفنا iconSize في الـ destructuring وشلنا الـ background ──
   const SettingsRow: React.FC<SettingsRowProps> = ({
     iconImg, iconColor = colors.primary, iconSize, label, onPress, rightElement, isLast = false,
   }) => (
@@ -143,12 +146,10 @@ export default function SettingsPage() {
     >
       <View style={[
         styles.settingsIconWrap,
-        // ── شلنا backgroundColor من هنا ──
         { marginRight: isArabic ? 0 : 14, marginLeft: isArabic ? 14 : 0 },
       ]}>
         <Image
           source={iconImg}
-          // ── لو في iconSize يستخدمه، لو مفيش يرجع 28 ──
           style={{ width: iconSize?.width ?? 28, height: iconSize?.height ?? 28 }}
           resizeMode="contain"
         />
@@ -306,7 +307,6 @@ export default function SettingsPage() {
             iconImg={Icons.notification}
             iconSize={{ width: 52, height: 52 }}
             label={t("notifications")}
-            // ── مفيش iconSize → هيبقى 28 تلقائي ──
             rightElement={
               <Switch
                 value={notificationsEnabled}
@@ -320,7 +320,7 @@ export default function SettingsPage() {
           />
           <SettingsRow
             iconImg={Icons.darkMode}
-            iconSize={{ width: 34, height: 34 }} // ← الدارك مود بس عنده مقاس مختلف
+            iconSize={{ width: 34, height: 34 }}
             label={t("darkMode")}
             rightElement={
               <Switch
@@ -335,7 +335,6 @@ export default function SettingsPage() {
             iconImg={Icons.customize}
             iconSize={{ width: 54, height: 54 }}
             label={t("customize")}
-            // ── مفيش iconSize → هيبقى 28 تلقائي ──
             onPress={() => router.push("/Settingsoptions/Customize")}
             isLast
           />

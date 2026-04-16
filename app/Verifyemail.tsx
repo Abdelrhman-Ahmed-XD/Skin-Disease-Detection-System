@@ -99,7 +99,7 @@ export default function Verifyemail() {
             console.log("❌ Error sending email:", error);
             Alert.alert(
                 "Connection Error",
-                `Cannot connect to email server.\n\nMake sure Flask is running and try again.`
+                `Cannot connect to email server.\n\nMake sure Flask is running and your .env IP is correct.`
             );
         } finally {
             setIsSending(false);
@@ -197,11 +197,9 @@ export default function Verifyemail() {
             data.isEmailVerified = true;
             await AsyncStorage.setItem("signupDraft", JSON.stringify(data));
 
-            if (source === "editProfile") {
-                router.back();
-            } else {
-                router.push("/SignUp");
-            }
+            // FIXED: We strictly use router.back() so we don't accidentally create duplicate screens!
+            router.back();
+
         } catch (err) {
             console.log("Error verifying email:", err);
         }

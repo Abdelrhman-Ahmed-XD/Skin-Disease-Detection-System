@@ -1,20 +1,20 @@
-import { Ionicons } from '@expo/vector-icons';
+import {Ionicons} from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
-import { printToFileAsync } from 'expo-print';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { shareAsync } from 'expo-sharing';
-import React, { useEffect, useState } from 'react';
+import {printToFileAsync} from 'expo-print';
+import {useLocalSearchParams, useRouter} from 'expo-router';
+import {shareAsync} from 'expo-sharing';
+import React, {useEffect, useState} from 'react';
 import {
     Alert, Dimensions, Image, ScrollView, StatusBar,
     StyleSheet, Text, TouchableOpacity, View, ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCustomize } from '../Customize/Customizecontext';
-import { useTranslation } from '../Customize/translations';
-import { useTheme } from '../ThemeContext';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {useCustomize} from '../Customize/Customizecontext';
+import {useTranslation} from '../Customize/translations';
+import {useTheme} from '../ThemeContext';
 
-const { height } = Dimensions.get('window');
+const {height} = Dimensions.get('window');
 
 // ── Convert local URI → base64 data URL ──────────────────────────────────────
 const getImageBase64 = async (uri: string): Promise<string> => {
@@ -39,7 +39,7 @@ const getImageBase64 = async (uri: string): Promise<string> => {
         const base64 = await FileSystem.readAsStringAsync(uri, {
             encoding: FileSystem.EncodingType.Base64,
         });
-        const ext  = uri.split('.').pop()?.toLowerCase() || 'jpeg';
+        const ext = uri.split('.').pop()?.toLowerCase() || 'jpeg';
         const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
         return `data:${mime};base64,${base64}`;
     } catch (e) {
@@ -52,9 +52,9 @@ const getImageBase64 = async (uri: string): Promise<string> => {
 const skinColorLabel = (hex: string | null) => {
     const map: Record<string, string> = {
         '#F5E0D3': 'Very Light', '#EACAA7': 'Light',
-        '#D1A67A': 'Medium',     '#B57D50': 'Tan',
-        '#A05C38': 'Brown',      '#8B4513': 'Dark Brown',
-        '#7A3E11': 'Deep',       '#603311': 'Ebony',
+        '#D1A67A': 'Medium', '#B57D50': 'Tan',
+        '#A05C38': 'Brown', '#8B4513': 'Dark Brown',
+        '#7A3E11': 'Deep', '#603311': 'Ebony',
     };
     return hex ? (map[hex] || hex) : 'N/A';
 };
@@ -148,23 +148,19 @@ const buildReportHTML = (params: {
 <body>
   <div class="page">
 
-    <!-- Header -->
     <div class="header">
       <div class="brand"><span class="brand-s">S</span>kinsight</div>
       <div class="tagline">Snap. Detect. Protect.</div>
       <div class="header-divider"></div>
     </div>
 
-    <!-- Banner -->
     <div class="banner"><p>Skin Analysis Report</p></div>
 
-    <!-- Report Title Bar -->
     <div class="report-title-bar">
       <div class="report-num">Report #${params.reportIndex + 1}</div>
       <div class="report-date">${params.date}</div>
     </div>
 
-    <!-- Patient Info -->
     <div class="patient-section">
       <div class="patient-title">Patient Information</div>
       <div class="patient-grid">
@@ -195,17 +191,15 @@ const buildReportHTML = (params: {
       </div>
     </div>
 
-    <!-- Image -->
     <div class="image-section">
       ${params.imageBase64 ? `<img src="${params.imageBase64}" alt="Skin Analysis" />` : '<p style="color:#9CA3AF;padding:20px;">No image available</p>'}
     </div>
 
-    <!-- Info Grid -->
     <div class="info-section">
       <div class="info-grid">
         <div class="info-item">
           <div class="info-label">Location</div>
-          <div class="info-value">${params.bodyView === 'front' ? params.frontBody : params.backBody} Body</div>
+          <div class="info-value">${params.bodyView === 'front' ? params.frontBody : params.bodyView === 'back' ? params.backBody : 'N/A'}</div>
         </div>
         <div class="info-item">
           <div class="info-label">Coordinates</div>
@@ -218,7 +212,6 @@ const buildReportHTML = (params: {
       </div>
     </div>
 
-    <!-- Analysis -->
     <div class="analysis-section">
       <div class="section-header">
         <div class="section-title">Analysis Results</div>
@@ -228,7 +221,6 @@ const buildReportHTML = (params: {
       </div>
     </div>
 
-    <!-- Warning -->
     <div class="warning-section">
       <div class="warning-box">
         <p class="warning-text">
@@ -240,7 +232,6 @@ const buildReportHTML = (params: {
       </div>
     </div>
 
-    <!-- Footer -->
     <div class="footer">
       <div class="footer-divider"></div>
       <div class="footer-brand"><span class="footer-brand-s">S</span>kinsight</div>
@@ -256,56 +247,57 @@ const buildReportHTML = (params: {
 
 export default function ReportDetailsPage() {
     const router = useRouter();
-    const { colors, isDark } = useTheme();
-    const { settings } = useCustomize();
-    const { t, isArabic } = useTranslation(settings.language);
+    const {colors, isDark} = useTheme();
+    const {settings} = useCustomize();
+    const {t, isArabic} = useTranslation(settings.language);
     const [isDownloading, setIsDownloading] = useState(false);
 
     // ── User profile loaded from AsyncStorage ─────────────────
     const [patientName, setPatientName] = useState('N/A');
-    const [age,         setAge]         = useState('N/A');
-    const [gender,      setGender]      = useState('N/A');
-    const [hairColor,   setHairColor]   = useState('N/A');
-    const [eyeColor,    setEyeColor]    = useState('N/A');
-    const [skinColor,   setSkinColor]   = useState('N/A');
+    const [age, setAge] = useState('N/A');
+    const [gender, setGender] = useState('N/A');
+    const [hairColor, setHairColor] = useState('N/A');
+    const [eyeColor, setEyeColor] = useState('N/A');
+    const [skinColor, setSkinColor] = useState('N/A');
 
     useEffect(() => {
         AsyncStorage.getItem('signupDraft').then(saved => {
             if (!saved) return;
             const d = JSON.parse(saved);
             const firstName = d.firstName || '';
-            const lastName  = d.lastName  || '';
+            const lastName = d.lastName || '';
             setPatientName(`${firstName} ${lastName}`.trim() || 'N/A');
             setGender(d.gender ? (d.gender.charAt(0).toUpperCase() + d.gender.slice(1)) : 'N/A');
             setHairColor(d.hairColor || 'N/A');
-            setEyeColor(d.eyeColor   || 'N/A');
+            setEyeColor(d.eyeColor || 'N/A');
             setSkinColor(skinColorLabel(d.skinColor));
 
             // Calculate age from birthYear/Month/Day
             if (d.birthYear && d.birthMonth && d.birthDay) {
-                const dob  = new Date(d.birthYear, d.birthMonth - 1, d.birthDay);
+                const dob = new Date(d.birthYear, d.birthMonth - 1, d.birthDay);
                 const diff = Date.now() - dob.getTime();
                 const ageYears = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
                 setAge(`${ageYears} years`);
             }
-        }).catch(() => {});
+        }).catch(() => {
+        });
     }, []);
 
     const customText = {
-        fontSize:   settings.fontSize,
-        color:      settings.textColor,
+        fontSize: settings.fontSize,
+        color: settings.textColor,
         fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
     };
     const pageBg = isDark ? colors.background : settings.backgroundColor;
 
-    const params      = useLocalSearchParams();
-    const moleId      = params.moleId      as string;
-    const photoUri    = params.photoUri    as string;
-    const timestamp   = parseInt(params.timestamp as string);
-    const bodyView    = params.bodyView    as string;
-    const x           = parseFloat(params.x as string);
-    const y           = parseFloat(params.y as string);
-    const analysis    = params.analysis   as string || t('analysisInProgress');
+    const params = useLocalSearchParams();
+    const moleId = params.moleId as string;
+    const photoUri = params.photoUri as string;
+    const timestamp = parseInt(params.timestamp as string);
+    const bodyView = params.bodyView as string;
+    const x = parseFloat(params.x as string);
+    const y = parseFloat(params.y as string);
+    const analysis = params.analysis as string || t('analysisInProgress');
     const reportIndex = parseInt(params.reportIndex as string);
 
     const formatDate = (ts: number) =>
@@ -326,14 +318,14 @@ export default function ReportDetailsPage() {
             // 2. Build HTML with full patient profile
             const html = buildReportHTML({
                 reportIndex,
-                date:        formatDate(timestamp),
+                date: formatDate(timestamp),
                 bodyView,
                 x, y,
                 moleId,
                 analysis,
                 imageBase64,
-                frontBody:   t('frontBody'),
-                backBody:    t('backBody'),
+                frontBody: t('frontBody'),
+                backBody: t('backBody'),
                 patientName,
                 age,
                 gender,
@@ -343,7 +335,7 @@ export default function ReportDetailsPage() {
             });
 
             // 3. Generate PDF
-            const { uri } = await printToFileAsync({ html, base64: false });
+            const {uri} = await printToFileAsync({html, base64: false});
             console.log('✅ PDF generated at:', uri);
 
             // 4. Save directly to Downloads folder
@@ -351,16 +343,16 @@ export default function ReportDetailsPage() {
             const downloadDir = FileSystem.documentDirectory + 'Downloads/';
             const dirInfo = await FileSystem.getInfoAsync(downloadDir);
             if (!dirInfo.exists) {
-                await FileSystem.makeDirectoryAsync(downloadDir, { intermediates: true });
+                await FileSystem.makeDirectoryAsync(downloadDir, {intermediates: true});
             }
             const destUri = downloadDir + fileName;
-            await FileSystem.copyAsync({ from: uri, to: destUri });
+            await FileSystem.copyAsync({from: uri, to: destUri});
             console.log('✅ PDF saved to:', destUri);
 
             // 5. Also open share sheet so user can share or open with PDF viewer
             await shareAsync(destUri, {
-                UTI:         '.pdf',
-                mimeType:    'application/pdf',
+                UTI: '.pdf',
+                mimeType: 'application/pdf',
                 dialogTitle: `SkinSight Report #${reportIndex + 1}`,
             });
 
@@ -373,436 +365,511 @@ export default function ReportDetailsPage() {
     };
 
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: pageBg }]}
-        edges={["top"]}
-      >
-        <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
-
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.card }]}>
-          <TouchableOpacity
-            style={[styles.backButton, { borderColor: colors.border }]}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text
-            style={[
-              styles.headerTitle,
-              customText,
-              { color: isDark ? "#fff" : "#000" },
-            ]}
-          >
-            {t("reportDetails")}
-          </Text>
-          <TouchableOpacity
-            style={[
-              styles.downloadHeaderButton,
-              { backgroundColor: isDark ? "#004f7f" : "#E8F4F8" },
-            ]}
-            onPress={downloadReport}
-            disabled={isDownloading}
-          >
-            {isDownloading ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <Ionicons
-                name="download-outline"
-                size={24}
-                color={isDark ? "#fff" : "#004f7f"}
-                style={{ borderColor: "#004f7f" }}
-              />
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+        <SafeAreaView
+            style={[styles.container, {backgroundColor: pageBg}]}
+            edges={["top"]}
         >
-          {/* Scan Image */}
-          <View style={styles.imageContainer}>
-            {photoUri ? (
-              <Image
-                source={{ uri: photoUri }}
-                style={styles.mainImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <View
-                style={[
-                  styles.mainImage,
-                  {
-                    backgroundColor: colors.card,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="image-outline"
-                  size={48}
-                  color={colors.subText}
-                />
-              </View>
-            )}
-            <View style={styles.imageBadge}>
-              <Text
-                style={[
-                  styles.imageBadgeText,
-                  { fontFamily: customText.fontFamily },
-                ]}
-              >
-                {bodyView === "front" ? t("frontBody") : t("backBody")}
-              </Text>
-            </View>
-          </View>
+            <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg}/>
 
-          {/* Patient Info Card */}
-          <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
-            <View
-              style={[styles.infoHeader, { borderBottomColor: colors.border }]}
-            >
-              <Ionicons
-                name="person-outline"
-                size={20}
-                color={isDark ? "#fff" : "#004f7f"}
-              />
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  customText,
-                  { color: isDark ? "#fff" : "#004f7f" },
-                ]}
-              >
-                Patient Information
-              </Text>
-            </View>
-            <View style={[styles.patientGrid]}>
-              {[
-                { label: "Name", value: patientName },
-                { label: "Age", value: age },
-                { label: "Gender", value: gender },
-                { label: "Hair Color", value: hairColor },
-                { label: "Eye Color", value: eyeColor },
-                { label: "Skin Tone", value: skinColor },
-              ].map((item) => (
-                <View
-                  key={item.label}
-                  style={[
-                    styles.patientItem,
-                    {
-                      backgroundColor: isDark ? "#004f7f" : "#F4FBFF",
-                      borderColor: "#fff",
-                    },
-                  ]}
+            {/* Header */}
+            <View style={[styles.header, {backgroundColor: colors.card}]}>
+                <TouchableOpacity
+                    style={[styles.backButton, {borderColor: colors.border}]}
+                    onPress={() => router.back()}
                 >
-                  <Text
-                    style={[
-                      styles.infoLabel,
-                      customText,
-                      { color: isDark ? "#fff" : "#004f7f" },
-                    ]}
-                  >
-                    {item.label}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.infoValue,
-                      customText,
-                      { color: isDark ? "#fff" : "#004f7f" },
-                    ]}
-                  >
-                    {item.value}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Scan Info Card */}
-          <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
-            <View
-              style={[
-                styles.infoHeader,
-                {
-                  borderBottomColor: colors.border,
-                  flexDirection: isArabic ? "row-reverse" : "row",
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.reportNumber,
-                  customText,
-                  { color: isDark ? "#fff" : "#004f7f" },
-                ]}
-              >
-                {t("reportNum")}
-                {reportIndex + 1}
-              </Text>
-              <Text
-                style={[
-                  styles.dateText,
-                  { color: isDark ? "#fff" : "#004f7f" },
-                ]}
-              >
-                {formatDate(timestamp)}
-              </Text>
-            </View>
-            <View style={[styles.infoGrid]}>
-              <View
-                style={[
-                  styles.infoItem,
-                  { flexDirection: isArabic ? "row-reverse" : "row" },
-                ]}
-              >
-                <Ionicons
-                  name="location-outline"
-                  size={20}
-                  color={isDark ? "#fff" : "#004f7f"}
-                />
-                <View
-                  style={[
-                    styles.infoTextContainer,
-                    { alignItems: isArabic ? "flex-end" : "flex-start" },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.infoLabel,
-                      { color: isDark ? "#fff" : "#004f7f" },
-                    ]}
-                  >
-                    {t("location")}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.infoValue,
-                      { color: isDark ? "#fff" : "#004f7f" },
-                    ]}
-                  >
-                    {bodyView === "front" ? t("frontBody") : t("backBody")} Body
-                  </Text>
-                </View>
-              </View>
-              <View
-                style={[
-                  styles.infoItem,
-                  { flexDirection: isArabic ? "row-reverse" : "row" },
-                ]}
-              >
-                <Ionicons
-                  name="navigate-outline"
-                  size={20}
-                  color={isDark ? "#fff" : "#004f7f"}
-                />
-                <View
-                  style={[
-                    styles.infoTextContainer,
-                    { alignItems: isArabic ? "flex-end" : "flex-start" },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.infoLabel,
-                      { color: isDark ? "#fff" : "#004f7f" },
-                    ]}
-                  >
-                    {t("coordinates")}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.infoValue,
-                      { color: isDark ? "#fff" : "#004f7f" },
-                    ]}
-                  >
-                    x: {x.toFixed(1)}, y: {y.toFixed(1)}
-                  </Text>
-                </View>
-              </View>
-              <View
-                style={[
-                  styles.infoItem,
-                  { flexDirection: isArabic ? "row-reverse" : "row" },
-                ]}
-              >
-                <Ionicons
-                  name="finger-print-outline"
-                  size={20}
-                  color={isDark ? "#fff" : "#004f7f"}
-                />
-                <View
-                  style={[
-                    styles.infoTextContainer,
-                    { alignItems: isArabic ? "flex-end" : "flex-start" },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.infoLabel,
-                      { color: isDark ? "#fff" : "#004f7f" },
-                    ]}
-                  >
-                    {t("reportId")}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.infoValue,
-                      { color: isDark ? "#fff" : "#004f7f" },
-                    ]}
-                  >
-                    {moleId.substring(0, 12)}...
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Analysis Card */}
-          <View style={[styles.analysisCard, { backgroundColor: colors.card }]}>
-            <View
-              style={[
-                styles.analysisHeader,
-                {
-                  borderBottomColor: colors.border,
-                  flexDirection: isArabic ? "row-reverse" : "row",
-                },
-              ]}
-            >
-              <Ionicons name="document-text" size={24}  color={isDark?"#fff":"#004f7f"} />
-              <Text
-                style={[
-                  styles.analysisTitle,
-                  { color: isDark ? "#fff" : "#004f7f" },
-                ]}
-              >
-                {t("analysisResults")}
-              </Text>
-            </View>
-            <Text
-              style={[{color:isDark?"#fff":"#004f7f"},
-                styles.analysisText,
-                 {color:isDark?"#fff":"#004f7f"},
-                { textAlign: isArabic ? "right" : "left" },
-              ]}
-            >
-              {analysis}
-            </Text>
-          </View>
-
-          {/* Download Button */}
-          <TouchableOpacity
-            style={[
-              styles.downloadButton,
-              {
-                backgroundColor: colors.primary,
-                flexDirection: isArabic ? "row-reverse" : "row",
-              },
-            ]}
-            onPress={downloadReport}
-            activeOpacity={0.8}
-            disabled={isDownloading}
-          >
-            {isDownloading ? (
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
-              >
-                <ActivityIndicator size="small" color="#fff" />
+                    <Ionicons name="chevron-back" size={24} color={colors.text}/>
+                </TouchableOpacity>
                 <Text
-                  style={[
-                    styles.downloadButtonText,
-                    { fontFamily: customText.fontFamily },
-                  ]}
+                    style={[
+                        styles.headerTitle,
+                        customText,
+                        {color: isDark ? "#fff" : "#000"},
+                    ]}
                 >
-                  Generating PDF...
+                    {t("reportDetails")}
                 </Text>
-              </View>
-            ) : (
-              <>
-                <Ionicons
-                  name="cloud-download-outline"
-                  size={24}
-                  color="#FFFFFF"
-                />
-                <Text
-                  style={[
-                    styles.downloadButtonText,
-                    { fontFamily: customText.fontFamily },
-                  ]}
+                <TouchableOpacity
+                    style={[
+                        styles.downloadHeaderButton,
+                        {backgroundColor: isDark ? "#004f7f" : "#E8F4F8"},
+                    ]}
+                    onPress={downloadReport}
+                    disabled={isDownloading}
                 >
-                  {t("downloadAsPDF")}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+                    {isDownloading ? (
+                        <ActivityIndicator size="small" color={colors.primary}/>
+                    ) : (
+                        <Ionicons
+                            name="download-outline"
+                            size={24}
+                            color={isDark ? "#fff" : "#004f7f"}
+                            style={{borderColor: "#004f7f"}}
+                        />
+                    )}
+                </TouchableOpacity>
+            </View>
 
-          {/* Disclaimer */}
-          <View
-            style={[
-              styles.warningCard,
-              {
-                backgroundColor: isDark ? "#2D2000" : "#FEF3C7",
-                borderColor: isDark ? "#5C4000" : "#FCD34D",
-                flexDirection: isArabic ? "row-reverse" : "row",
-              },
-            ]}
-          >
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color="#F59E0B"
-            />
-            <Text
-              style={[
-                styles.warningText,
-                customText,
-                {
-                  color: isDark ? "#FCD34D" : "#92400E",
-                  textAlign: isArabic ? "right" : "left",
-                },
-              ]}
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
             >
-              {t("medicalDisclaimer")}
-            </Text>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+                {/* Scan Image */}
+                <View style={styles.imageContainer}>
+                    {photoUri ? (
+                        <Image
+                            source={{uri: photoUri}}
+                            style={styles.mainImage}
+                            resizeMode="cover"
+                        />
+                    ) : (
+                        <View
+                            style={[
+                                styles.mainImage,
+                                {
+                                    backgroundColor: colors.card,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                },
+                            ]}
+                        >
+                            <Ionicons
+                                name="image-outline"
+                                size={48}
+                                color={colors.subText}
+                            />
+                        </View>
+                    )}
+                    <View style={styles.imageBadge}>
+                        <Text
+                            style={[
+                                styles.imageBadgeText,
+                                {fontFamily: customText.fontFamily},
+                            ]}
+                        >
+                            {bodyView === "front" ? t("frontBody") : bodyView === "back" ? t("backBody") : "N/A"}
+                        </Text>
+                    </View>
+                </View>
+
+                {/* Patient Info Card */}
+                <View style={[styles.infoCard, {backgroundColor: colors.card}]}>
+                    <View
+                        style={[styles.infoHeader, {borderBottomColor: colors.border}]}
+                    >
+                        <Ionicons
+                            name="person-outline"
+                            size={20}
+                            color={isDark ? "#fff" : "#004f7f"}
+                        />
+                        <Text
+                            style={[
+                                styles.sectionTitle,
+                                customText,
+                                {color: isDark ? "#fff" : "#004f7f"},
+                            ]}
+                        >
+                            Patient Information
+                        </Text>
+                    </View>
+                    <View style={[styles.patientGrid]}>
+                        {[
+                            {label: "Name", value: patientName},
+                            {label: "Age", value: age},
+                            {label: "Gender", value: gender},
+                            {label: "Hair Color", value: hairColor},
+                            {label: "Eye Color", value: eyeColor},
+                            {label: "Skin Tone", value: skinColor},
+                        ].map((item) => (
+                            <View
+                                key={item.label}
+                                style={[
+                                    styles.patientItem,
+                                    {
+                                        backgroundColor: isDark ? "#004f7f" : "#F4FBFF",
+                                        borderColor: "#fff",
+                                    },
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.infoLabel,
+                                        customText,
+                                        {color: isDark ? "#fff" : "#004f7f"},
+                                    ]}
+                                >
+                                    {item.label}
+                                </Text>
+                                <Text
+                                    style={[
+                                        styles.infoValue,
+                                        customText,
+                                        {color: isDark ? "#fff" : "#004f7f"},
+                                    ]}
+                                >
+                                    {item.value}
+                                </Text>
+                            </View>
+                        ))}
+                    </View>
+                </View>
+
+                {/* Scan Info Card */}
+                <View style={[styles.infoCard, {backgroundColor: colors.card}]}>
+                    <View
+                        style={[
+                            styles.infoHeader,
+                            {
+                                borderBottomColor: colors.border,
+                                flexDirection: isArabic ? "row-reverse" : "row",
+                            },
+                        ]}
+                    >
+                        <Text
+                            style={[
+                                styles.reportNumber,
+                                customText,
+                                {color: isDark ? "#fff" : "#004f7f"},
+                            ]}
+                        >
+                            {t("reportNum")}
+                            {reportIndex + 1}
+                        </Text>
+                        <Text
+                            style={[
+                                styles.dateText,
+                                {color: isDark ? "#fff" : "#004f7f"},
+                            ]}
+                        >
+                            {formatDate(timestamp)}
+                        </Text>
+                    </View>
+                    <View style={[styles.infoGrid]}>
+                        <View
+                            style={[
+                                styles.infoItem,
+                                {flexDirection: isArabic ? "row-reverse" : "row"},
+                            ]}
+                        >
+                            <Ionicons
+                                name="location-outline"
+                                size={20}
+                                color={isDark ? "#fff" : "#004f7f"}
+                            />
+                            <View
+                                style={[
+                                    styles.infoTextContainer,
+                                    {alignItems: isArabic ? "flex-end" : "flex-start"},
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.infoLabel,
+                                        {color: isDark ? "#fff" : "#004f7f"},
+                                    ]}
+                                >
+                                    {t("location")}
+                                </Text>
+                                <Text
+                                    style={[
+                                        styles.infoValue,
+                                        {color: isDark ? "#fff" : "#004f7f"},
+                                    ]}
+                                >
+                                    {bodyView === "front" ? t("frontBody") : bodyView === "back" ? t("backBody") : "N/A"} {bodyView === "front" || bodyView === "back" ? "Body" : ""}
+                                </Text>
+                            </View>
+                        </View>
+                        <View
+                            style={[
+                                styles.infoItem,
+                                {flexDirection: isArabic ? "row-reverse" : "row"},
+                            ]}
+                        >
+                            <Ionicons
+                                name="navigate-outline"
+                                size={20}
+                                color={isDark ? "#fff" : "#004f7f"}
+                            />
+                            <View
+                                style={[
+                                    styles.infoTextContainer,
+                                    {alignItems: isArabic ? "flex-end" : "flex-start"},
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.infoLabel,
+                                        {color: isDark ? "#fff" : "#004f7f"},
+                                    ]}
+                                >
+                                    {t("coordinates")}
+                                </Text>
+                                <Text
+                                    style={[
+                                        styles.infoValue,
+                                        {color: isDark ? "#fff" : "#004f7f"},
+                                    ]}
+                                >
+                                    x: {x.toFixed(1)}, y: {y.toFixed(1)}
+                                </Text>
+                            </View>
+                        </View>
+                        <View
+                            style={[
+                                styles.infoItem,
+                                {flexDirection: isArabic ? "row-reverse" : "row"},
+                            ]}
+                        >
+                            <Ionicons
+                                name="finger-print-outline"
+                                size={20}
+                                color={isDark ? "#fff" : "#004f7f"}
+                            />
+                            <View
+                                style={[
+                                    styles.infoTextContainer,
+                                    {alignItems: isArabic ? "flex-end" : "flex-start"},
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.infoLabel,
+                                        {color: isDark ? "#fff" : "#004f7f"},
+                                    ]}
+                                >
+                                    {t("reportId")}
+                                </Text>
+                                <Text
+                                    style={[
+                                        styles.infoValue,
+                                        {color: isDark ? "#fff" : "#004f7f"},
+                                    ]}
+                                >
+                                    {moleId.substring(0, 12)}...
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Analysis Card */}
+                <View style={[styles.analysisCard, {backgroundColor: colors.card}]}>
+                    <View
+                        style={[
+                            styles.analysisHeader,
+                            {
+                                borderBottomColor: colors.border,
+                                flexDirection: isArabic ? "row-reverse" : "row",
+                            },
+                        ]}
+                    >
+                        <Ionicons name="document-text" size={24} color={isDark ? "#fff" : "#004f7f"}/>
+                        <Text
+                            style={[
+                                styles.analysisTitle,
+                                {color: isDark ? "#fff" : "#004f7f"},
+                            ]}
+                        >
+                            {t("analysisResults")}
+                        </Text>
+                    </View>
+                    <Text
+                        style={[{color: isDark ? "#fff" : "#004f7f"},
+                            styles.analysisText,
+                            {color: isDark ? "#fff" : "#004f7f"},
+                            {textAlign: isArabic ? "right" : "left"},
+                        ]}
+                    >
+                        {analysis}
+                    </Text>
+                </View>
+
+                {/* Download Button */}
+                <TouchableOpacity
+                    style={[
+                        styles.downloadButton,
+                        {
+                            backgroundColor: colors.primary,
+                            flexDirection: isArabic ? "row-reverse" : "row",
+                        },
+                    ]}
+                    onPress={downloadReport}
+                    activeOpacity={0.8}
+                    disabled={isDownloading}
+                >
+                    {isDownloading ? (
+                        <View
+                            style={{flexDirection: "row", alignItems: "center", gap: 10}}
+                        >
+                            <ActivityIndicator size="small" color="#fff"/>
+                            <Text
+                                style={[
+                                    styles.downloadButtonText,
+                                    {fontFamily: customText.fontFamily},
+                                ]}
+                            >
+                                Generating PDF...
+                            </Text>
+                        </View>
+                    ) : (
+                        <>
+                            <Ionicons
+                                name="cloud-download-outline"
+                                size={24}
+                                color="#FFFFFF"
+                            />
+                            <Text
+                                style={[
+                                    styles.downloadButtonText,
+                                    {fontFamily: customText.fontFamily},
+                                ]}
+                            >
+                                {t("downloadAsPDF")}
+                            </Text>
+                        </>
+                    )}
+                </TouchableOpacity>
+
+                {/* Disclaimer */}
+                <View
+                    style={[
+                        styles.warningCard,
+                        {
+                            backgroundColor: isDark ? "#2D2000" : "#FEF3C7",
+                            borderColor: isDark ? "#5C4000" : "#FCD34D",
+                            flexDirection: isArabic ? "row-reverse" : "row",
+                        },
+                    ]}
+                >
+                    <Ionicons
+                        name="information-circle-outline"
+                        size={20}
+                        color="#F59E0B"
+                    />
+                    <Text
+                        style={[
+                            styles.warningText,
+                            customText,
+                            {
+                                color: isDark ? "#FCD34D" : "#92400E",
+                                textAlign: isArabic ? "right" : "left",
+                            },
+                        ]}
+                    >
+                        {t("medicalDisclaimer")}
+                    </Text>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container:            { flex: 1 },
-    header:               { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
-    backButton:           { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    downloadHeaderButton: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    headerTitle:          { fontSize: 20, fontWeight: 'bold' },
-    scrollView:           { flex: 1 },
-    scrollContent:        { padding: 16, paddingBottom: 40 },
-    imageContainer:       { position: 'relative', width: '100%', height: height * 0.45, borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
-    mainImage:            { width: '100%', height: '100%' },
-    imageBadge:           { position: 'absolute', top: 16, right: 16, backgroundColor: 'rgba(0,79,127,0.9)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16 },
-    imageBadgeText:       { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-    infoCard:             { borderRadius: 16, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
-    infoHeader:           { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1 },
-    sectionTitle:         { fontSize: 16, fontWeight: '700' },
-    reportNumber:         { fontSize: 20, fontWeight: '700' },
-    dateText:             { fontSize: 13, marginLeft: 'auto' },
-    patientGrid:          { flexDirection: 'row', flexWrap: 'wrap', gap: 10,color:"#fff" },
-    patientItem:          { width: '30%', flexGrow: 1, borderRadius: 10, padding: 10, borderWidth: 1 },
-    infoGrid:             { gap: 16 },
-    infoItem:             { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    infoTextContainer:    { flex: 1 },
-    infoLabel:            { fontSize: 12, marginBottom: 2 },
-    infoValue:            { fontSize: 15, fontWeight: '600' },
-    analysisCard:         { borderRadius: 16, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
-    analysisHeader:       { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1 },
-    analysisTitle:        { fontSize: 18, fontWeight: '700' },
-    analysisText:         { fontSize: 15, lineHeight: 24 },
-    downloadButton:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 16, marginBottom: 16, gap: 10 },
-    downloadButtonText:   { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
-    warningCard:          { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, gap: 12, borderWidth: 1 },
-    warningText:          { flex: 1, fontSize: 13, lineHeight: 18 },
+    container: {flex: 1},
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 15,
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+        elevation: 2,
+        margin: 15
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    downloadHeaderButton: {width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center'},
+    headerTitle: {fontSize: 20, fontWeight: 'bold'},
+    scrollView: {flex: 1},
+    scrollContent: {padding: 16, paddingBottom: 40},
+    imageContainer: {
+        position: 'relative',
+        width: '100%',
+        height: height * 0.45,
+        borderRadius: 16,
+        overflow: 'hidden',
+        marginBottom: 16
+    },
+    mainImage: {width: '100%', height: '100%'},
+    imageBadge: {
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        backgroundColor: 'rgba(0,79,127,0.9)',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 16
+    },
+    imageBadgeText: {color: '#FFFFFF', fontSize: 14, fontWeight: '600'},
+    infoCard: {
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3
+    },
+    infoHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 16,
+        paddingBottom: 12,
+        borderBottomWidth: 1
+    },
+    sectionTitle: {fontSize: 16, fontWeight: '700'},
+    reportNumber: {fontSize: 20, fontWeight: '700'},
+    dateText: {fontSize: 13, marginLeft: 'auto'},
+    patientGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 10, color: "#fff"},
+    patientItem: {width: '30%', flexGrow: 1, borderRadius: 10, padding: 10, borderWidth: 1},
+    infoGrid: {gap: 16},
+    infoItem: {flexDirection: 'row', alignItems: 'center', gap: 12},
+    infoTextContainer: {flex: 1},
+    infoLabel: {fontSize: 12, marginBottom: 2},
+    infoValue: {fontSize: 15, fontWeight: '600'},
+    analysisCard: {
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3
+    },
+    analysisHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 16,
+        paddingBottom: 12,
+        borderBottomWidth: 1
+    },
+    analysisTitle: {fontSize: 18, fontWeight: '700'},
+    analysisText: {fontSize: 15, lineHeight: 24},
+    downloadButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 16,
+        borderRadius: 16,
+        marginBottom: 16,
+        gap: 10
+    },
+    downloadButtonText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF'},
+    warningCard: {flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, gap: 12, borderWidth: 1},
+    warningText: {flex: 1, fontSize: 13, lineHeight: 18},
 });

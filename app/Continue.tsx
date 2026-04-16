@@ -18,10 +18,10 @@ export default function Continue() {
           style={{ width: 250, height: 250, marginBottom: 5 ,marginRight:60}}
         />
         <Text style={{ fontSize: 24, fontWeight: "bold", color: "#000" ,marginTop:20,textAlign:"center",flexDirection:"row"}}>
-          Finish your profile in the profile section to 
+          Finish your profile in the profile section to
         </Text>
         <Text style={{ fontWeight: "bold", color: "#000" ,marginTop:20,textAlign:"center",flexDirection:"row"}}>
-          get the best experience, or tap Continue to proceed.
+          click on &#34;go to Profile&#34; to Complete Customizing your profile or tap &#34;Continue&#34; to proceed .
         </Text>
       <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 40 ,width:"80%"}}>
           <TouchableOpacity onPress={() => router.push("/Settingsoptions/Editprofile")}
@@ -32,14 +32,14 @@ export default function Continue() {
               flex: 1,
               marginRight: 10, // مسافة بين الزرين
             }}
-          
+
           >
             <Text style={{ color: "#fff", textAlign: "center", fontWeight: "bold" }}>
               Go to Profile
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => router.push("/Screensbar/Nextscreens")}
+          <TouchableOpacity onPress={() => router.push("Starthome")}
             style={{
               backgroundColor: "#0B4F6C",
               padding: 12,
@@ -47,7 +47,7 @@ export default function Continue() {
               flex: 1,
               marginLeft: 10, // مسافة بين الزرين
             }}
-            
+
           >
           <Text style={{ color: "#fff", textAlign: "center", fontWeight: "bold" }}>
             Continue

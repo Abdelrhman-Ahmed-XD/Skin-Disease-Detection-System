@@ -39,8 +39,9 @@ type Mole = {
     y: number;
     timestamp: number;
     photoUri?: string;
-    bodyView: 'front' | 'back';
+    bodyView: 'front' | 'back' | 'N/A' | string;
     firestoreId?: string; // ← Firestore document ID
+    source?: string;      // ← FIXED: Added source to clear TS2353
 };
 
 type ScreenMode = 'existing_preview' | 'camera' | 'new_preview';
@@ -54,13 +55,9 @@ async function uriToBase64(uri: string): Promise<string> {
 }
 
 // ── Upload photo to Cloudinary ─────────────────────────────────
-// Returns a permanent HTTPS URL — survives reinstalls, device switches.
-// Uses unsigned upload preset (no API secret needed on mobile).
 async function uploadToCloudinary(localUri: string): Promise<string> {
     try {
         console.log('☁️ Uploading to Cloudinary...');
-
-        // Build multipart form data
         const formData = new FormData();
         formData.append('file', {
             uri: localUri,
@@ -81,13 +78,10 @@ async function uploadToCloudinary(localUri: string): Promise<string> {
             console.log('✅ Uploaded to Cloudinary:', data.secure_url);
             return data.secure_url;
         } else {
-            console.log('❌ Cloudinary upload failed:', data);
             throw new Error(data.error?.message || 'Cloudinary upload failed');
         }
     } catch (err) {
         console.log('❌ Cloudinary upload error:', err);
-        // Fallback: copy to permanent local storage
-        console.log('⚠️ Falling back to local storage...');
         return await copyToLocalStorage(localUri);
     }
 }
@@ -103,50 +97,41 @@ async function copyToLocalStorage(tempUri: string): Promise<string> {
         }
         const permanentUri = `${permanentDir}${fileName}`;
         await FileSystem.copyAsync({ from: tempUri, to: permanentUri });
-        console.log('✅ Photo saved locally as fallback:', permanentUri);
         return permanentUri;
     } catch (err) {
-        console.log('⚠️ Local copy also failed, using temp URI:', err);
         return tempUri;
     }
 }
 
 // ── Save scan to Firestore ─────────────────────────────────────
-// Stores only metadata + local photoUri (NOT base64 — avoids 1MB Firestore limit)
-// base64 is kept in memory only for the Flask model call
 async function saveToFirestore(
     photoUri: string,
-    bodyView: 'front' | 'back',
+    bodyView: string,
     x: number,
     y: number,
     analysis?: string
 ): Promise<string | null> {
     try {
         const user = auth.currentUser;
-        if (!user) {
-            console.log('No logged-in user, skipping Firestore save');
-            return null;
-        }
+        if (!user) return null;
 
         const scansRef = collection(db, 'users', user.uid, 'scans');
         const docRef = await addDoc(scansRef, {
-            photoUri,        // local file path only — no base64
+            photoUri,
             bodyView,
             x,
             y,
             analysis: analysis || null,
             createdAt: serverTimestamp(),
+            source: 'mobile'
         });
 
-        console.log('Saved to Firestore with ID:', docRef.id);
         return docRef.id;
     } catch (err) {
-        console.log('Firestore save error:', err);
         return null;
     }
 }
 
-// ── Update existing Firestore scan (when editing a mole) ───────
 async function updateFirestoreScan(
     firestoreId: string,
     photoUri: string
@@ -157,14 +142,10 @@ async function updateFirestoreScan(
 
         const scanRef = doc(db, 'users', user.uid, 'scans', firestoreId);
         await updateDoc(scanRef, {
-            photoUri,        // update local path only
+            photoUri,
             updatedAt: serverTimestamp(),
         });
-
-        console.log('Updated Firestore scan:', firestoreId);
-    } catch (err) {
-        console.log('Firestore update error:', err);
-    }
+    } catch (err) {}
 }
 
 export default function CameraScreen() {
@@ -173,7 +154,7 @@ export default function CameraScreen() {
 
     const tapX = params.tapX ? parseFloat(params.tapX as string) : null;
     const tapY = params.tapY ? parseFloat(params.tapY as string) : null;
-    const bodyView = (params.bodyView as 'front' | 'back') || 'front';
+    const bodyView = (params.bodyView as string) || 'front';
     const moleId = params.moleId as string | undefined;
     const existingPhotoUri = params.existingPhotoUri as string | undefined;
     const existingFirestoreId = params.firestoreId as string | undefined;
@@ -197,7 +178,6 @@ export default function CameraScreen() {
         }
     }, [permission]);
 
-    // ── Take picture ──────────────────────────────────────────
     const takePicture = async () => {
         if (cameraRef.current) {
             try {
@@ -212,7 +192,6 @@ export default function CameraScreen() {
         }
     };
 
-    // ── Pick from gallery ─────────────────────────────────────
     const pickFromGallery = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
@@ -231,37 +210,27 @@ export default function CameraScreen() {
         }
     };
 
-    // ── Confirm & save ────────────────────────────────────────
-    // 1. Convert photo to base64
-    // 2. Save to Firestore under users/{uid}/scans/{scanId}
-    // 3. Save mole locally in AsyncStorage (with firestoreId reference)
     const confirmPhoto = async (photoUri: string) => {
         setIsSaving(true);
         try {
-            // ── Step 1: Upload to Cloudinary → get permanent HTTPS URL ──
             const permanentUri = await uploadToCloudinary(photoUri);
-
-            // ── Step 2: Convert original local URI to base64 — ONLY for Flask model ──
             const base64 = await uriToBase64(photoUri);
 
-            // ── Step 3: Save to Firestore (Cloudinary URL only, no base64) ──
             let firestoreId: string | null = null;
+            const finalBodyView = hasPosition ? bodyView : 'N/A';
 
             if (isEditing && moleId && existingFirestoreId) {
-                // Update existing scan
                 await updateFirestoreScan(existingFirestoreId, permanentUri);
                 firestoreId = existingFirestoreId;
             } else {
-                // New scan
                 firestoreId = await saveToFirestore(
                     permanentUri,
-                    bodyView,
+                    finalBodyView,
                     tapX ?? 0,
                     tapY ?? 0
                 );
             }
 
-            // Update local AsyncStorage
             const existing = await AsyncStorage.getItem(MOLES_STORAGE_KEY);
             const currentMoles: Mole[] = existing ? JSON.parse(existing) : [];
 
@@ -272,15 +241,17 @@ export default function CameraScreen() {
                         : m
                 );
                 await AsyncStorage.setItem(MOLES_STORAGE_KEY, JSON.stringify(updated));
-            } else if (hasPosition) {
+            } else {
+                // ALWAYS save locally so it shows in history immediately
                 const newMole: Mole = {
                     id: `mole_${Date.now()}`,
-                    x: tapX!,
-                    y: tapY!,
+                    x: tapX ?? 0,
+                    y: tapY ?? 0,
                     timestamp: Date.now(),
                     photoUri: permanentUri,
-                    bodyView,
+                    bodyView: finalBodyView,
                     firestoreId: firestoreId ?? undefined,
+                    source: 'mobile'
                 };
                 await AsyncStorage.setItem(
                     MOLES_STORAGE_KEY,
@@ -297,7 +268,6 @@ export default function CameraScreen() {
         }
     };
 
-    // ── Loading ───────────────────────────────────────────────
     if (!permission) {
         return (
             <View style={styles.centered}>
@@ -321,7 +291,6 @@ export default function CameraScreen() {
         );
     }
 
-    // ── Existing photo preview ────────────────────────────────
     if (screenMode === 'existing_preview' && existingPhotoUri) {
         return (
             <View style={styles.previewContainer}>
@@ -361,7 +330,6 @@ export default function CameraScreen() {
         );
     }
 
-    // ── New photo preview ─────────────────────────────────────
     if (screenMode === 'new_preview' && capturedPhoto) {
         return (
             <View style={styles.previewContainer}>
@@ -382,11 +350,10 @@ export default function CameraScreen() {
                 <View style={styles.previewBadge}>
                     <Ionicons name={isEditing ? 'pencil-outline' : 'location-outline'} size={14} color="#fff" />
                     <Text style={styles.previewBadgeText}>
-                        {isEditing ? 'This will replace the existing photo' : 'Will be saved on body map'}
+                        {isEditing ? 'This will replace the existing photo' : (hasPosition ? 'Will be saved on body map' : 'Will be saved to History')}
                     </Text>
                 </View>
 
-                {/* Saving indicator */}
                 {isSaving && (
                     <View style={styles.savingBadge}>
                         <Ionicons name="cloud-upload-outline" size={14} color="#fff" />
@@ -410,7 +377,7 @@ export default function CameraScreen() {
                     >
                         <Ionicons name="checkmark-outline" size={22} color="#fff" />
                         <Text style={styles.confirmBtnText}>
-                            {isSaving ? 'Saving...' : isEditing ? 'Update Photo' : 'Save & Mark'}
+                            {isSaving ? 'Saving...' : isEditing ? 'Update Photo' : 'Save Photo'}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -418,7 +385,6 @@ export default function CameraScreen() {
         );
     }
 
-    // ── Camera view ───────────────────────────────────────────
     return (
         <View style={styles.cameraContainer}>
             <StatusBar barStyle="light-content" backgroundColor="#000" />
@@ -483,8 +449,6 @@ const styles = StyleSheet.create({
     permissionBtnText:    { color: '#fff', fontWeight: '700', fontSize: 16 },
     backLink:             { marginTop: 16 },
     backLinkText:         { color: '#00A3A3', fontSize: 14, fontWeight: '600' },
-
-    // Camera
     cameraContainer:      { flex: 1, backgroundColor: '#000' },
     camera:               { flex: 1 },
     topBar:               { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 52, paddingHorizontal: 20, paddingBottom: 12 },
@@ -503,8 +467,6 @@ const styles = StyleSheet.create({
     captureBtnInner:      { width: 58, height: 58, borderRadius: 29, backgroundColor: '#fff' },
     galleryBtn:           { width: 72, height: 72, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', gap: 4 },
     galleryBtnText:       { color: '#fff', fontSize: 11, fontWeight: '600' },
-
-    // Preview (shared)
     previewContainer:     { flex: 1, backgroundColor: '#000' },
     previewImage:         { flex: 1, width: '100%', resizeMode: 'cover' },
     previewTopBar:        { position: 'absolute', top: 52, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
@@ -514,8 +476,6 @@ const styles = StyleSheet.create({
     previewBadgeText:     { color: '#fff', fontSize: 12, fontWeight: '600' },
     savingBadge:          { position: 'absolute', top: 150, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,163,163,0.9)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
     savingBadgeText:      { color: '#fff', fontSize: 12, fontWeight: '600' },
-
-    // Existing photo actions
     existingActions:      { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 10, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 20, paddingHorizontal: 20 },
     keepBtn:              { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
     keepBtnText:          { color: '#004F7F', fontWeight: '700', fontSize: 14 },
@@ -523,8 +483,6 @@ const styles = StyleSheet.create({
     galleryActionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
     cameraActionBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#004F7F', paddingVertical: 14, borderRadius: 14 },
     cameraActionBtnText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
-
-    // New preview actions
     previewActions:       { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 20, paddingHorizontal: 30, gap: 16 },
     retakeBtn:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
     retakeBtnText:        { color: '#004F7F', fontWeight: '700', fontSize: 15 },

@@ -142,7 +142,15 @@ export default function Login1() {
             try { await loadMolesFromFirestore(); } catch (_) {}
 
             setIsLoggingIn(false);
-            Router.replace("/Screensbar/FirstHomePage");
+
+            // FIXED: Route to Onboarding if first time, else skip to Home
+            const hasSeenOnboarding = await AsyncStorage.getItem("hasSeenOnboarding");
+            if (hasSeenOnboarding === "true") {
+                Router.replace("/Screensbar/FirstHomePage");
+            } else {
+                Router.replace("/Starthome");
+            }
+
         } catch (err: any) {
             console.log("Social login error:", err);
             setIsLoggingIn(false);
@@ -277,7 +285,14 @@ export default function Login1() {
 
             setFailCount(0);
             setIsLoggingIn(false); // allow _layout auth listener again
-            Router.replace("/Screensbar/FirstHomePage");
+
+            // FIXED: Route to Onboarding if first time, else skip to Home
+            const hasSeenOnboarding = await AsyncStorage.getItem("hasSeenOnboarding");
+            if (hasSeenOnboarding === "true") {
+                Router.replace("/Screensbar/FirstHomePage");
+            } else {
+                Router.replace("/Starthome");
+            }
 
         } catch (error: any) {
             console.log("Firebase error code:", error.code);

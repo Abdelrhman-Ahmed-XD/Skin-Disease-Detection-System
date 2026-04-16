@@ -12,7 +12,6 @@ from email_templates import get_email_change_html, get_otp_email_html, get_passw
 
 emails_bp = Blueprint('emails', __name__)
 
-
 # ── Shared email sender ───────────────────────────────────────────────────────
 def send_email(to_email, subject, html_body):
     message = MIMEMultipart("alternative")
@@ -24,7 +23,6 @@ def send_email(to_email, subject, html_body):
         server.login(GMAIL_EMAIL, GMAIL_PASSWORD)
         server.sendmail(GMAIL_EMAIL, to_email, message.as_string())
 
-
 # ── POST /api/send-otp ────────────────────────────────────────────────────────
 @emails_bp.route('/api/send-otp', methods=['POST'])
 def send_otp():
@@ -33,15 +31,16 @@ def send_otp():
         email    = data.get('email')
         name     = data.get('name', 'User')
         otp_code = data.get('otp_code')
+        source   = data.get('source', 'mobile')
 
-        print(f"\n📧 Sending verification OTP to: {email} | Name: {name} | OTP: {otp_code}")
+        print(f"\n📧 Sending verification OTP to: {email} | Name: {name} | OTP: {otp_code} | Source: {source}")
 
         if not email or not otp_code:
             return jsonify({'success': False, 'message': 'Missing email or OTP code'}), 400
         if not GMAIL_EMAIL or not GMAIL_PASSWORD:
             return jsonify({'success': False, 'message': 'Server configuration error'}), 500
 
-        send_email(email, "SkinSight – Your Verification Code", get_otp_email_html(name, otp_code))
+        send_email(email, "SkinSight – Your Verification Code", get_otp_email_html(name, otp_code, source))
         print(f"✅ Verification email sent to {email}")
         return jsonify({'success': True, 'message': f'OTP sent to {email}'}), 200
 
@@ -52,7 +51,6 @@ def send_otp():
         print(f"❌ send-otp error: {e}"); traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
 
-
 # ── POST /api/send-password-reset ────────────────────────────────────────────
 @emails_bp.route('/api/send-password-reset', methods=['POST'])
 def send_password_reset():
@@ -61,15 +59,16 @@ def send_password_reset():
         email    = data.get('email')
         name     = data.get('name', 'User')
         otp_code = data.get('otp_code')
+        source   = data.get('source', 'mobile')
 
-        print(f"\n🔐 Sending password reset OTP to: {email} | Name: {name} | OTP: {otp_code}")
+        print(f"\n🔐 Sending password reset OTP to: {email} | Name: {name} | OTP: {otp_code} | Source: {source}")
 
         if not email or not otp_code:
             return jsonify({'success': False, 'message': 'Missing email or OTP code'}), 400
         if not GMAIL_EMAIL or not GMAIL_PASSWORD:
             return jsonify({'success': False, 'message': 'Server configuration error'}), 500
 
-        send_email(email, "SkinSight – Password Reset Code", get_password_reset_html(name, otp_code))
+        send_email(email, "SkinSight – Password Reset Code", get_password_reset_html(name, otp_code, source))
         print(f"✅ Password reset email sent to {email}")
         return jsonify({'success': True, 'message': f'Password reset OTP sent to {email}'}), 200
 
@@ -80,7 +79,6 @@ def send_password_reset():
         print(f"❌ send-password-reset error: {e}"); traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
 
-
 # ── POST /api/send-email-change-otp ──────────────────────────────────────────
 @emails_bp.route('/api/send-email-change-otp', methods=['POST'])
 def send_email_change_otp():
@@ -89,15 +87,16 @@ def send_email_change_otp():
         new_email = data.get('email')
         name      = data.get('name', 'User')
         otp_code  = data.get('otp_code')
+        source    = data.get('source', 'mobile')
 
-        print(f"\n📧 Sending email change OTP to: {new_email} | Name: {name} | OTP: {otp_code}")
+        print(f"\n📧 Sending email change OTP to: {new_email} | Name: {name} | OTP: {otp_code} | Source: {source}")
 
         if not new_email or not otp_code:
             return jsonify({'success': False, 'message': 'Missing email or OTP code'}), 400
         if not GMAIL_EMAIL or not GMAIL_PASSWORD:
             return jsonify({'success': False, 'message': 'Server configuration error'}), 500
 
-        send_email(new_email, "SkinSight – Email Change Verification", get_email_change_html(name, otp_code, new_email))
+        send_email(new_email, "SkinSight – Email Change Verification", get_email_change_html(name, otp_code, new_email, source))
         print(f"✅ Email change OTP sent to {new_email}")
         return jsonify({'success': True, 'message': f'Email change OTP sent to {new_email}'}), 200
 

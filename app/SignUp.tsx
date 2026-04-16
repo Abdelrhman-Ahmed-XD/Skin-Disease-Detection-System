@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Label } from "@react-navigation/elements";
-import { router, useRouter } from "expo-router";
+import { useFocusEffect, router, useRouter } from "expo-router"; // <-- Added useFocusEffect
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react"; // <-- Added useCallback
 import {
     Alert,
     Image,
@@ -21,9 +21,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "../Firebase/firebaseConfig";
 
-
-
-
+// Import the safeguard from your layout!
+import { setIsLoggingIn } from "./_layout";
 
 const STORAGE_KEY = "signupDraft";
 
@@ -46,26 +45,28 @@ export default function SignUp() {
     const [isEmailVerified, setIsEmailVerified] = useState(false);
     const [verifiedEmail, setVerifiedEmail] = useState("");
 
-    // ── Load saved data ───────────────────────────────────────
-    useEffect(() => {
-        const loadSavedData = async () => {
-            try {
-                const saved = await AsyncStorage.getItem(STORAGE_KEY);
-                if (saved) {
-                    const data = JSON.parse(saved);
-                    setFirstName(data.firstName || "");
-                    setLastName(data.lastName || "");
-                    setEmail(data.email || "");
-                    // password is never stored in AsyncStorage for security
-                    setIsEmailVerified(data.isEmailVerified || false);
-                    setVerifiedEmail(data.isEmailVerified ? data.email : "");
+    // ── Load saved data (Now uses FocusEffect so it refreshes when coming back from verification!)
+    useFocusEffect(
+        useCallback(() => {
+            const loadSavedData = async () => {
+                try {
+                    const saved = await AsyncStorage.getItem(STORAGE_KEY);
+                    if (saved) {
+                        const data = JSON.parse(saved);
+                        setFirstName(data.firstName || "");
+                        setLastName(data.lastName || "");
+                        setEmail(data.email || "");
+                        // password is never stored in AsyncStorage for security
+                        setIsEmailVerified(data.isEmailVerified || false);
+                        setVerifiedEmail(data.isEmailVerified ? data.email : "");
+                    }
+                } catch (err) {
+                    console.log("Load Error:", err);
                 }
-            } catch (err) {
-                console.log("Load Error:", err);
-            }
-        };
-        loadSavedData();
-    }, []);
+            };
+            loadSavedData();
+        }, [])
+    );
 
     // ── Email verified check ──────────────────────────────────
     useEffect(() => {
@@ -135,7 +136,10 @@ export default function SignUp() {
             console.log(err);
         }
     };
+
     const handleSignUp = async () => {
+        // Tell _layout.tsx NOT to auto-redirect us while we finish the profile screens!
+        setIsLoggingIn(true);
 
         try {
             const userCredential = await createUserWithEmailAndPassword(
@@ -149,6 +153,7 @@ export default function SignUp() {
                 firstName,
                 lastName,
                 email,
+                isEmailVerified: true,
                 createdAt: new Date().toISOString(),
                 uid: user.uid,
             });
@@ -163,17 +168,18 @@ export default function SignUp() {
 
             Router.push("/Gender");
         } catch (error: any) {
+            setIsLoggingIn(false); // Only reset it if sign up fails
             console.log("FULL ERROR:", error);
             Alert.alert("Sign Up Failed", error.message);
         }
     };
 
-
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                // FIXED: behavior="height" causes infinite flickering on Android. undefined stops it.
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
                 keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
             >
                 <ScrollView
@@ -309,7 +315,7 @@ export default function SignUp() {
                             placeholder="Re-enter your password"
                             secureTextEntry={!showConfirmPassword}
                             value={confirmPassword}
-                            textContentType="oneTimeCode"  // ← أضف
+                            textContentType="oneTimeCode"
                             onChangeText={setConfirmPassword}
                             style={styles.passwordInput}
                         />

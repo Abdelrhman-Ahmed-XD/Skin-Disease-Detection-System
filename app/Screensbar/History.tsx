@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCustomize } from '../Customize/Customizecontext';
 import { useTranslation } from '../Customize/translations';
 import { useTheme } from '../ThemeContext';
-import { loadMolesFromFirestore, deleteMole as deleteMoleService } from '../../Firebase/firestoreService';
+import { loadAllScansFromFirestore, deleteMole as deleteMoleService } from '../../Firebase/firestoreService';
 
 // ── Custom Icon Images ─────────────────────────────────────────
 const Icons = {
@@ -21,7 +21,8 @@ const Icons = {
 
 const { width } = Dimensions.get('window');
 
-type Mole = { id: string; x: number; y: number; timestamp: number; photoUri?: string; bodyView: 'front' | 'back'; firestoreId?: string; analysis?: string; };
+// FIXED: Updated type to allow 'N/A' and source string
+type Mole = { id: string; x: number; y: number; timestamp: number; photoUri?: string; bodyView: 'front' | 'back' | 'N/A' | string; firestoreId?: string; analysis?: string; source?: string; };
 
 export default function HistoryPage() {
     const router = useRouter();
@@ -51,7 +52,7 @@ export default function HistoryPage() {
 
     const loadMoles = async () => {
         try {
-            const data = await loadMolesFromFirestore();
+            const data = await loadAllScansFromFirestore();
             setMoles(data);
         } catch (err) {
             console.log('Error loading moles:', err);
@@ -270,7 +271,9 @@ export default function HistoryPage() {
                           >
                             {mole.bodyView === "front"
                               ? t("frontBody")
-                              : t("backBody")}
+                              : mole.bodyView === "back"
+                              ? t("backBody")
+                              : "N/A"}
                           </Text>
                         </View>
                         {mole.analysis && (

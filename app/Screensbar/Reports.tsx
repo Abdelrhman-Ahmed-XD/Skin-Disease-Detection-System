@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCustomize } from '../Customize/Customizecontext';
 import { useTranslation } from '../Customize/translations';
 import { useTheme } from '../ThemeContext';
-import { loadMolesFromFirestore } from '../../Firebase/firestoreService';
+import { loadAllScansFromFirestore } from '../../Firebase/firestoreService';
 
 // ── Custom Icon Images ─────────────────────────────────────────
 const Icons = {
@@ -25,9 +25,10 @@ const Icons = {
 
 const { width } = Dimensions.get('window');
 
+// FIXED: Updated type to allow 'N/A' and source string
 type Mole = {
     id: string; x: number; y: number; timestamp: number;
-    photoUri?: string; bodyView: 'front' | 'back'; analysis?: string;
+    photoUri?: string; bodyView: 'front' | 'back' | 'N/A' | string; analysis?: string; source?: string;
 };
 
 const getImageBase64 = async (uri: string): Promise<string> => {
@@ -142,7 +143,7 @@ const buildReportHTML = (params: {
     </div>
     <div class="info-section">
       <div class="info-grid">
-        <div class="info-item"><div class="info-label">Location</div><div class="info-value">${params.bodyView === 'front' ? params.frontBody : params.backBody} Body</div></div>
+        <div class="info-item"><div class="info-label">Location</div><div class="info-value">${params.bodyView === 'front' ? params.frontBody : params.bodyView === 'back' ? params.backBody : 'N/A'}</div></div>
         <div class="info-item"><div class="info-label">Coordinates</div><div class="info-value">x: ${params.x.toFixed(1)}, y: ${params.y.toFixed(1)}</div></div>
         <div class="info-item"><div class="info-label">Report ID</div><div class="info-value">${params.moleId.substring(0, 10)}...</div></div>
       </div>
@@ -222,7 +223,7 @@ export default function ReportsPage() {
 
     const loadMoles = async () => {
         try {
-            const data = await loadMolesFromFirestore();
+            const data = await loadAllScansFromFirestore();
             setMoles(data.filter((m: Mole) => m.photoUri));
         } catch (err) {
             console.log('Error loading moles:', err);
@@ -415,7 +416,9 @@ export default function ReportsPage() {
                       <Text style={styles.imageBadgeText}>
                         {mole.bodyView === "front"
                           ? t("frontBody")
-                          : t("backBody")}
+                          : mole.bodyView === "back"
+                          ? t("backBody")
+                          : "N/A"}
                       </Text>
                     </View>
                     <View style={styles.expandIcon}>

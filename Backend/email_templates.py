@@ -48,7 +48,8 @@ def get_security_notice_html(message):
 
 
 # ── Email Verification OTP ────────────────────────────────────────────────────
-def get_otp_email_html(name, otp_code):
+def get_otp_email_html(name, otp_code, source="mobile"):
+    platform_text = "website" if source == "web" else "app"
     return f"""
     <div style="font-family: Georgia, serif; max-width: 600px; width: 100%; margin: 0 auto; background-color: #D8E9F0; border-radius: 16px; overflow: hidden; box-sizing: border-box;">
       {get_header_html()}
@@ -61,7 +62,7 @@ def get_otp_email_html(name, otp_code):
         {get_otp_block_html(otp_code, "YOUR VERIFICATION CODE")}
         <div style="background-color: #f9fafb; border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid #00A3A3; width: 100%; box-sizing: border-box;">
           <p style="font-size: 13px; color: #374151; font-weight: bold; margin: 0 0 12px 0; font-family: system-ui, sans-serif;">How to use your code:</p>
-          <p style="font-size: 13px; color: #6B7280; margin: 8px 0; font-family: system-ui, sans-serif; line-height: 1.5;">1️⃣ Go back to the SkinSight app</p>
+          <p style="font-size: 13px; color: #6B7280; margin: 8px 0; font-family: system-ui, sans-serif; line-height: 1.5;">1️⃣ Go back to the SkinSight {platform_text}</p>
           <p style="font-size: 13px; color: #6B7280; margin: 8px 0; font-family: system-ui, sans-serif; line-height: 1.5;">2️⃣ Enter the 6-digit code in the verification screen</p>
           <p style="font-size: 13px; color: #6B7280; margin: 8px 0; font-family: system-ui, sans-serif; line-height: 1.5;">3️⃣ Complete your registration and start using SkinSight!</p>
         </div>
@@ -72,7 +73,8 @@ def get_otp_email_html(name, otp_code):
 
 
 # ── Password Reset OTP ────────────────────────────────────────────────────────
-def get_password_reset_html(name, otp_code):
+def get_password_reset_html(name, otp_code, source="mobile"):
+    platform_text = "website" if source == "web" else "app"
     return f"""
     <div style="font-family: Georgia, serif; max-width: 600px; width: 100%; margin: 0 auto; background-color: #D8E9F0; border-radius: 16px; overflow: hidden; box-sizing: border-box;">
       {get_header_html()}
@@ -85,7 +87,7 @@ def get_password_reset_html(name, otp_code):
         {get_otp_block_html(otp_code, "YOUR PASSWORD RESET CODE")}
         <div style="background-color: #f9fafb; border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid #00A3A3; width: 100%; box-sizing: border-box;">
           <p style="font-size: 13px; color: #374151; font-weight: bold; margin: 0 0 12px 0; font-family: system-ui, sans-serif;">How to reset your password:</p>
-          <p style="font-size: 13px; color: #6B7280; margin: 8px 0; font-family: system-ui, sans-serif; line-height: 1.5;">1️⃣ Go back to the SkinSight app</p>
+          <p style="font-size: 13px; color: #6B7280; margin: 8px 0; font-family: system-ui, sans-serif; line-height: 1.5;">1️⃣ Go back to the SkinSight {platform_text}</p>
           <p style="font-size: 13px; color: #6B7280; margin: 8px 0; font-family: system-ui, sans-serif; line-height: 1.5;">2️⃣ Enter the 6-digit code on the reset screen</p>
           <p style="font-size: 13px; color: #6B7280; margin: 8px 0; font-family: system-ui, sans-serif; line-height: 1.5;">3️⃣ Create your new password and log in!</p>
         </div>
@@ -96,7 +98,8 @@ def get_password_reset_html(name, otp_code):
 
 
 # ── Email Change OTP ──────────────────────────────────────────────────────────
-def get_email_change_html(name, otp_code, new_email):
+def get_email_change_html(name, otp_code, new_email, source="mobile"):
+    platform_text = "website" if source == "web" else "app"
     return f"""
     <div style="font-family: Georgia, serif; max-width: 600px; width: 100%; margin: 0 auto; background-color: #D8E9F0; border-radius: 16px; overflow: hidden; box-sizing: border-box;">
       {get_header_html()}
@@ -110,7 +113,7 @@ def get_email_change_html(name, otp_code, new_email):
         {get_otp_block_html(otp_code, "YOUR EMAIL CHANGE CODE")}
         <div style="background-color: #f9fafb; border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid #00A3A3; width: 100%; box-sizing: border-box;">
           <p style="font-size: 13px; color: #374151; font-weight: bold; margin: 0 0 12px 0; font-family: system-ui, sans-serif;">How to confirm your new email:</p>
-          <p style="font-size: 13px; color: #6B7280; margin: 8px 0; font-family: system-ui, sans-serif; line-height: 1.5;">1️⃣ Go back to the SkinSight app</p>
+          <p style="font-size: 13px; color: #6B7280; margin: 8px 0; font-family: system-ui, sans-serif; line-height: 1.5;">1️⃣ Go back to the SkinSight {platform_text}</p>
           <p style="font-size: 13px; color: #6B7280; margin: 8px 0; font-family: system-ui, sans-serif; line-height: 1.5;">2️⃣ Enter the 6-digit code in the verification screen</p>
           <p style="font-size: 13px; color: #6B7280; margin: 8px 0; font-family: system-ui, sans-serif; line-height: 1.5;">3️⃣ Your email will be updated to <strong>{new_email}</strong></p>
         </div>
@@ -118,3 +121,36 @@ def get_email_change_html(name, otp_code, new_email):
       </div>
       {get_footer_html()}
     </div>"""
+
+
+def get_header_html():
+    # Use the Cloudinary link you provided
+    logo_url = "https://res.cloudinary.com/dignpxpgy/image/upload/v1776298242/WhatsApp_Image_2026-04-16_at_12.57.04_AM_uwqizy.jpg"
+
+    return f"""
+      <div style="background-color: #004F7F; padding: 30px 20px; text-align: center; width: 100%; box-sizing: border-box;">
+
+        <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto 15px auto;">
+          <tr>
+            <td align="center" style="background-color: #ffffff; border: 3px solid #00A3A3; border-radius: 50%; overflow: hidden; width: 80px; height: 80px;">
+                <img src="{logo_url}" 
+                     alt="SkinSight Logo" 
+                     width="80" 
+                     height="80" 
+                     style="display: block; width: 80px; height: 80px; border-radius: 50%; object-fit: cover;"
+                />
+            </td>
+          </tr>
+        </table>
+
+        <div style="font-size: 42px; font-weight: bold; color: #ffffff; letter-spacing: 2px; font-family: Georgia, serif; line-height: 1.2;">
+          <span style="color: #00A3A3; font-size: 50px;">S</span>kinsight
+        </div>
+        <div style="color: #C5E3ED; font-size: 14px; margin-top: 6px; font-style: italic; letter-spacing: 3px; font-family: Georgia, serif;">
+          Snap. Detect. Protect.
+        </div>
+        <div style="width: 60px; height: 3px; background-color: #00A3A3; margin: 15px auto 0 auto; border-radius: 10px;"></div>
+      </div>
+      <div style="background-color: #00A3A3; padding: 12px 20px; text-align: center; width: 100%; box-sizing: border-box;">
+        <p style="color: #ffffff; font-size: 14px; margin: 0; font-style: italic; letter-spacing: 0.5px; font-family: Georgia, serif;">Your skin health companion</p>
+      </div>"""
