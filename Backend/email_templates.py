@@ -124,20 +124,19 @@ def get_email_change_html(name, otp_code, new_email, source="mobile"):
 
 
 def get_header_html():
-    # Use the Cloudinary link you provided
-    logo_url = "https://res.cloudinary.com/dignpxpgy/image/upload/v1776298242/WhatsApp_Image_2026-04-16_at_12.57.04_AM_uwqizy.jpg"
+    logo_url = "https://res.cloudinary.com/dignpxpgy/image/upload/w_80,h_80,c_fill,r_max,f_png/v1776298242/WhatsApp_Image_2026-04-16_at_12.57.04_AM_uwqizy.jpg"
 
     return f"""
       <div style="background-color: #004F7F; padding: 30px 20px; text-align: center; width: 100%; box-sizing: border-box;">
 
         <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto 15px auto;">
           <tr>
-            <td align="center" style="background-color: #ffffff; border: 3px solid #00A3A3; border-radius: 50%; overflow: hidden; width: 80px; height: 80px;">
+            <td align="center" style="width: 80px; height: 80px;">
                 <img src="{logo_url}" 
                      alt="SkinSight Logo" 
                      width="80" 
                      height="80" 
-                     style="display: block; width: 80px; height: 80px; border-radius: 50%; object-fit: cover;"
+                     style="display: block; width: 80px; height: 80px; outline: none; text-decoration: none;"
                 />
             </td>
           </tr>
