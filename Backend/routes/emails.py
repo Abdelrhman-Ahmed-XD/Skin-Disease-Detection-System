@@ -57,11 +57,22 @@ def send_password_reset():
     try:
         data     = request.get_json()
         email    = data.get('email')
-        name     = data.get('name', 'User')
         otp_code = data.get('otp_code')
         source   = data.get('source', 'mobile')
 
-        print(f"\n🔐 Sending password reset OTP to: {email} | Name: {name} | OTP: {otp_code} | Source: {source}")
+        # NEW: Securely fetch the user's real name directly from Firebase
+        name = 'User' # Default fallback
+        if email:
+            try:
+                from firebase_admin import auth as firebase_auth
+                user = firebase_auth.get_user_by_email(email)
+                if user.display_name:
+                    # Grab just their first name (e.g. "Ahmed" from "Ahmed Mohamed")
+                    name = user.display_name.strip().split(' ')[0]
+            except Exception as e:
+                print(f"⚠️ Could not fetch real name for email, defaulting to 'User': {e}")
+
+        print(f"\n🔐 Sending password reset OTP to: {email} | Real Name: {name} | OTP: {otp_code} | Source: {source}")
 
         if not email or not otp_code:
             return jsonify({'success': False, 'message': 'Missing email or OTP code'}), 400
@@ -79,24 +90,43 @@ def send_password_reset():
         print(f"❌ send-password-reset error: {e}"); traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
 # ── POST /api/send-email-change-otp ──────────────────────────────────────────
 @emails_bp.route('/api/send-email-change-otp', methods=['POST'])
 def send_email_change_otp():
     try:
-        data      = request.get_json()
+        data = request.get_json()
         new_email = data.get('email')
-        name      = data.get('name', 'User')
-        otp_code  = data.get('otp_code')
-        source    = data.get('source', 'mobile')
+        otp_code = data.get('otp_code')
+        source = data.get('source', 'mobile')
+        uid = data.get('uid')  # Fetch by UID (Best)
+        current_email = data.get('current_email')  # Fetch by old email (Fallback)
 
-        print(f"\n📧 Sending email change OTP to: {new_email} | Name: {name} | OTP: {otp_code} | Source: {source}")
+        # NEW: Securely fetch the user's real name directly from Firebase
+        name = data.get('name', 'User')  # Default fallback
+        try:
+            from firebase_admin import auth as firebase_auth
+            user = None
+            if uid:
+                user = firebase_auth.get_user(uid)
+            elif current_email:
+                user = firebase_auth.get_user_by_email(current_email)
+
+            if user and user.display_name:
+                # Grab just their first name
+                name = user.display_name.strip().split(' ')[0]
+        except Exception as e:
+            print(f"⚠️ Could not fetch real name, defaulting to '{name}': {e}")
+
+        print(f"\n📧 Sending email change OTP to: {new_email} | Real Name: {name} | OTP: {otp_code} | Source: {source}")
 
         if not new_email or not otp_code:
             return jsonify({'success': False, 'message': 'Missing email or OTP code'}), 400
         if not GMAIL_EMAIL or not GMAIL_PASSWORD:
             return jsonify({'success': False, 'message': 'Server configuration error'}), 500
 
-        send_email(new_email, "SkinSight – Email Change Verification", get_email_change_html(name, otp_code, new_email, source))
+        send_email(new_email, "SkinSight – Email Change Verification",
+                   get_email_change_html(name, otp_code, new_email, source))
         print(f"✅ Email change OTP sent to {new_email}")
         return jsonify({'success': True, 'message': f'Email change OTP sent to {new_email}'}), 200
 
@@ -104,5 +134,6 @@ def send_email_change_otp():
         print("❌ Gmail authentication failed")
         return jsonify({'success': False, 'message': 'Gmail authentication failed'}), 401
     except Exception as e:
-        print(f"❌ send-email-change-otp error: {e}"); traceback.print_exc()
+        print(f"❌ send-email-change-otp error: {e}");
+        traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)}), 500

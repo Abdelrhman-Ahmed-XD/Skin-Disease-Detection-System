@@ -57,13 +57,18 @@ export default function VerifyEmailChange() {
             const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
             setGeneratedOtp(newOtp);
 
+            // GET THE CURRENT LOGGED-IN USER
+            const user = auth.currentUser;
+
             const response = await fetch(`${FLASK_URL}/api/send-email-change-otp`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     email: newEmail,
                     name: paramName || "User",
+                    uid: user ? user.uid : null, // <--- ADDED: Send the UID to Flask to get the real name
                     otp_code: newOtp,
+                    source: 'mobile'
                 }),
             });
 
