@@ -15,6 +15,8 @@ import {
     Text,
     TouchableOpacity,
     View,
+    BackHandler,
+    Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from "../../Firebase/firebaseConfig";
@@ -89,6 +91,25 @@ export default function FirstHomePage() {
     const [unreadCount, setUnreadCount]                   = useState<number>(0);
     const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
     const [showOnboarding, setShowOnboarding]             = useState(false);
+
+    // ── 1. PREVENT LOGGED-IN USERS FROM GOING BACK TO STARTUP ──
+    useFocusEffect(
+      React.useCallback(() => {
+        const onBackPress = () => {
+          const user = auth.currentUser;
+          // If it is a real account, exit the app on back press.
+          if (user && !user.isAnonymous) {
+            BackHandler.exitApp();
+            return true; // Stop going backward
+          }
+          // If it is a Guest (or logged out), allow normal back navigation to StartUp
+          return false;
+        };
+
+        const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => subscription.remove();
+      }, [])
+    );
 
     useEffect(() => { bodyViewRef.current = bodyView; }, [bodyView]);
 
@@ -267,12 +288,9 @@ export default function FirstHomePage() {
 
     const currentMoles = moles.filter((m) => m.bodyView === bodyView);
 
-    // ── التعديل: deleteMole بتحذف من AsyncStorage + Firestore ──
     const deleteMole = async (moleId: string) => {
-        // ── 1. لقي الـ mole عشان تاخد الـ firestoreId ──
         const moleToDelete = moles.find((m) => m.id === moleId);
 
-        // ── 2. احذف من AsyncStorage ──
         const updated = moles.filter((m) => m.id !== moleId);
         setMoles(updated);
         try {
@@ -281,7 +299,6 @@ export default function FirstHomePage() {
             console.log('Error deleting mole from AsyncStorage:', err);
         }
 
-        // ── 3. احذف من Firestore لو في firestoreId ──
         try {
             const user = auth.currentUser;
             if (user && moleToDelete?.firestoreId) {
@@ -310,13 +327,14 @@ export default function FirstHomePage() {
         { name: 'Settings', iconImg: Icons.settings },
     ];
 
+    // ── FIXED: We use push() so FirstHomePage stays in history stack ──
     const handleTabPress = (tabName: string) => {
         setActiveTab(tabName);
         switch (tabName) {
             case 'Camera':   router.push('/Screensbar/Camera');           break;
-            case 'History':  router.replace('/Screensbar/History');       break;
-            case 'Reports':  router.replace('/Screensbar/Reports');       break;
-            case 'Settings': router.replace('/Screensbar/Setting');       break;
+            case 'History':  router.push('/Screensbar/History');          break;
+            case 'Reports':  router.push('/Screensbar/Reports');          break;
+            case 'Settings': router.push('/Screensbar/Setting');          break;
         }
     };
 

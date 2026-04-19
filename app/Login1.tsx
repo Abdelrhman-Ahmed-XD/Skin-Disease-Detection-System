@@ -105,7 +105,11 @@ export default function Login1() {
             const docRef = doc(db, "users", user.uid);
             const docSnap = await getDoc(docRef);
 
+            let isNewUser = false; // <-- CHECK IF THEY ARE NEW
+
             if (!docSnap.exists()) {
+                isNewUser = true; // Mark as a brand new account!
+
                 // First-time social login — create profile in Firestore
                 const displayName = user.displayName || "";
                 const [firstName, ...rest] = displayName.split(" ");
@@ -143,12 +147,12 @@ export default function Login1() {
 
             setIsLoggingIn(false);
 
-            // FIXED: Route to Onboarding if first time, else skip to Home
-            const hasSeenOnboarding = await AsyncStorage.getItem("hasSeenOnboarding");
-            if (hasSeenOnboarding === "true") {
-                Router.replace("/Screensbar/FirstHomePage");
-            } else {
+            // FIXED: If they are a new social user, show tips. Otherwise, skip straight to home.
+            if (isNewUser) {
                 Router.replace("/Starthome");
+            } else {
+                await AsyncStorage.setItem("hasSeenOnboarding", "true");
+                Router.replace("/Screensbar/FirstHomePage");
             }
 
         } catch (err: any) {
@@ -286,13 +290,10 @@ export default function Login1() {
             setFailCount(0);
             setIsLoggingIn(false); // allow _layout auth listener again
 
-            // FIXED: Route to Onboarding if first time, else skip to Home
-            const hasSeenOnboarding = await AsyncStorage.getItem("hasSeenOnboarding");
-            if (hasSeenOnboarding === "true") {
-                Router.replace("/Screensbar/FirstHomePage");
-            } else {
-                Router.replace("/Starthome");
-            }
+            // FIXED: Normal email/password logins mean they ALREADY have an account.
+            // Mark onboarding as seen and skip straight to the Home screen!
+            await AsyncStorage.setItem("hasSeenOnboarding", "true");
+            Router.replace("/Screensbar/FirstHomePage");
 
         } catch (error: any) {
             console.log("Firebase error code:", error.code);

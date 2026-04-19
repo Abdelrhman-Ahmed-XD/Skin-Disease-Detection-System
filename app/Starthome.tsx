@@ -2,11 +2,19 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import { View, Image, StyleSheet, TouchableOpacity, Text } from 'react-native'
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // <-- Added this
+
 export default function StartUp() {
   const [showImage] = useState(true);
+
+  // <-- We added an async function to permanently save the flag when they click the button
+  const handleProceedHome = async () => {
+    await AsyncStorage.setItem("hasSeenOnboarding", "true");
+    router.replace("/Screensbar/Nextscreens");
+  };
+
   return (
     <>
-      
       <SafeAreaView style={{flex:1}}>
           <View style={styles.container}>
         {showImage && (
@@ -16,7 +24,7 @@ export default function StartUp() {
             resizeMode="cover"
           />
         )}
-        <TouchableOpacity style={styles.button1} onPress={()=>router.push("/Screensbar/Nextscreens")}>
+        <TouchableOpacity style={styles.button1} onPress={handleProceedHome}>
           <Text style={styles.text1}>Home</Text>
         </TouchableOpacity >
       </View>
@@ -24,6 +32,7 @@ export default function StartUp() {
     </>
   )
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

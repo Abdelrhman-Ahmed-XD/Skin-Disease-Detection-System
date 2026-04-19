@@ -18,7 +18,7 @@ export default function RootLayout() {
       if (user && !isLoggingIn) {
         setTimeout(() => {
           router.replace("/Screensbar/FirstHomePage");
-        }, 3000); // ← انتظر الـ splash screen تخلص
+        }, 3000); // ← Wait for splash screen
       }
       setAuthChecked(true);
     });
@@ -34,7 +34,7 @@ export default function RootLayout() {
             name="StartUp"
             listeners={{
               focus: () => {
-                if (auth.currentUser && !isLoggingIn) {
+                if (auth.currentUser && !auth.currentUser.isAnonymous && !isLoggingIn) {
                   router.replace("/Screensbar/FirstHomePage");
                 }
               },
@@ -44,7 +44,7 @@ export default function RootLayout() {
             name="Login1"
             listeners={{
               focus: () => {
-                if (auth.currentUser && !isLoggingIn) {
+                if (auth.currentUser && !auth.currentUser.isAnonymous && !isLoggingIn) {
                   router.replace("/Screensbar/FirstHomePage");
                 }
               },
@@ -54,12 +54,15 @@ export default function RootLayout() {
             name="SignUp"
             listeners={{
               focus: () => {
-                if (auth.currentUser && !isLoggingIn) {
+                if (auth.currentUser && !auth.currentUser.isAnonymous && !isLoggingIn) {
                   router.replace("/Screensbar/FirstHomePage");
                 }
               },
             }}
           />
+
+          {/* Prevent iOS swipe-back to Login screen */}
+          <Stack.Screen name="Screensbar/FirstHomePage" options={{ gestureEnabled: false }} />
         </Stack>
       </ThemeProvider>
     </CustomizeProvider>
