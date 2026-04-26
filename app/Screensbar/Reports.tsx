@@ -17,10 +17,12 @@ import { loadAllScansFromFirestore } from '../../Firebase/firestoreService';
 
 // ── Custom Icon Images ─────────────────────────────────────────
 const Icons = {
-  home:     require('../../assets/Icons/home.png'),
-  reports:  require('../../assets/Icons/Reports.png'),
-  history:  require('../../assets/Icons/history.png'),
-  settings: require('../../assets/Icons/setting.png'),
+  home:       require('../../assets/Icons/home.png'),
+  reports:    require('../../assets/Icons/Reports.png'),
+  history:    require('../../assets/Icons/history.png'),
+  settings:   require('../../assets/Icons/setting.png'),
+  smartphone: require('../../assets/Icons/smartphone.png'),
+  monitor:    require('../../assets/Icons/monitor.png'),
 };
 
 const { width } = Dimensions.get('window');
@@ -31,7 +33,7 @@ type Mole = {
     analysis?: string; source?: string; description?: string;
 };
 
-// ── Save PDF: direct to Downloads on Android, share sheet on iOS ──
+// ── Save PDF ──────────────────────────────────────────────────
 const savePDF = async (uri: string, filename: string) => {
     if (Platform.OS === 'android') {
         try {
@@ -52,11 +54,8 @@ const savePDF = async (uri: string, filename: string) => {
                 Alert.alert('✅ Downloaded', `"${filename}" saved successfully.`);
                 return;
             }
-        } catch (_) {
-            // fallback
-        }
+        } catch (_) {}
     }
-    // iOS or Android fallback
     await shareAsync(uri, {
         UTI: '.pdf',
         mimeType: 'application/pdf',
@@ -91,12 +90,15 @@ const getImageBase64 = async (uri: string): Promise<string> => {
     }
 };
 
-const getPlatform = (source?: string): string => {
-    if (!source) return 'Mobile App';
-    return source.toLowerCase().includes('web') ? 'Web' : 'Mobile App';
+const isWeb = (source?: string): boolean => {
+    if (!source) return false;
+    return source.toLowerCase().includes('web');
 };
 
-// ── Single Report Template (one page, compact) ────────────────
+const getPlatform = (source?: string): string =>
+    isWeb(source) ? 'Web' : 'Mobile App';
+
+// ── Single Report HTML ────────────────────────────────────────
 const buildReportHTML = (params: {
     reportIndex: number; date: string; bodyView: string;
     moleId: string; analysis: string; imageBase64: string;
@@ -204,7 +206,7 @@ body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:18px
 </body>
 </html>`;
 
-// ── Download All Template — single page summary table ─────────
+// ── All Reports HTML ──────────────────────────────────────────
 const buildAllReportsHTML = (params: {
     rows: Array<{
         index: number; date: string; bodyView: string; analysis: string;
@@ -413,7 +415,13 @@ export default function ReportsPage() {
     const loadMoles = async () => {
         try {
             const data = await loadAllScansFromFirestore();
-            setMoles(data.filter((m: Mole) => m.photoUri));
+            // ✅ FIX: فلتر صارم — بس moles عندها photoUri حقيقي (مش فاضي أو spaces)
+            const filtered = data.filter(
+                (m: Mole) => m.photoUri && m.photoUri.trim() !== ''
+            );
+            // الأقدم = index 0 = Report #1
+            const sorted = filtered.sort((a: Mole, b: Mole) => a.timestamp - b.timestamp);
+            setMoles(sorted);
         } catch (err) {
             console.log('Error loading moles:', err);
         } finally {
@@ -421,15 +429,15 @@ export default function ReportsPage() {
         }
     };
 
-    // ── Download Single PDF ─────────────────────────────────────
-    const downloadSingleReport = async (mole: Mole, index: number) => {
+    // ── Download Single PDF ──────────────────────────────────
+    const downloadSingleReport = async (mole: Mole, reportNumber: number) => {
         if (downloadingId || downloadingAll) return;
         try {
             setDownloadingId(mole.id);
             if (!mole.photoUri) return;
             const imageBase64 = await getImageBase64(mole.photoUri);
             const html = buildReportHTML({
-                reportIndex: index,
+                reportIndex: reportNumber - 1,
                 date: new Date(mole.timestamp).toLocaleDateString(
                     isArabic ? 'ar-EG' : 'en-US',
                     { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }
@@ -445,7 +453,7 @@ export default function ReportsPage() {
                 description: mole.description || 'N/A',
             });
             const { uri } = await Print.printToFileAsync({ html, base64: false });
-            await savePDF(uri, `SkinSight_Report_${index + 1}.pdf`);
+            await savePDF(uri, `SkinSight_Report_${reportNumber}.pdf`);
         } catch (error: any) {
             if (!String(error?.message || '').includes('Another share request')) {
                 Alert.alert(t('error'), 'Failed to download report.');
@@ -455,7 +463,7 @@ export default function ReportsPage() {
         }
     };
 
-    // ── Download All PDF ────────────────────────────────────────
+    // ── Download All PDF ─────────────────────────────────────
     const downloadAllReports = async () => {
         if (downloadingId || downloadingAll) return;
         try {
@@ -464,13 +472,11 @@ export default function ReportsPage() {
                 Alert.alert(t('noReportsYet'), t('noReportsToDownload'));
                 return;
             }
-
             const rows: Array<{
                 index: number; date: string; bodyView: string; analysis: string;
                 imageBase64: string; frontBody: string; backBody: string;
                 description: string; platform: string;
             }> = [];
-
             for (let i = 0; i < moles.length; i++) {
                 const mole = moles[i];
                 const imageBase64 = await getImageBase64(mole.photoUri || '');
@@ -489,16 +495,13 @@ export default function ReportsPage() {
                     platform:    getPlatform(mole.source),
                 });
             }
-
             const generatedDate = new Date().toLocaleDateString(
                 isArabic ? 'ar-EG' : 'en-US',
                 { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }
             );
-
             const html = buildAllReportsHTML({
                 rows, patientName, age, gender, hairColor, eyeColor, skinColor, generatedDate,
             });
-
             const { uri } = await Print.printToFileAsync({ html, base64: false });
             await savePDF(uri, `SkinSight_All_Reports.pdf`);
         } catch (error: any) {
@@ -538,10 +541,14 @@ export default function ReportsPage() {
         History: t('historyTab'), Settings: t('settingsTab'),
     };
 
+    // عكس للعرض فقط: الأحدث يظهر فوق، الأقدم في الأسفل
+    const displayMoles = [...moles].reverse();
+
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={["top"]}>
         <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
+        {/* ── Header ── */}
         <View style={[styles.header, { backgroundColor: colors.card }]}>
           <TouchableOpacity
             style={[styles.backButton, { borderColor: colors.border }]}
@@ -555,7 +562,11 @@ export default function ReportsPage() {
           <View style={{ width: 40 }} />
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary} />
@@ -573,71 +584,144 @@ export default function ReportsPage() {
             </View>
           ) : (
             <>
-              {moles.map((mole, index) => (
-                <View key={mole.id} style={[styles.reportCard, { backgroundColor: colors.card }]}>
-                  <TouchableOpacity
-                    style={styles.imageContainer}
-                    onPress={() => router.push({
-                      pathname: "/Screensbar/Reportdetails",
-                      params: {
-                        moleId: mole.id, photoUri: mole.photoUri,
-                        timestamp: mole.timestamp.toString(), bodyView: mole.bodyView,
-                        x: mole.x.toString(), y: mole.y.toString(),
-                        analysis: mole.analysis || "", reportIndex: index.toString(),
-                      },
-                    })}
-                    activeOpacity={0.9}
-                  >
-                    <Image source={{ uri: mole.photoUri }} style={styles.reportImage} resizeMode="cover" />
-                    <View style={styles.imageBadge}>
-                      <Text style={styles.imageBadgeText}>
-                        {mole.bodyView === "front" ? t("frontBody") : mole.bodyView === "back" ? t("backBody") : "N/A"}
-                      </Text>
-                    </View>
-                    <View style={styles.expandIcon}>
-                      <Ionicons name="expand-outline" size={20} color="#FFFFFF" />
-                    </View>
-                  </TouchableOpacity>
+              {/*
+                ── منطق الترقيم ──
+                moles مرتبة: index 0 = الأقدم = Report #1
+                displayMoles = معكوسة للعرض (الأحدث فوق)
+                displayIndex 0 = الأحدث → reportNumber = moles.length
+                displayIndex last = الأقدم → reportNumber = 1
+              */}
+              {displayMoles.map((mole, displayIndex) => {
+                const reportNumber = moles.length - displayIndex;
+                const webScan     = isWeb(mole.source);
 
-                  <View style={styles.reportContent}>
-                    <View style={[styles.reportHeader, { flexDirection: isArabic ? "row-reverse" : "row" }]}>
-                      <Text style={[styles.reportTitle, customText]}>{t("reportNum")}{index + 1}</Text>
-                      <Text style={[styles.reportDate, customText, { color: colors.subText, fontSize: Math.max(11, settings.fontSize - 3) }]}>
-                        {formatDate(mole.timestamp)}
-                      </Text>
-                    </View>
-                    <Text style={[styles.reportText, customText, { color: colors.subText, textAlign: isArabic ? "right" : "left" }]}>
-                      {mole.analysis || t("analysisInProgress")}
-                    </Text>
+                return (
+                  <View key={mole.id} style={[styles.reportCard, { backgroundColor: colors.card }]}>
+
+                    {/* ── صورة الـ report ── */}
                     <TouchableOpacity
-                      style={[styles.downloadButton, {
-                        backgroundColor: isDark ? "#004F7F" : "#E8F4F8",
-                        borderColor:     isDark ? "#374151" : "#C5E3ED",
-                        flexDirection:   isArabic ? "row-reverse" : "row",
-                        alignSelf:       isArabic ? "flex-start" : "flex-end",
-                        opacity:         downloadingId || downloadingAll ? 0.5 : 1,
-                      }]}
-                      onPress={() => downloadSingleReport(mole, index)}
-                      activeOpacity={0.8}
-                      disabled={!!downloadingId || downloadingAll}
+                      style={styles.imageContainer}
+                      onPress={() => router.push({
+                        pathname: "/Screensbar/Reportdetails",
+                        params: {
+                          moleId:      mole.id,
+                          photoUri:    mole.photoUri,
+                          timestamp:   mole.timestamp.toString(),
+                          bodyView:    mole.bodyView,
+                          x:           mole.x.toString(),
+                          y:           mole.y.toString(),
+                          analysis:    mole.analysis || "",
+                          reportIndex: (reportNumber - 1).toString(),
+                        },
+                      })}
+                      activeOpacity={0.9}
                     >
-                      {downloadingId === mole.id ? (
-                        <ActivityIndicator size="small" color={colors.primary} />
-                      ) : (
-                        <>
-                          <Ionicons name="download-outline" size={18} color={isDark ? "#E8F4F8" : "#374151"} />
-                          <Text style={[styles.downloadButtonText, { color: isDark ? "#E8F4F8" : "#374151" }]}>
-                            {t("downloadPDF")}
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
+                      <Image
+                        source={{ uri: mole.photoUri }}
+                        style={styles.reportImage}
+                        resizeMode="cover"
+                      />
 
+                      {/* ── Badge يمين: Front / Back — أزرق داكن ── */}
+                      <View style={styles.imageBadgeRight}>
+                        <Text style={styles.imageBadgeText}>
+                          {mole.bodyView === "front"
+                            ? t("frontBody")
+                            : mole.bodyView === "back"
+                            ? t("backBody")
+                            : "N/A"}
+                        </Text>
+                      </View>
+
+                      {/* ── Badge شمال: icon الجهاز ── */}
+                      <View style={[
+                        styles.imageBadgeLeft,
+                        {
+                          backgroundColor: webScan
+                            ? 'rgba(0,163,163,0.88)'
+                            : 'rgba(0,79,127,0.88)',
+                        },
+                      ]}>
+                        <Image
+                          source={webScan ? Icons.monitor : Icons.smartphone}
+                          style={styles.platformIcon}
+                          resizeMode="contain"
+                        />
+                      </View>
+
+                      {/* ── زرار التكبير ── */}
+                      <View style={styles.expandIcon}>
+                        <Ionicons name="expand-outline" size={20} color="#FFFFFF" />
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* ── محتوى الكارد ── */}
+                    <View style={styles.reportContent}>
+                      <View style={[
+                        styles.reportHeader,
+                        { flexDirection: isArabic ? "row-reverse" : "row" },
+                      ]}>
+                        <Text style={[styles.reportTitle, customText, { color: '#00E5FF' }]}>
+                          {t("reportNum")}{reportNumber}
+                        </Text>
+                        <Text style={[
+                          styles.reportDate,
+                          customText,
+                          { color: colors.subText, fontSize: Math.max(11, settings.fontSize - 3) },
+                        ]}>
+                          {formatDate(mole.timestamp)}
+                        </Text>
+                      </View>
+
+                      <Text style={[
+                        styles.reportText,
+                        customText,
+                        { color: colors.subText, textAlign: isArabic ? "right" : "left" },
+                      ]}>
+                        {mole.analysis || t("analysisInProgress")}
+                      </Text>
+
+                      <TouchableOpacity
+                        style={[styles.downloadButton, {
+                          backgroundColor: isDark ? "#004F7F" : "#E8F4F8",
+                          borderColor:     isDark ? "#374151" : "#C5E3ED",
+                          flexDirection:   isArabic ? "row-reverse" : "row",
+                          alignSelf:       isArabic ? "flex-start" : "flex-end",
+                          opacity:         downloadingId || downloadingAll ? 0.5 : 1,
+                        }]}
+                        onPress={() => downloadSingleReport(mole, reportNumber)}
+                        activeOpacity={0.8}
+                        disabled={!!downloadingId || downloadingAll}
+                      >
+                        {downloadingId === mole.id ? (
+                          <ActivityIndicator size="small" color={colors.primary} />
+                        ) : (
+                          <>
+                            <Ionicons
+                              name="download-outline"
+                              size={18}
+                              color={isDark ? "#E8F4F8" : "#374151"}
+                            />
+                            <Text style={[
+                              styles.downloadButtonText,
+                              { color: isDark ? "#E8F4F8" : "#374151" },
+                            ]}>
+                              {t("downloadPDF")}
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+
+              {/* ── Download All Button ── */}
               <TouchableOpacity
-                style={[styles.downloadAllButton, { backgroundColor: colors.primary, flexDirection: isArabic ? "row-reverse" : "row" }]}
+                style={[styles.downloadAllButton, {
+                  backgroundColor: colors.primary,
+                  flexDirection:   isArabic ? "row-reverse" : "row",
+                }]}
                 onPress={downloadAllReports}
                 disabled={downloadingAll}
                 activeOpacity={0.8}
@@ -655,18 +739,34 @@ export default function ReportsPage() {
           )}
         </ScrollView>
 
+        {/* ── Bottom Nav ── */}
         <View style={styles.bottomNavContainer}>
           <View style={[styles.bottomNav, { backgroundColor: colors.navBg, borderTopColor: colors.border }]}>
             {["Home", "Reports"].map((tabName) => {
-              const tab = bottomTabs.find((t) => t.name === tabName)!;
+              const tab      = bottomTabs.find((t) => t.name === tabName)!;
               const isActive = activeTab === tab.name;
               return (
-                <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                  <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
-                    isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
+                <TouchableOpacity
+                  key={tab.name}
+                  style={styles.navItem}
+                  onPress={() => handleTabPress(tab.name)}
+                >
+                  <View style={[
+                    styles.navIcon,
+                    { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                    isActive && {
+                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                      borderWidth: 2,
+                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                    },
+                  ]}>
                     <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
-                  <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: "700" }]}>
+                  <Text style={[
+                    styles.navText,
+                    { color: isActive ? colors.navActive : colors.navText },
+                    isActive && { fontWeight: "700" },
+                  ]}>
                     {tabLabels[tabName]}
                   </Text>
                 </TouchableOpacity>
@@ -674,28 +774,54 @@ export default function ReportsPage() {
             })}
             <View style={styles.navCenterSpacer} />
             {["History", "Settings"].map((tabName) => {
-              const tab = bottomTabs.find((t) => t.name === tabName)!;
+              const tab      = bottomTabs.find((t) => t.name === tabName)!;
               const isActive = activeTab === tab.name;
               return (
-                <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                  <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
-                    isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
+                <TouchableOpacity
+                  key={tab.name}
+                  style={styles.navItem}
+                  onPress={() => handleTabPress(tab.name)}
+                >
+                  <View style={[
+                    styles.navIcon,
+                    { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                    isActive && {
+                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                      borderWidth: 2,
+                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                    },
+                  ]}>
                     <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
-                  <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: "700" }]}>
+                  <Text style={[
+                    styles.navText,
+                    { color: isActive ? colors.navActive : colors.navText },
+                    isActive && { fontWeight: "700" },
+                  ]}>
                     {tabLabels[tabName]}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
+
           <TouchableOpacity
-            style={[styles.cameraButton, { backgroundColor: colors.navBg, borderColor: isDark ? "#374151" : "#C5E3ED" },
-              activeTab === "Camera" && { borderColor: colors.navActive, backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8" }]}
+            style={[
+              styles.cameraButton,
+              { backgroundColor: colors.navBg, borderColor: isDark ? "#374151" : "#C5E3ED" },
+              activeTab === "Camera" && {
+                borderColor:     colors.navActive,
+                backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+              },
+            ]}
             onPress={() => handleTabPress("Camera")}
             activeOpacity={0.85}
           >
-            <Ionicons name="camera-outline" size={30} color={activeTab === "Camera" ? colors.navActive : colors.navText} />
+            <Ionicons
+              name="camera-outline"
+              size={30}
+              color={activeTab === "Camera" ? colors.navActive : colors.navText}
+            />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -718,8 +844,12 @@ const styles = StyleSheet.create({
     reportCard:         { borderRadius: 16, marginBottom: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
     imageContainer:     { position: 'relative', width: '100%', height: 200 },
     reportImage:        { width: '100%', height: '100%' },
-    imageBadge:         { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,79,127,0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+    reportNumberBadge:     { position: 'absolute', bottom: 12, left: 12, backgroundColor: 'rgba(0,79,127,0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+    reportNumberBadgeText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+    imageBadgeRight:    { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,79,127,0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
     imageBadgeText:     { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+    imageBadgeLeft:     { position: 'absolute', top: 12, left: 12, width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    platformIcon:       { width: 22, height: 22, tintColor: '#FFFFFF' },
     expandIcon:         { position: 'absolute', bottom: 12, right: 12, backgroundColor: 'rgba(0,79,127,0.8)', width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
     reportContent:      { padding: 16 },
     reportHeader:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },

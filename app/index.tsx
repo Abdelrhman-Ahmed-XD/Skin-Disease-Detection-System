@@ -40,7 +40,7 @@ export default function Index() {
                 top: "50%",
                 left: "45%",
                 transform: [{ translateX: -150 }, { translateY: -75 }],
-                width: 380,
+                width: 350,
                 height: 150,
                 resizeMode: "contain",
               }}

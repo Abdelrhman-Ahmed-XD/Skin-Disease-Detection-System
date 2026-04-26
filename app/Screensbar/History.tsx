@@ -102,6 +102,9 @@ export default function HistoryPage() {
         History: t('historyTab'), Settings: t('settingsTab'),
     };
 
+    // Sort: newest first (top), oldest last (bottom)
+    const sortedMoles = [...moles].sort((a, b) => b.timestamp - a.timestamp);
+
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: pageBg }]}
@@ -168,7 +171,7 @@ export default function HistoryPage() {
                 {moles.length}{" "}
                 {moles.length === 1 ? t("entry") : t("entriesFound")}
               </Text>
-              {[...moles].reverse().map((mole, index) => (
+              {sortedMoles.map((mole, index) => (
                 <View
                   key={mole.id}
                   style={[styles.card, { backgroundColor: colors.card }]}

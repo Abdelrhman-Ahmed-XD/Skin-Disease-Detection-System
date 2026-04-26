@@ -1,12 +1,12 @@
 import {Ionicons} from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
-import {printToFileAsync} from 'expo-print';
+import * as Print from 'expo-print';
 import {useLocalSearchParams, useRouter} from 'expo-router';
 import {shareAsync} from 'expo-sharing';
 import React, {useEffect, useState} from 'react';
 import {
-    Alert, Dimensions, Image, ScrollView, StatusBar,
+    Alert, Dimensions, Image, Platform, ScrollView, StatusBar,
     StyleSheet, Text, TouchableOpacity, View, ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -16,11 +16,40 @@ import {useTheme} from '../ThemeContext';
 
 const {height} = Dimensions.get('window');
 
-// ── Convert local URI → base64 data URL ──────────────────────────────────────
+// ── Save PDF (same as Reports page) ──────────────────────────
+const savePDF = async (uri: string, filename: string) => {
+    if (Platform.OS === 'android') {
+        try {
+            const permissions =
+                await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+            if (permissions.granted) {
+                const base64 = await FileSystem.readAsStringAsync(uri, {
+                    encoding: FileSystem.EncodingType.Base64,
+                });
+                const destUri = await FileSystem.StorageAccessFramework.createFileAsync(
+                    permissions.directoryUri,
+                    filename,
+                    'application/pdf',
+                );
+                await FileSystem.writeAsStringAsync(destUri, base64, {
+                    encoding: FileSystem.EncodingType.Base64,
+                });
+                Alert.alert('✅ Downloaded', `"${filename}" saved successfully.`);
+                return;
+            }
+        } catch (_) {}
+    }
+    await shareAsync(uri, {
+        UTI: '.pdf',
+        mimeType: 'application/pdf',
+        dialogTitle: filename,
+    });
+};
+
+// ── Convert local URI → base64 data URL ──────────────────────
 const getImageBase64 = async (uri: string): Promise<string> => {
     try {
         if (!uri) return '';
-        // Cloudinary / remote URLs — fetch and convert to base64 for PDF embedding
         if (uri.startsWith('http://') || uri.startsWith('https://')) {
             try {
                 const downloadRes = await FileSystem.downloadAsync(
@@ -32,10 +61,9 @@ const getImageBase64 = async (uri: string): Promise<string> => {
                 });
                 return `data:image/jpeg;base64,${base64}`;
             } catch {
-                return uri; // fallback to URL if download fails
+                return uri;
             }
         }
-        // Local file
         const base64 = await FileSystem.readAsStringAsync(uri, {
             encoding: FileSystem.EncodingType.Base64,
         });
@@ -48,7 +76,7 @@ const getImageBase64 = async (uri: string): Promise<string> => {
     }
 };
 
-// ── Skin color hex → label ────────────────────────────────────────────────────
+// ── Skin color hex → label ────────────────────────────────────
 const skinColorLabel = (hex: string | null) => {
     const map: Record<string, string> = {
         '#F5E0D3': 'Very Light', '#EACAA7': 'Light',
@@ -59,7 +87,7 @@ const skinColorLabel = (hex: string | null) => {
     return hex ? (map[hex] || hex) : 'N/A';
 };
 
-// ── Build PDF HTML ────────────────────────────────────────────────────────────
+// ── Build PDF HTML ────────────────────────────────────────────
 const buildReportHTML = (params: {
     reportIndex: number;
     date: string;
@@ -71,7 +99,6 @@ const buildReportHTML = (params: {
     imageBase64: string;
     frontBody: string;
     backBody: string;
-    // User profile
     patientName: string;
     age: string;
     gender: string;
@@ -89,23 +116,19 @@ const buildReportHTML = (params: {
     body { font-family: Georgia, 'Times New Roman', serif; background: #D8E9F0; padding: 30px 20px; }
     .page { max-width: 700px; margin: 0 auto; background: #D8E9F0; border-radius: 16px; overflow: hidden; }
 
-    /* Header */
     .header { background: #004F7F; padding: 36px 24px 28px; text-align: center; }
     .brand { font-size: 48px; font-weight: bold; color: #ffffff; letter-spacing: 2px; line-height: 1.2; }
     .brand-s { color: #00A3A3; font-size: 56px; }
     .tagline { color: #C5E3ED; font-size: 13px; margin-top: 6px; font-style: italic; letter-spacing: 3px; }
     .header-divider { width: 60px; height: 3px; background: #00A3A3; margin: 14px auto 0; border-radius: 10px; }
 
-    /* Banner */
     .banner { background: #00A3A3; padding: 10px 20px; text-align: center; }
     .banner p { color: #fff; font-size: 13px; font-style: italic; letter-spacing: 0.5px; }
 
-    /* Report title bar */
     .report-title-bar { background: #ffffff; border-left: 1px solid #C5E3ED; border-right: 1px solid #C5E3ED; padding: 20px 24px 16px; display: flex; justify-content: space-between; align-items: center; }
     .report-num { font-size: 22px; font-weight: bold; color: #004F7F; }
     .report-date { font-size: 13px; color: #6B7280; font-family: system-ui, sans-serif; }
 
-    /* Patient info */
     .patient-section { background: #ffffff; border-left: 1px solid #C5E3ED; border-right: 1px solid #C5E3ED; padding: 16px 24px; border-top: 1px solid #E5F0F6; }
     .patient-title { font-size: 14px; font-weight: bold; color: #004F7F; margin-bottom: 12px; font-family: system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.5px; }
     .patient-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
@@ -113,30 +136,25 @@ const buildReportHTML = (params: {
     .patient-label { font-size: 10px; color: #9CA3AF; font-family: system-ui, sans-serif; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
     .patient-value { font-size: 13px; font-weight: bold; color: #1F2937; font-family: system-ui, sans-serif; }
 
-    /* Image */
     .image-section { background: #ffffff; border-left: 1px solid #C5E3ED; border-right: 1px solid #C5E3ED; padding: 0 24px 20px; text-align: center; }
     .image-section img { max-width: 100%; max-height: 320px; border-radius: 12px; border: 3px solid #C5E3ED; object-fit: cover; }
 
-    /* Info grid */
     .info-section { background: #ffffff; border-left: 1px solid #C5E3ED; border-right: 1px solid #C5E3ED; padding: 0 24px 20px; }
     .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 4px; }
     .info-item { background: #F4FBFF; border-radius: 10px; padding: 12px; border: 1px solid #C5E3ED; }
     .info-label { font-size: 11px; color: #9CA3AF; font-family: system-ui, sans-serif; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
     .info-value { font-size: 14px; font-weight: bold; color: #004F7F; font-family: system-ui, sans-serif; }
 
-    /* Analysis */
     .analysis-section { background: #ffffff; border-left: 1px solid #C5E3ED; border-right: 1px solid #C5E3ED; padding: 20px 24px; }
     .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #E5E7EB; }
     .section-title { font-size: 17px; font-weight: bold; color: #004F7F; }
     .analysis-box { background: #D8E9F0; border-radius: 12px; padding: 18px 20px; border: 1px solid #C5E3ED; }
     .analysis-text { font-size: 14px; color: #374151; line-height: 1.8; font-family: system-ui, sans-serif; }
 
-    /* Warning */
     .warning-section { background: #ffffff; border-left: 1px solid #C5E3ED; border-right: 1px solid #C5E3ED; padding: 0 24px 20px; }
     .warning-box { background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; padding: 14px 16px; }
     .warning-text { font-size: 12px; color: #856404; line-height: 1.6; font-family: system-ui, sans-serif; }
 
-    /* Footer */
     .footer { background: #004F7F; padding: 28px 20px; text-align: center; }
     .footer-divider { width: 40px; height: 2px; background: #00A3A3; margin: 0 auto 18px; border-radius: 10px; }
     .footer-brand { font-size: 20px; font-weight: bold; color: #fff; margin-bottom: 6px; }
@@ -272,15 +290,13 @@ export default function ReportDetailsPage() {
             setEyeColor(d.eyeColor || 'N/A');
             setSkinColor(skinColorLabel(d.skinColor));
 
-            // Calculate age from birthYear/Month/Day
             if (d.birthYear && d.birthMonth && d.birthDay) {
                 const dob = new Date(d.birthYear, d.birthMonth - 1, d.birthDay);
                 const diff = Date.now() - dob.getTime();
                 const ageYears = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
                 setAge(`${ageYears} years`);
             }
-        }).catch(() => {
-        });
+        }).catch(() => {});
     }, []);
 
     const customText = {
@@ -306,16 +322,13 @@ export default function ReportDetailsPage() {
             hour: '2-digit', minute: '2-digit',
         });
 
+    // ── Download Report (same logic as Reports page) ──────────
     const downloadReport = async () => {
+        if (isDownloading) return;
         setIsDownloading(true);
         try {
-            console.log('📄 Generating PDF for report #', reportIndex + 1);
-
-            // 1. Convert image to base64 (handles both Cloudinary URLs and local files)
             const imageBase64 = await getImageBase64(photoUri);
-            console.log('✅ Image ready for PDF');
 
-            // 2. Build HTML with full patient profile
             const html = buildReportHTML({
                 reportIndex,
                 date: formatDate(timestamp),
@@ -334,31 +347,13 @@ export default function ReportDetailsPage() {
                 skinColor,
             });
 
-            // 3. Generate PDF
-            const {uri} = await printToFileAsync({html, base64: false});
-            console.log('✅ PDF generated at:', uri);
+            const { uri } = await Print.printToFileAsync({ html, base64: false });
+            await savePDF(uri, `SkinSight_Report_${reportIndex + 1}.pdf`);
 
-            // 4. Save directly to Downloads folder
-            const fileName = `SkinSight_Report_${reportIndex + 1}_${Date.now()}.pdf`;
-            const downloadDir = FileSystem.documentDirectory + 'Downloads/';
-            const dirInfo = await FileSystem.getInfoAsync(downloadDir);
-            if (!dirInfo.exists) {
-                await FileSystem.makeDirectoryAsync(downloadDir, {intermediates: true});
+        } catch (error: any) {
+            if (!String(error?.message || '').includes('Another share request')) {
+                Alert.alert(t('error'), 'Failed to generate the report. Please try again.');
             }
-            const destUri = downloadDir + fileName;
-            await FileSystem.copyAsync({from: uri, to: destUri});
-            console.log('✅ PDF saved to:', destUri);
-
-            // 5. Also open share sheet so user can share or open with PDF viewer
-            await shareAsync(destUri, {
-                UTI: '.pdf',
-                mimeType: 'application/pdf',
-                dialogTitle: `SkinSight Report #${reportIndex + 1}`,
-            });
-
-        } catch (error) {
-            console.log('❌ Download error:', error);
-            Alert.alert(t('error'), 'Failed to generate the report. Please try again.');
         } finally {
             setIsDownloading(false);
         }
@@ -403,7 +398,6 @@ export default function ReportDetailsPage() {
                             name="download-outline"
                             size={24}
                             color={isDark ? "#fff" : "#004f7f"}
-                            style={{borderColor: "#004f7f"}}
                         />
                     )}
                 </TouchableOpacity>
@@ -675,7 +669,7 @@ export default function ReportDetailsPage() {
                         </Text>
                     </View>
                     <Text
-                        style={[{color: isDark ? "#fff" : "#004f7f"},
+                        style={[
                             styles.analysisText,
                             {color: isDark ? "#fff" : "#004f7f"},
                             {textAlign: isArabic ? "right" : "left"},
@@ -692,6 +686,7 @@ export default function ReportDetailsPage() {
                         {
                             backgroundColor: colors.primary,
                             flexDirection: isArabic ? "row-reverse" : "row",
+                            opacity: isDownloading ? 0.7 : 1,
                         },
                     ]}
                     onPress={downloadReport}
@@ -699,32 +694,16 @@ export default function ReportDetailsPage() {
                     disabled={isDownloading}
                 >
                     {isDownloading ? (
-                        <View
-                            style={{flexDirection: "row", alignItems: "center", gap: 10}}
-                        >
+                        <View style={{flexDirection: "row", alignItems: "center", gap: 10}}>
                             <ActivityIndicator size="small" color="#fff"/>
-                            <Text
-                                style={[
-                                    styles.downloadButtonText,
-                                    {fontFamily: customText.fontFamily},
-                                ]}
-                            >
+                            <Text style={[styles.downloadButtonText, {fontFamily: customText.fontFamily}]}>
                                 Generating PDF...
                             </Text>
                         </View>
                     ) : (
                         <>
-                            <Ionicons
-                                name="cloud-download-outline"
-                                size={24}
-                                color="#FFFFFF"
-                            />
-                            <Text
-                                style={[
-                                    styles.downloadButtonText,
-                                    {fontFamily: customText.fontFamily},
-                                ]}
-                            >
+                            <Ionicons name="cloud-download-outline" size={24} color="#FFFFFF"/>
+                            <Text style={[styles.downloadButtonText, {fontFamily: customText.fontFamily}]}>
                                 {t("downloadAsPDF")}
                             </Text>
                         </>
@@ -742,11 +721,7 @@ export default function ReportDetailsPage() {
                         },
                     ]}
                 >
-                    <Ionicons
-                        name="information-circle-outline"
-                        size={20}
-                        color="#F59E0B"
-                    />
+                    <Ionicons name="information-circle-outline" size={20} color="#F59E0B"/>
                     <Text
                         style={[
                             styles.warningText,
@@ -779,61 +754,43 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.06,
         shadowRadius: 4,
         elevation: 2,
-        margin: 15
+        margin: 15,
     },
     backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        borderWidth: 1,
-        alignItems: 'center',
-        justifyContent: 'center'
+        width: 40, height: 40, borderRadius: 12, borderWidth: 1,
+        alignItems: 'center', justifyContent: 'center',
     },
-    downloadHeaderButton: {width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center'},
+    downloadHeaderButton: {
+        width: 40, height: 40, borderRadius: 12,
+        alignItems: 'center', justifyContent: 'center',
+    },
     headerTitle: {fontSize: 20, fontWeight: 'bold'},
     scrollView: {flex: 1},
     scrollContent: {padding: 16, paddingBottom: 40},
     imageContainer: {
-        position: 'relative',
-        width: '100%',
-        height: height * 0.45,
-        borderRadius: 16,
-        overflow: 'hidden',
-        marginBottom: 16
+        position: 'relative', width: '100%', height: height * 0.45,
+        borderRadius: 16, overflow: 'hidden', marginBottom: 16,
     },
     mainImage: {width: '100%', height: '100%'},
     imageBadge: {
-        position: 'absolute',
-        top: 16,
-        right: 16,
+        position: 'absolute', top: 16, right: 16,
         backgroundColor: 'rgba(0,79,127,0.9)',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 16
+        paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16,
     },
     imageBadgeText: {color: '#FFFFFF', fontSize: 14, fontWeight: '600'},
     infoCard: {
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3
+        borderRadius: 16, padding: 20, marginBottom: 16,
+        shadowColor: '#000', shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
     },
     infoHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 16,
-        paddingBottom: 12,
-        borderBottomWidth: 1
+        flexDirection: 'row', alignItems: 'center', gap: 10,
+        marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1,
     },
     sectionTitle: {fontSize: 16, fontWeight: '700'},
     reportNumber: {fontSize: 20, fontWeight: '700'},
     dateText: {fontSize: 13, marginLeft: 'auto'},
-    patientGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 10, color: "#fff"},
+    patientGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 10},
     patientItem: {width: '30%', flexGrow: 1, borderRadius: 10, padding: 10, borderWidth: 1},
     infoGrid: {gap: 16},
     infoItem: {flexDirection: 'row', alignItems: 'center', gap: 12},
@@ -841,35 +798,24 @@ const styles = StyleSheet.create({
     infoLabel: {fontSize: 12, marginBottom: 2},
     infoValue: {fontSize: 15, fontWeight: '600'},
     analysisCard: {
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3
+        borderRadius: 16, padding: 20, marginBottom: 16,
+        shadowColor: '#000', shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
     },
     analysisHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 16,
-        paddingBottom: 12,
-        borderBottomWidth: 1
+        flexDirection: 'row', alignItems: 'center', gap: 10,
+        marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1,
     },
     analysisTitle: {fontSize: 18, fontWeight: '700'},
     analysisText: {fontSize: 15, lineHeight: 24},
     downloadButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        borderRadius: 16,
-        marginBottom: 16,
-        gap: 10
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        paddingVertical: 16, borderRadius: 16, marginBottom: 16, gap: 10,
     },
     downloadButtonText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF'},
-    warningCard: {flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, gap: 12, borderWidth: 1},
+    warningCard: {
+        flexDirection: 'row', alignItems: 'center',
+        padding: 16, borderRadius: 12, gap: 12, borderWidth: 1,
+    },
     warningText: {flex: 1, fontSize: 13, lineHeight: 18},
 });

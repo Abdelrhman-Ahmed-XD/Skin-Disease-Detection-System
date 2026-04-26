@@ -40,7 +40,13 @@ const skinColors = [
     { label: "Deep", color: "#7A3E11" },       { label: "Ebony", color: "#603311" },
 ];
 const eyeColorOptions  = [{ name: "Black", color: "#000000" }, { name: "Brown", color: "#7B4B1A" }, { name: "Light Blue", color: "#6EB6FF" }, { name: "Light Green", color: "#6EDB8F" }, { name: "Grey", color: "#9AA0A6" }];
-const hairColorOptions = [{ name: "Black", color: "#000000" }, { name: "Brown", color: "#7B4B1A" }, { name: "Light Blue", color: "#6EB6FF" }, { name: "Light Green", color: "#6EDB8F" }, { name: "Grey", color: "#9AA0A6" }];
+const hairColorOptions = [
+  { name: "Black", color: "#000000" },
+  { name: "Brown", color: "#7B4B1A" },
+  { name: "Gold", color: "#D4A853" },
+  { name: "Red", color: "#C0392B" },
+  { name: "Grey", color: "#9AA0A6" },
+];
 
 export default function EditProfile() {
     const { colors, isDark } = useTheme();

@@ -179,7 +179,7 @@ export default function SettingsPage() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalBox, { backgroundColor: colors.card }]}>
-            <View style={styles.modalIconWrap}>
+            <View >
               <Image
                 source={Icons.logout}
                 style={styles.modalIconImg}
@@ -512,16 +512,8 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 10,
   },
-  modalIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#FDECEA",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  modalIconImg: { width: 36, height: 36 },
+
+  modalIconImg: { width: 36, height: 36 ,marginBottom: 16 },
   modalTitle: {
     fontSize: 16,
     fontWeight: "600",

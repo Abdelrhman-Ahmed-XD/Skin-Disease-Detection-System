@@ -16,11 +16,11 @@ import { flushOnboardingToFirestore } from "../Firebase/firestoreProfileService"
 const STORAGE_KEY = "signupDraft";
 
 const hairColors = [
-    { name: "Black",       border: "#000",     color: "#000000" },
-    { name: "Brown",       border: "#7B4B1A",  color: "#7B4B1A" },
-    { name: "Light Blue",  border: "#6EB6FF",  color: "#6EB6FF" },
-    { name: "Light Green", border: "#6EDB8F",  color: "#6EDB8F" },
-    { name: "Grey",        border: "#9AA0A6",  color: "#9AA0A6" },
+  { name: "Black", border: "#000", color: "#000000" },
+  { name: "Brown", border: "#7B4B1A", color: "#7B4B1A" },
+  { name: "Light Blue", border: "#D4A853", color: "#D4A853" },
+  { name: "Light Green", border: "#C0392B", color: "#C0392B" },
+  { name: "Grey", border: "#9AA0A6", color: "#9AA0A6" },
 ];
 
 export default function Hair() {
