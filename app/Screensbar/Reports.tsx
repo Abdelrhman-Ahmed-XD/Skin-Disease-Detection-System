@@ -6,7 +6,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { shareAsync } from 'expo-sharing';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator, Alert, Dimensions, Image, ScrollView,
+    ActivityIndicator, Alert, Dimensions, Image, Platform, ScrollView,
     StatusBar, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,10 +25,43 @@ const Icons = {
 
 const { width } = Dimensions.get('window');
 
-// FIXED: Updated type to allow 'N/A' and source string
 type Mole = {
     id: string; x: number; y: number; timestamp: number;
-    photoUri?: string; bodyView: 'front' | 'back' | 'N/A' | string; analysis?: string; source?: string;
+    photoUri?: string; bodyView: 'front' | 'back' | 'N/A' | string;
+    analysis?: string; source?: string; description?: string;
+};
+
+// ── Save PDF: direct to Downloads on Android, share sheet on iOS ──
+const savePDF = async (uri: string, filename: string) => {
+    if (Platform.OS === 'android') {
+        try {
+            const permissions =
+                await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+            if (permissions.granted) {
+                const base64 = await FileSystem.readAsStringAsync(uri, {
+                    encoding: FileSystem.EncodingType.Base64,
+                });
+                const destUri = await FileSystem.StorageAccessFramework.createFileAsync(
+                    permissions.directoryUri,
+                    filename,
+                    'application/pdf',
+                );
+                await FileSystem.writeAsStringAsync(destUri, base64, {
+                    encoding: FileSystem.EncodingType.Base64,
+                });
+                Alert.alert('✅ Downloaded', `"${filename}" saved successfully.`);
+                return;
+            }
+        } catch (_) {
+            // fallback
+        }
+    }
+    // iOS or Android fallback
+    await shareAsync(uri, {
+        UTI: '.pdf',
+        mimeType: 'application/pdf',
+        dialogTitle: filename,
+    });
 };
 
 const getImageBase64 = async (uri: string): Promise<string> => {
@@ -44,9 +77,7 @@ const getImageBase64 = async (uri: string): Promise<string> => {
                     encoding: FileSystem.EncodingType.Base64,
                 });
                 return `data:image/jpeg;base64,${base64}`;
-            } catch {
-                return uri;
-            }
+            } catch { return uri; }
         }
         const base64 = await FileSystem.readAsStringAsync(uri, {
             encoding: FileSystem.EncodingType.Base64,
@@ -60,113 +91,267 @@ const getImageBase64 = async (uri: string): Promise<string> => {
     }
 };
 
+const getPlatform = (source?: string): string => {
+    if (!source) return 'Mobile App';
+    return source.toLowerCase().includes('web') ? 'Web' : 'Mobile App';
+};
+
+// ── Single Report Template (one page, compact) ────────────────
 const buildReportHTML = (params: {
     reportIndex: number; date: string; bodyView: string;
-    x: number; y: number; moleId: string; analysis: string;
-    imageBase64: string; frontBody: string; backBody: string;
+    moleId: string; analysis: string; imageBase64: string;
+    frontBody: string; backBody: string; platform: string; description: string;
     patientName: string; age: string; gender: string;
     hairColor: string; eyeColor: string; skinColor: string;
-}) => `
-<!DOCTYPE html>
+}) => `<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Georgia, 'Times New Roman', serif; background: #D8E9F0; padding: 30px 20px; }
-    .page { max-width: 700px; margin: 0 auto; background: #D8E9F0; border-radius: 16px; overflow: hidden; }
-    .header { background: #004F7F; padding: 36px 24px 28px; text-align: center; }
-    .brand { font-size: 48px; font-weight: bold; color: #ffffff; letter-spacing: 2px; line-height: 1.2; }
-    .brand-s { color: #00A3A3; font-size: 56px; }
-    .tagline { color: #C5E3ED; font-size: 13px; margin-top: 6px; font-style: italic; letter-spacing: 3px; }
-    .header-divider { width: 60px; height: 3px; background: #00A3A3; margin: 14px auto 0; border-radius: 10px; }
-    .banner { background: #00A3A3; padding: 10px 20px; text-align: center; }
-    .banner p { color: #fff; font-size: 13px; font-style: italic; letter-spacing: 0.5px; }
-    .report-title-bar { background: #ffffff; border-left: 1px solid #C5E3ED; border-right: 1px solid #C5E3ED; padding: 20px 24px 16px; display: flex; justify-content: space-between; align-items: center; }
-    .report-num { font-size: 22px; font-weight: bold; color: #004F7F; }
-    .report-date { font-size: 13px; color: #6B7280; font-family: system-ui, sans-serif; }
-    .patient-section { background: #ffffff; border-left: 1px solid #C5E3ED; border-right: 1px solid #C5E3ED; padding: 16px 24px; border-top: 1px solid #E5F0F6; }
-    .patient-title { font-size: 14px; font-weight: bold; color: #004F7F; margin-bottom: 12px; font-family: system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.5px; }
-    .patient-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    .patient-item { background: #F4FBFF; border-radius: 8px; padding: 10px 12px; border: 1px solid #C5E3ED; }
-    .patient-label { font-size: 10px; color: #9CA3AF; font-family: system-ui, sans-serif; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .patient-value { font-size: 13px; font-weight: bold; color: #1F2937; font-family: system-ui, sans-serif; }
-    .image-section { background: #ffffff; border-left: 1px solid #C5E3ED; border-right: 1px solid #C5E3ED; padding: 0 24px 20px; text-align: center; }
-    .image-section img { max-width: 100%; max-height: 320px; border-radius: 12px; border: 3px solid #C5E3ED; object-fit: cover; }
-    .info-section { background: #ffffff; border-left: 1px solid #C5E3ED; border-right: 1px solid #C5E3ED; padding: 0 24px 20px; }
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 4px; }
-    .info-item { background: #F4FBFF; border-radius: 10px; padding: 12px; border: 1px solid #C5E3ED; }
-    .info-label { font-size: 11px; color: #9CA3AF; font-family: system-ui, sans-serif; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .info-value { font-size: 14px; font-weight: bold; color: #004F7F; font-family: system-ui, sans-serif; }
-    .analysis-section { background: #ffffff; border-left: 1px solid #C5E3ED; border-right: 1px solid #C5E3ED; padding: 20px 24px; }
-    .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #E5E7EB; }
-    .section-title { font-size: 17px; font-weight: bold; color: #004F7F; }
-    .analysis-box { background: #D8E9F0; border-radius: 12px; padding: 18px 20px; border: 1px solid #C5E3ED; }
-    .analysis-text { font-size: 14px; color: #374151; line-height: 1.8; font-family: system-ui, sans-serif; }
-    .warning-section { background: #ffffff; border-left: 1px solid #C5E3ED; border-right: 1px solid #C5E3ED; padding: 0 24px 20px; }
-    .warning-box { background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; padding: 14px 16px; }
-    .warning-text { font-size: 12px; color: #856404; line-height: 1.6; font-family: system-ui, sans-serif; }
-    .footer { background: #004F7F; padding: 28px 20px; text-align: center; }
-    .footer-divider { width: 40px; height: 2px; background: #00A3A3; margin: 0 auto 18px; border-radius: 10px; }
-    .footer-brand { font-size: 20px; font-weight: bold; color: #fff; margin-bottom: 6px; }
-    .footer-brand-s { color: #00A3A3; }
-    .footer-copy { color: #C5E3ED; font-size: 11px; font-family: system-ui, sans-serif; }
-    .footer-note { color: #8ab4c9; font-size: 10px; margin-top: 5px; font-family: system-ui, sans-serif; }
-  </style>
+<meta charset="utf-8"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:18px 14px}
+.page{max-width:700px;margin:0 auto;background:#D8E9F0;border-radius:14px;overflow:hidden}
+.header{background:#004F7F;padding:22px 22px 16px;text-align:center}
+.brand{font-size:38px;font-weight:bold;color:#fff;letter-spacing:2px}
+.brand-s{color:#00A3A3;font-size:46px}
+.tagline{color:#C5E3ED;font-size:11px;margin-top:3px;font-style:italic;letter-spacing:3px}
+.hdiv{width:46px;height:3px;background:#00A3A3;margin:8px auto 0;border-radius:10px}
+.banner{background:#00A3A3;padding:7px 18px;text-align:center}
+.banner p{color:#fff;font-size:11px;font-style:italic;letter-spacing:.5px}
+.title-bar{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:12px 22px;display:flex;justify-content:space-between;align-items:center}
+.rnum{font-size:19px;font-weight:bold;color:#004F7F}
+.rdate{font-size:11px;color:#6B7280;font-family:system-ui,sans-serif}
+.psec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:10px 22px;border-top:1px solid #E5F0F6}
+.ptitle{font-size:11px;font-weight:bold;color:#004F7F;margin-bottom:7px;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.5px}
+.pgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.pi{background:#F4FBFF;border-radius:7px;padding:7px 9px;border:1px solid #C5E3ED}
+.pl{font-size:8px;color:#9CA3AF;font-family:system-ui,sans-serif;margin-bottom:2px;text-transform:uppercase;letter-spacing:.4px}
+.pv{font-size:11px;font-weight:bold;color:#1F2937;font-family:system-ui,sans-serif}
+.imgsec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:0 22px 12px;text-align:center}
+.imgsec img{max-width:100%;max-height:200px;border-radius:10px;border:3px solid #C5E3ED;object-fit:cover}
+.infosec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:0 22px 12px}
+.igrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:4px}
+.ii{background:#F4FBFF;border-radius:9px;padding:9px;border:1px solid #C5E3ED}
+.il{font-size:9px;color:#9CA3AF;font-family:system-ui,sans-serif;margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px}
+.iv{font-size:12px;font-weight:bold;color:#004F7F;font-family:system-ui,sans-serif}
+.asec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:12px 22px}
+.shdr{margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #E5E7EB}
+.stitle{font-size:14px;font-weight:bold;color:#004F7F}
+.abox{background:#D8E9F0;border-radius:9px;padding:12px 15px;border:1px solid #C5E3ED}
+.atxt{font-size:12px;color:#374151;line-height:1.65;font-family:system-ui,sans-serif}
+.wsec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:0 22px 12px}
+.wbox{background:#fff3cd;border-left:4px solid #ffc107;border-radius:7px;padding:9px 13px}
+.wtxt{font-size:10px;color:#856404;line-height:1.5;font-family:system-ui,sans-serif}
+.footer{background:#004F7F;padding:16px 18px;text-align:center}
+.fdiv{width:34px;height:2px;background:#00A3A3;margin:0 auto 10px;border-radius:10px}
+.fbrand{font-size:15px;font-weight:bold;color:#fff;margin-bottom:3px}
+.fbs{color:#00A3A3}
+.fcopy{color:#C5E3ED;font-size:9px;font-family:system-ui,sans-serif}
+.fnote{color:#8ab4c9;font-size:8px;margin-top:3px;font-family:system-ui,sans-serif}
+</style>
 </head>
 <body>
-  <div class="page">
-    <div class="header">
-      <div class="brand"><span class="brand-s">S</span>kinsight</div>
-      <div class="tagline">Snap. Detect. Protect.</div>
-      <div class="header-divider"></div>
-    </div>
-    <div class="banner"><p>Skin Analysis Report</p></div>
-    <div class="report-title-bar">
-      <div class="report-num">Report #${params.reportIndex + 1}</div>
-      <div class="report-date">${params.date}</div>
-    </div>
-    <div class="patient-section">
-      <div class="patient-title">Patient Information</div>
-      <div class="patient-grid">
-        <div class="patient-item"><div class="patient-label">Patient Name</div><div class="patient-value">${params.patientName}</div></div>
-        <div class="patient-item"><div class="patient-label">Age</div><div class="patient-value">${params.age}</div></div>
-        <div class="patient-item"><div class="patient-label">Gender</div><div class="patient-value">${params.gender}</div></div>
-        <div class="patient-item"><div class="patient-label">Hair Color</div><div class="patient-value">${params.hairColor}</div></div>
-        <div class="patient-item"><div class="patient-label">Eye Color</div><div class="patient-value">${params.eyeColor}</div></div>
-        <div class="patient-item"><div class="patient-label">Skin Tone</div><div class="patient-value">${params.skinColor}</div></div>
-      </div>
-    </div>
-    <div class="image-section">
-      ${params.imageBase64 ? `<img src="${params.imageBase64}" alt="Skin Analysis" />` : '<p style="color:#9CA3AF;padding:20px;">No image available</p>'}
-    </div>
-    <div class="info-section">
-      <div class="info-grid">
-        <div class="info-item"><div class="info-label">Location</div><div class="info-value">${params.bodyView === 'front' ? params.frontBody : params.bodyView === 'back' ? params.backBody : 'N/A'}</div></div>
-        <div class="info-item"><div class="info-label">Coordinates</div><div class="info-value">x: ${params.x.toFixed(1)}, y: ${params.y.toFixed(1)}</div></div>
-        <div class="info-item"><div class="info-label">Report ID</div><div class="info-value">${params.moleId.substring(0, 10)}...</div></div>
-      </div>
-    </div>
-    <div class="analysis-section">
-      <div class="section-header"><div class="section-title">Analysis Results</div></div>
-      <div class="analysis-box"><p class="analysis-text">${params.analysis}</p></div>
-    </div>
-    <div class="warning-section">
-      <div class="warning-box">
-        <p class="warning-text">⚠️ <strong>Medical Disclaimer:</strong> This report is generated by an AI model and is intended for informational purposes only. Always consult a qualified dermatologist or healthcare provider for any skin concerns.</p>
-      </div>
-    </div>
-    <div class="footer">
-      <div class="footer-divider"></div>
-      <div class="footer-brand"><span class="footer-brand-s">S</span>kinsight</div>
-      <div class="footer-copy">© 2026 SkinSight. All rights reserved.</div>
-      <div class="footer-note">📧 skinsight.help.2025@gmail.com</div>
+<div class="page">
+  <div class="header">
+    <div class="brand"><span class="brand-s">S</span>kinsight</div>
+    <div class="tagline">Snap. Detect. Protect.</div>
+    <div class="hdiv"></div>
+  </div>
+  <div class="banner"><p>Skin Analysis Report</p></div>
+  <div class="title-bar">
+    <div class="rnum">Report #${params.reportIndex + 1}</div>
+    <div class="rdate">${params.date}</div>
+  </div>
+  <div class="psec">
+    <div class="ptitle">Patient Information</div>
+    <div class="pgrid">
+      <div class="pi"><div class="pl">Patient Name</div><div class="pv">${params.patientName}</div></div>
+      <div class="pi"><div class="pl">Age</div><div class="pv">${params.age}</div></div>
+      <div class="pi"><div class="pl">Gender</div><div class="pv">${params.gender}</div></div>
+      <div class="pi"><div class="pl">Hair Color</div><div class="pv">${params.hairColor}</div></div>
+      <div class="pi"><div class="pl">Eye Color</div><div class="pv">${params.eyeColor}</div></div>
+      <div class="pi"><div class="pl">Skin Tone</div><div class="pv">${params.skinColor}</div></div>
     </div>
   </div>
+  <div class="imgsec">
+    ${params.imageBase64
+        ? `<img src="${params.imageBase64}" alt="Skin Analysis"/>`
+        : '<p style="color:#9CA3AF;padding:14px;">No image available</p>'}
+  </div>
+  <div class="infosec">
+    <div class="igrid">
+      <div class="ii"><div class="il">Location</div><div class="iv">${params.bodyView === 'front' ? params.frontBody : params.bodyView === 'back' ? params.backBody : 'N/A'}</div></div>
+      <div class="ii"><div class="il">Platform</div><div class="iv">${params.platform}</div></div>
+      <div class="ii"><div class="il">Description</div><div class="iv">${params.description || 'N/A'}</div></div>
+    </div>
+  </div>
+  <div class="asec">
+    <div class="shdr"><div class="stitle">Analysis Results</div></div>
+    <div class="abox"><p class="atxt">${params.analysis}</p></div>
+  </div>
+  <div class="wsec">
+    <div class="wbox">
+      <p class="wtxt">⚠️ <strong>Medical Disclaimer:</strong> This report is generated by an AI model and is intended for informational purposes only. Always consult a qualified dermatologist or healthcare provider for any skin concerns.</p>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="fdiv"></div>
+    <div class="fbrand"><span class="fbs">S</span>kinsight</div>
+    <div class="fcopy">© 2026 SkinSight. All rights reserved.</div>
+    <div class="fnote">📧 skinsight.help.2025@gmail.com</div>
+  </div>
+</div>
 </body>
-</html>
-`;
+</html>`;
+
+// ── Download All Template — single page summary table ─────────
+const buildAllReportsHTML = (params: {
+    rows: Array<{
+        index: number; date: string; bodyView: string; analysis: string;
+        imageBase64: string; frontBody: string; backBody: string;
+        description: string; platform: string;
+    }>;
+    patientName: string; age: string; gender: string;
+    hairColor: string; eyeColor: string; skinColor: string;
+    generatedDate: string;
+}) => `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:18px 12px}
+.page{max-width:960px;margin:0 auto;background:#D8E9F0;border-radius:14px;overflow:hidden}
+.header{background:#004F7F;padding:22px 22px 16px;text-align:center}
+.brand{font-size:38px;font-weight:bold;color:#fff;letter-spacing:2px}
+.brand-s{color:#00A3A3;font-size:46px}
+.tagline{color:#C5E3ED;font-size:11px;margin-top:3px;font-style:italic;letter-spacing:3px}
+.hdiv{width:46px;height:3px;background:#00A3A3;margin:8px auto 0;border-radius:10px}
+.banner{background:#00A3A3;padding:7px 18px;text-align:center}
+.banner p{color:#fff;font-size:11px;font-style:italic;letter-spacing:.5px}
+.meta{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:5px}
+.mtitle{font-size:17px;font-weight:bold;color:#004F7F}
+.mdate{font-size:10px;color:#6B7280;font-family:system-ui,sans-serif}
+.psec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:10px 22px;border-top:1px solid #E5F0F6}
+.ptitle{font-size:11px;font-weight:bold;color:#004F7F;margin-bottom:7px;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.5px}
+.pgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.pi{background:#F4FBFF;border-radius:6px;padding:6px 8px;border:1px solid #C5E3ED}
+.pl{font-size:7px;color:#9CA3AF;font-family:system-ui,sans-serif;margin-bottom:2px;text-transform:uppercase;letter-spacing:.3px}
+.pv{font-size:10px;font-weight:bold;color:#1F2937;font-family:system-ui,sans-serif}
+.stats{background:#004F7F;padding:11px 22px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:6px}
+.si{text-align:center}
+.sv{font-size:19px;font-weight:bold;color:#00A3A3}
+.sl{font-size:8px;color:#C5E3ED;font-family:system-ui,sans-serif;margin-top:1px;text-transform:uppercase;letter-spacing:.4px}
+.tsec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:14px 18px}
+.stitle{font-size:13px;font-weight:bold;color:#004F7F;margin-bottom:10px;padding-bottom:7px;border-bottom:2px solid #C5E3ED;font-family:system-ui,sans-serif}
+table{width:100%;border-collapse:collapse;font-family:system-ui,sans-serif}
+thead tr{background:#004F7F}
+thead th{color:#fff;font-size:10px;font-weight:600;padding:9px 7px;text-align:left;letter-spacing:.3px}
+thead th:first-child{border-radius:5px 0 0 0}
+thead th:last-child{border-radius:0 5px 0 0}
+tbody tr:nth-child(even){background:#F4FBFF}
+tbody tr:nth-child(odd){background:#fff}
+tbody tr{border-bottom:1px solid #E5F0F6}
+tbody tr:last-child{border-bottom:none}
+td{padding:8px 7px;vertical-align:middle}
+.tnum{font-size:12px;font-weight:bold;color:#004F7F;text-align:center}
+.timg{text-align:center}
+.timg img{width:50px;height:50px;border-radius:6px;border:2px solid #C5E3ED;object-fit:cover;display:block;margin:0 auto}
+.timg-ph{width:50px;height:50px;border-radius:6px;border:2px dashed #C5E3ED;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:8px;margin:0 auto;background:#F4FBFF;text-align:center;padding:3px;line-height:1.3}
+.tdate{font-size:10px;color:#374151;white-space:nowrap}
+.loc-badge{display:inline-block;background:#E8F4F8;color:#004F7F;border:1px solid #C5E3ED;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600}
+.plat-badge{display:inline-block;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600}
+.plat-app{background:#E8F4F8;color:#004F7F;border:1px solid #C5E3ED}
+.plat-web{background:#E6F4EA;color:#1A6B35;border:1px solid #A8D5B5}
+.tdesc{font-size:9px;color:#374151;max-width:110px}
+.tanal{font-size:9px;color:#374151;line-height:1.5;max-width:210px}
+.wsec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:0 18px 12px}
+.wbox{background:#fff3cd;border-left:4px solid #ffc107;border-radius:6px;padding:8px 12px}
+.wtxt{font-size:9px;color:#856404;line-height:1.5;font-family:system-ui,sans-serif}
+.footer{background:#004F7F;padding:15px 18px;text-align:center}
+.fdiv{width:34px;height:2px;background:#00A3A3;margin:0 auto 10px;border-radius:10px}
+.fbrand{font-size:15px;font-weight:bold;color:#fff;margin-bottom:3px}
+.fbs{color:#00A3A3}
+.fcopy{color:#C5E3ED;font-size:9px;font-family:system-ui,sans-serif}
+.fnote{color:#8ab4c9;font-size:8px;margin-top:3px;font-family:system-ui,sans-serif}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="brand"><span class="brand-s">S</span>kinsight</div>
+    <div class="tagline">Snap. Detect. Protect.</div>
+    <div class="hdiv"></div>
+  </div>
+  <div class="banner"><p>Complete Skin Analysis Summary</p></div>
+  <div class="meta">
+    <div class="mtitle">All Reports — Full History</div>
+    <div class="mdate">Generated: ${params.generatedDate}</div>
+  </div>
+  <div class="psec">
+    <div class="ptitle">Patient Information</div>
+    <div class="pgrid">
+      <div class="pi"><div class="pl">Patient Name</div><div class="pv">${params.patientName}</div></div>
+      <div class="pi"><div class="pl">Age</div><div class="pv">${params.age}</div></div>
+      <div class="pi"><div class="pl">Gender</div><div class="pv">${params.gender}</div></div>
+      <div class="pi"><div class="pl">Hair Color</div><div class="pv">${params.hairColor}</div></div>
+      <div class="pi"><div class="pl">Eye Color</div><div class="pv">${params.eyeColor}</div></div>
+      <div class="pi"><div class="pl">Skin Tone</div><div class="pv">${params.skinColor}</div></div>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="si"><div class="sv">${params.rows.length}</div><div class="sl">Total Reports</div></div>
+    <div class="si"><div class="sv">${params.rows.filter(r => r.bodyView === 'front').length}</div><div class="sl">Front Body</div></div>
+    <div class="si"><div class="sv">${params.rows.filter(r => r.bodyView === 'back').length}</div><div class="sl">Back Body</div></div>
+    <div class="si"><div class="sv">${params.rows.filter(r => r.platform === 'Mobile App').length}</div><div class="sl">App Scans</div></div>
+    <div class="si"><div class="sv">${params.rows.filter(r => r.platform === 'Web').length}</div><div class="sl">Web Scans</div></div>
+  </div>
+  <div class="tsec">
+    <div class="stitle">📋 Scan History Table</div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:34px">#</th>
+          <th style="width:60px">Image</th>
+          <th style="width:78px">Date</th>
+          <th style="width:68px">Location</th>
+          <th style="width:70px">Platform</th>
+          <th style="width:105px">Description</th>
+          <th>Analysis Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${params.rows.map(row => `
+        <tr>
+          <td class="tnum">${row.index + 1}</td>
+          <td class="timg">
+            ${row.imageBase64
+              ? `<img src="${row.imageBase64}" alt="scan"/>`
+              : `<div class="timg-ph">No Image</div>`}
+          </td>
+          <td class="tdate">${row.date}</td>
+          <td><span class="loc-badge">${row.bodyView === 'front' ? row.frontBody : row.bodyView === 'back' ? row.backBody : 'N/A'}</span></td>
+          <td><span class="plat-badge ${row.platform === 'Web' ? 'plat-web' : 'plat-app'}">${row.platform}</span></td>
+          <td class="tdesc">${row.description || 'N/A'}</td>
+          <td class="tanal">${row.analysis || 'Analysis in progress...'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="wsec">
+    <div class="wbox">
+      <p class="wtxt">⚠️ <strong>Medical Disclaimer:</strong> This report is generated by an AI model and is intended for informational purposes only. Always consult a qualified dermatologist or healthcare provider for any skin concerns.</p>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="fdiv"></div>
+    <div class="fbrand"><span class="fbs">S</span>kinsight</div>
+    <div class="fcopy">© 2026 SkinSight. All rights reserved.</div>
+    <div class="fnote">📧 skinsight.help.2025@gmail.com</div>
+  </div>
+</div>
+</body>
+</html>`;
 
 export default function ReportsPage() {
     const router = useRouter();
@@ -203,7 +388,11 @@ export default function ReportsPage() {
             setGender(d.gender ? d.gender.charAt(0).toUpperCase() + d.gender.slice(1) : 'N/A');
             setHairColor(d.hairColor || 'N/A');
             setEyeColor(d.eyeColor   || 'N/A');
-            const skinMap: Record<string,string> = { '#F5E0D3':'Very Light','#EACAA7':'Light','#D1A67A':'Medium','#B57D50':'Tan','#A05C38':'Brown','#8B4513':'Dark Brown','#7A3E11':'Deep','#603311':'Ebony' };
+            const skinMap: Record<string,string> = {
+                '#F5E0D3':'Very Light','#EACAA7':'Light','#D1A67A':'Medium',
+                '#B57D50':'Tan','#A05C38':'Brown','#8B4513':'Dark Brown',
+                '#7A3E11':'Deep','#603311':'Ebony',
+            };
             setSkinColor(d.skinColor ? (skinMap[d.skinColor] || d.skinColor) : 'N/A');
             if (d.birthYear && d.birthMonth && d.birthDay) {
                 const dob = new Date(d.birthYear, d.birthMonth - 1, d.birthDay);
@@ -232,6 +421,7 @@ export default function ReportsPage() {
         }
     };
 
+    // ── Download Single PDF ─────────────────────────────────────
     const downloadSingleReport = async (mole: Mole, index: number) => {
         if (downloadingId || downloadingAll) return;
         try {
@@ -240,14 +430,22 @@ export default function ReportsPage() {
             const imageBase64 = await getImageBase64(mole.photoUri);
             const html = buildReportHTML({
                 reportIndex: index,
-                date: new Date(mole.timestamp).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                bodyView: mole.bodyView, x: mole.x, y: mole.y, moleId: mole.id,
-                analysis: mole.analysis || t('analysisInProgress'),
-                imageBase64, frontBody: t('frontBody'), backBody: t('backBody'),
+                date: new Date(mole.timestamp).toLocaleDateString(
+                    isArabic ? 'ar-EG' : 'en-US',
+                    { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+                ),
+                bodyView:    mole.bodyView,
+                moleId:      mole.id,
+                analysis:    mole.analysis || t('analysisInProgress'),
+                imageBase64,
+                frontBody:   t('frontBody'),
+                backBody:    t('backBody'),
                 patientName, age, gender, hairColor, eyeColor, skinColor,
+                platform:    getPlatform(mole.source),
+                description: mole.description || 'N/A',
             });
             const { uri } = await Print.printToFileAsync({ html, base64: false });
-            await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: `SkinSight Report #${index + 1}` });
+            await savePDF(uri, `SkinSight_Report_${index + 1}.pdf`);
         } catch (error: any) {
             if (!String(error?.message || '').includes('Another share request')) {
                 Alert.alert(t('error'), 'Failed to download report.');
@@ -257,43 +455,66 @@ export default function ReportsPage() {
         }
     };
 
+    // ── Download All PDF ────────────────────────────────────────
     const downloadAllReports = async () => {
         if (downloadingId || downloadingAll) return;
         try {
             setDownloadingAll(true);
-            if (moles.length === 0) { Alert.alert(t('noReportsYet'), t('noReportsToDownload')); return; }
-            const pages: string[] = [];
-            for (let i = 0; i < moles.length; i++) {
-                const mole        = moles[i];
-                const imageBase64 = await getImageBase64(mole.photoUri || '');
-                const page        = buildReportHTML({
-                    reportIndex: i,
-                    date: new Date(mole.timestamp).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                    bodyView: mole.bodyView, x: mole.x, y: mole.y, moleId: mole.id,
-                    analysis: mole.analysis || t('analysisInProgress'),
-                    imageBase64, frontBody: t('frontBody'), backBody: t('backBody'),
-                    patientName, age, gender, hairColor, eyeColor, skinColor,
-                });
-                const bodyContent = page.replace(/[\s\S]*<body>/, '').replace(/<\/body>[\s\S]*/, '');
-                pages.push(bodyContent);
+            if (moles.length === 0) {
+                Alert.alert(t('noReportsYet'), t('noReportsToDownload'));
+                return;
             }
-            const firstFull = buildReportHTML({ reportIndex: 0, date: '', bodyView: 'front', x: 0, y: 0, moleId: '', analysis: '', imageBase64: '', frontBody: '', backBody: '', patientName: '', age: '', gender: '', hairColor: '', eyeColor: '', skinColor: '' });
-            const styleMatch = firstFull.match(/<style>([\s\S]*?)<\/style>/);
-            const sharedStyle = styleMatch ? styleMatch[1] : '';
-            const allPagesHtml = pages.join('<div style="page-break-after:always;height:1px;"></div>');
-            const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>${sharedStyle}</style></head><body>${allPagesHtml}</body></html>`;
+
+            const rows: Array<{
+                index: number; date: string; bodyView: string; analysis: string;
+                imageBase64: string; frontBody: string; backBody: string;
+                description: string; platform: string;
+            }> = [];
+
+            for (let i = 0; i < moles.length; i++) {
+                const mole = moles[i];
+                const imageBase64 = await getImageBase64(mole.photoUri || '');
+                rows.push({
+                    index:       i,
+                    date:        new Date(mole.timestamp).toLocaleDateString(
+                                     isArabic ? 'ar-EG' : 'en-US',
+                                     { month: 'short', day: 'numeric', year: 'numeric' }
+                                 ),
+                    bodyView:    mole.bodyView,
+                    analysis:    mole.analysis || t('analysisInProgress'),
+                    imageBase64,
+                    frontBody:   t('frontBody'),
+                    backBody:    t('backBody'),
+                    description: mole.description || 'N/A',
+                    platform:    getPlatform(mole.source),
+                });
+            }
+
+            const generatedDate = new Date().toLocaleDateString(
+                isArabic ? 'ar-EG' : 'en-US',
+                { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+            );
+
+            const html = buildAllReportsHTML({
+                rows, patientName, age, gender, hairColor, eyeColor, skinColor, generatedDate,
+            });
+
             const { uri } = await Print.printToFileAsync({ html, base64: false });
-            await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: t('downloadAll') });
+            await savePDF(uri, `SkinSight_All_Reports.pdf`);
         } catch (error: any) {
-            Alert.alert(t('error'), 'Failed to download reports.');
+            if (!String(error?.message || '').includes('Another share request')) {
+                Alert.alert(t('error'), 'Failed to download reports.');
+            }
         } finally {
             setDownloadingAll(false);
         }
     };
 
-    const formatDate = (timestamp: number) => {
-        return new Date(timestamp).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
+    const formatDate = (timestamp: number) =>
+        new Date(timestamp).toLocaleDateString(
+            isArabic ? 'ar-EG' : 'en-US',
+            { month: 'short', day: 'numeric', year: 'numeric' }
+        );
 
     const bottomTabs = [
         { name: 'Home',     iconImg: Icons.home     },
@@ -318,10 +539,7 @@ export default function ReportsPage() {
     };
 
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: pageBg }]}
-        edges={["top"]}
-      >
+      <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={["top"]}>
         <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
         <View style={[styles.header, { backgroundColor: colors.card }]}>
@@ -331,174 +549,84 @@ export default function ReportsPage() {
           >
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text
-            style={[
-              styles.headerTitle,
-              customText,
-              { color: isDark ? "#fff" : "#374151" },
-            ]}
-          >
+          <Text style={[styles.headerTitle, customText, { color: isDark ? "#fff" : "#374151" }]}>
             {t("reports")}
           </Text>
           <View style={{ width: 40 }} />
         </View>
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={[styles.loadingText, customText]}>
-                {t("loadingReports")}
-              </Text>
+              <Text style={[styles.loadingText, customText]}>{t("loadingReports")}</Text>
             </View>
           ) : moles.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Image
-                source={Icons.reports}
-                style={styles.emptyIcon}
-                resizeMode="contain"
-              />
-              <Text
-                style={[
-                  styles.emptyTitle,
-                  customText,
-                  { color: isDark ? "#fff" : "#374151" },
-                ]}
-              >
+              <Image source={Icons.reports} style={styles.emptyIcon} resizeMode="contain" />
+              <Text style={[styles.emptyTitle, customText, { color: isDark ? "#fff" : "#374151" }]}>
                 {t("noReportsYet")}
               </Text>
-              <Text
-                style={[
-                  styles.emptyText,
-                  customText,
-                  { color: colors.subText },
-                ]}
-              >
+              <Text style={[styles.emptyText, customText, { color: colors.subText }]}>
                 {t("noReportsSubtitle")}
               </Text>
             </View>
           ) : (
             <>
               {moles.map((mole, index) => (
-                <View
-                  key={mole.id}
-                  style={[styles.reportCard, { backgroundColor: colors.card }]}
-                >
+                <View key={mole.id} style={[styles.reportCard, { backgroundColor: colors.card }]}>
                   <TouchableOpacity
                     style={styles.imageContainer}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/Screensbar/Reportdetails",
-                        params: {
-                          moleId: mole.id,
-                          photoUri: mole.photoUri,
-                          timestamp: mole.timestamp.toString(),
-                          bodyView: mole.bodyView,
-                          x: mole.x.toString(),
-                          y: mole.y.toString(),
-                          analysis: mole.analysis || "",
-                          reportIndex: index.toString(),
-                        },
-                      })
-                    }
+                    onPress={() => router.push({
+                      pathname: "/Screensbar/Reportdetails",
+                      params: {
+                        moleId: mole.id, photoUri: mole.photoUri,
+                        timestamp: mole.timestamp.toString(), bodyView: mole.bodyView,
+                        x: mole.x.toString(), y: mole.y.toString(),
+                        analysis: mole.analysis || "", reportIndex: index.toString(),
+                      },
+                    })}
                     activeOpacity={0.9}
                   >
-                    <Image
-                      source={{ uri: mole.photoUri }}
-                      style={styles.reportImage}
-                      resizeMode="cover"
-                    />
+                    <Image source={{ uri: mole.photoUri }} style={styles.reportImage} resizeMode="cover" />
                     <View style={styles.imageBadge}>
                       <Text style={styles.imageBadgeText}>
-                        {mole.bodyView === "front"
-                          ? t("frontBody")
-                          : mole.bodyView === "back"
-                          ? t("backBody")
-                          : "N/A"}
+                        {mole.bodyView === "front" ? t("frontBody") : mole.bodyView === "back" ? t("backBody") : "N/A"}
                       </Text>
                     </View>
                     <View style={styles.expandIcon}>
-                      <Ionicons
-                        name="expand-outline"
-                        size={20}
-                        color="#FFFFFF"
-                      />
+                      <Ionicons name="expand-outline" size={20} color="#FFFFFF" />
                     </View>
                   </TouchableOpacity>
 
                   <View style={styles.reportContent}>
-                    <View
-                      style={[
-                        styles.reportHeader,
-                        { flexDirection: isArabic ? "row-reverse" : "row" },
-                      ]}
-                    >
-                      <Text style={[styles.reportTitle, customText]}>
-                        {t("reportNum")}
-                        {index + 1}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.reportDate,
-                          customText,
-                          {
-                            color: colors.subText,
-                            fontSize: Math.max(11, settings.fontSize - 3),
-                          },
-                        ]}
-                      >
+                    <View style={[styles.reportHeader, { flexDirection: isArabic ? "row-reverse" : "row" }]}>
+                      <Text style={[styles.reportTitle, customText]}>{t("reportNum")}{index + 1}</Text>
+                      <Text style={[styles.reportDate, customText, { color: colors.subText, fontSize: Math.max(11, settings.fontSize - 3) }]}>
                         {formatDate(mole.timestamp)}
                       </Text>
                     </View>
-                    <Text
-                      style={[
-                        styles.reportText,
-                        customText,
-                        {
-                          color: colors.subText,
-                          textAlign: isArabic ? "right" : "left",
-                        },
-                      ]}
-                    >
+                    <Text style={[styles.reportText, customText, { color: colors.subText, textAlign: isArabic ? "right" : "left" }]}>
                       {mole.analysis || t("analysisInProgress")}
                     </Text>
                     <TouchableOpacity
-                      style={[
-                        styles.downloadButton,
-                        {
-                          backgroundColor: isDark ? "#004F7F" : "#E8F4F8",
-                          borderColor: isDark ? "#374151" : "#C5E3ED",
-                          flexDirection: isArabic ? "row-reverse" : "row",
-                          alignSelf: isArabic ? "flex-start" : "flex-end",
-                          opacity: downloadingId || downloadingAll ? 0.5 : 1,
-                        },
-                      ]}
+                      style={[styles.downloadButton, {
+                        backgroundColor: isDark ? "#004F7F" : "#E8F4F8",
+                        borderColor:     isDark ? "#374151" : "#C5E3ED",
+                        flexDirection:   isArabic ? "row-reverse" : "row",
+                        alignSelf:       isArabic ? "flex-start" : "flex-end",
+                        opacity:         downloadingId || downloadingAll ? 0.5 : 1,
+                      }]}
                       onPress={() => downloadSingleReport(mole, index)}
                       activeOpacity={0.8}
                       disabled={!!downloadingId || downloadingAll}
                     >
                       {downloadingId === mole.id ? (
-                        <ActivityIndicator
-                          size="small"
-                          color={colors.primary}
-                        />
+                        <ActivityIndicator size="small" color={colors.primary} />
                       ) : (
                         <>
-                          <Ionicons
-                            name="download-outline"
-                            size={18}
-                            color={isDark ? "#E8F4F8" : "#374151"}
-                          />
-                          <Text
-                            style={[
-                              styles.downloadButtonText,
-                              { color: isDark ? "#E8F4F8" : "#374151" },
-                            ]}
-                          >
+                          <Ionicons name="download-outline" size={18} color={isDark ? "#E8F4F8" : "#374151"} />
+                          <Text style={[styles.downloadButtonText, { color: isDark ? "#E8F4F8" : "#374151" }]}>
                             {t("downloadPDF")}
                           </Text>
                         </>
@@ -509,13 +637,7 @@ export default function ReportsPage() {
               ))}
 
               <TouchableOpacity
-                style={[
-                  styles.downloadAllButton,
-                  {
-                    backgroundColor: colors.primary,
-                    flexDirection: isArabic ? "row-reverse" : "row",
-                  },
-                ]}
+                style={[styles.downloadAllButton, { backgroundColor: colors.primary, flexDirection: isArabic ? "row-reverse" : "row" }]}
                 onPress={downloadAllReports}
                 disabled={downloadingAll}
                 activeOpacity={0.8}
@@ -524,14 +646,8 @@ export default function ReportsPage() {
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
-                    <Ionicons
-                      name="cloud-download-outline"
-                      size={22}
-                      color="#FFFFFF"
-                    />
-                    <Text style={styles.downloadAllText}>
-                      {t("downloadAll")}
-                    </Text>
+                    <Ionicons name="cloud-download-outline" size={22} color="#FFFFFF" />
+                    <Text style={styles.downloadAllText}>{t("downloadAll")}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -540,49 +656,17 @@ export default function ReportsPage() {
         </ScrollView>
 
         <View style={styles.bottomNavContainer}>
-          <View
-            style={[
-              styles.bottomNav,
-              { backgroundColor: colors.navBg, borderTopColor: colors.border },
-            ]}
-          >
+          <View style={[styles.bottomNav, { backgroundColor: colors.navBg, borderTopColor: colors.border }]}>
             {["Home", "Reports"].map((tabName) => {
               const tab = bottomTabs.find((t) => t.name === tabName)!;
               const isActive = activeTab === tab.name;
               return (
-                <TouchableOpacity
-                  key={tab.name}
-                  style={styles.navItem}
-                  onPress={() => handleTabPress(tab.name)}
-                >
-                  <View
-                    style={[
-                      styles.navIcon,
-                      {
-                        backgroundColor: isDark ? "#152030" : "#F9FAFB",
-                      },
-                      isActive && {
-                        backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-                        borderWidth: 2,
-                        borderColor: isDark ? "#00A3A3" : "#C5E3ED",
-                      },
-                    ]}
-                  >
-                    <Image
-                      source={tab.iconImg}
-                      style={styles.navIconImg}
-                      resizeMode="contain"
-                    />
+                <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
+                  <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                    isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
+                    <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
-                  <Text
-                    style={[
-                      styles.navText,
-                      {
-                        color: isActive ? colors.navActive : colors.navText,
-                      },
-                      isActive && { fontWeight: "700" },
-                    ]}
-                  >
+                  <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: "700" }]}>
                     {tabLabels[tabName]}
                   </Text>
                 </TouchableOpacity>
@@ -593,39 +677,12 @@ export default function ReportsPage() {
               const tab = bottomTabs.find((t) => t.name === tabName)!;
               const isActive = activeTab === tab.name;
               return (
-                <TouchableOpacity
-                  key={tab.name}
-                  style={styles.navItem}
-                  onPress={() => handleTabPress(tab.name)}
-                >
-                  <View
-                    style={[
-                      styles.navIcon,
-                      {
-                        backgroundColor: isDark ? "#152030" : "#F9FAFB",
-                      },
-                      isActive && {
-                        backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-                        borderWidth: 2,
-                        borderColor: isDark ? "#00A3A3" : "#C5E3ED",
-                      },
-                    ]}
-                  >
-                    <Image
-                      source={tab.iconImg}
-                      style={styles.navIconImg}
-                      resizeMode="contain"
-                    />
+                <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
+                  <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                    isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
+                    <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
-                  <Text
-                    style={[
-                      styles.navText,
-                      {
-                        color: isActive ? colors.navActive : colors.navText,
-                      },
-                      isActive && { fontWeight: "700" },
-                    ]}
-                  >
+                  <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: "700" }]}>
                     {tabLabels[tabName]}
                   </Text>
                 </TouchableOpacity>
@@ -633,25 +690,12 @@ export default function ReportsPage() {
             })}
           </View>
           <TouchableOpacity
-            style={[
-              styles.cameraButton,
-              {
-                backgroundColor: colors.navBg,
-                borderColor: isDark ? "#374151" : "#C5E3ED",
-              },
-              activeTab === "Camera" && {
-                borderColor: colors.navActive,
-                backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-              },
-            ]}
+            style={[styles.cameraButton, { backgroundColor: colors.navBg, borderColor: isDark ? "#374151" : "#C5E3ED" },
+              activeTab === "Camera" && { borderColor: colors.navActive, backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8" }]}
             onPress={() => handleTabPress("Camera")}
             activeOpacity={0.85}
           >
-            <Ionicons
-              name="camera-outline"
-              size={30}
-              color={activeTab === "Camera" ? colors.navActive : colors.navText}
-            />
+            <Ionicons name="camera-outline" size={30} color={activeTab === "Camera" ? colors.navActive : colors.navText} />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -668,7 +712,7 @@ const styles = StyleSheet.create({
     loadingContainer:   { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 100 },
     loadingText:        { marginTop: 12, fontSize: 16 },
     emptyContainer:     { alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
-    emptyIcon:           { width: 90, height: 90 },
+    emptyIcon:          { width: 90, height: 90 },
     emptyTitle:         { fontSize: 20, fontWeight: '700', marginTop: 16 },
     emptyText:          { fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 },
     reportCard:         { borderRadius: 16, marginBottom: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
