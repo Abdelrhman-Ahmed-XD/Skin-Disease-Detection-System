@@ -1,46 +1,29 @@
 # Web Framework
 flask==2.3.3
 flask-cors==4.0.0
-
-# Firebase Admin SDK
-firebase-admin==6.2.0
-
-# Email
-python-dotenv==1.0.0
-
-# Cloudinary (image storage)
-cloudinary==1.36.0
-
-# Image Processing
-Pillow==10.4.0
-numpy==2.1.0
-
-# Utilities
-requests==2.31.0
-
-# Server
-gunicorn==21.2.0
 Werkzeug==2.3.7
 
-# Social Auth (Google & Facebook token verification)
+# Firebase & Auth
+firebase-admin==6.2.0
 google-auth==2.23.4
 google-auth-oauthlib==1.1.0
 
-# ─────────────────────────────────────────────────────────────────
-# AI model dependencies — commented out until models are connected.
-#
-# Before enabling these:
-#   - Fly.io:        run `fly scale memory 2048`
-#   - DigitalOcean:  upgrade to $12/month (2GB RAM) droplet
-#   - Oracle Cloud:  already has 24GB RAM, just uncomment and redeploy
-#
-# Then uncomment the lines below and redeploy.
-# ─────────────────────────────────────────────────────────────────
-# tensorflow==2.15.0
-# keras==2.15.0
-# torch==2.1.0
-# torchvision==0.16.0
-# opencv-python-headless==4.8.1.78
-# scikit-learn==1.3.2
-# matplotlib==3.7.3
-# pandas==2.1.1
+# Utilities & Storage
+python-dotenv==1.0.0
+cloudinary==1.36.0
+requests==2.31.0
+gunicorn==21.2.0
+
+# Image Processing (CRITICAL: NumPy must be < 2.0 to prevent SciPy/Albumentations crash)
+Pillow==10.4.0
+numpy<2.0.0
+opencv-python-headless==4.8.1.78
+
+# AI Model Pipeline
+torch==2.2.0
+torchvision==0.17.0
+segmentation-models-pytorch
+albumentations
+scipy
+joblib
+scikit-learn==1.3.2
