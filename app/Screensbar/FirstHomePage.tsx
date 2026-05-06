@@ -560,4 +560,4 @@ const styles = StyleSheet.create({
     onboardingText:       { flex: 1, fontSize: 14, lineHeight: 20 },
     onboardingBtn:        { marginTop: 8, backgroundColor: '#004F7F', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
     onboardingBtnText:    { color: '#fff', fontWeight: '700', fontSize: 15 },
-});
+});1

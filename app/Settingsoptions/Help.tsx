@@ -201,4 +201,4 @@ const styles = StyleSheet.create({
   answerRow:        { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 7 },
   bullet:           { fontSize: 13, marginRight: 8, marginTop: 1, fontWeight: '600' },
   answerText:       { flex: 1, fontSize: 13, lineHeight: 19 },
-});
+});1

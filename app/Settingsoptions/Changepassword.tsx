@@ -299,4 +299,4 @@ const styles = StyleSheet.create({
   strengthText:      { fontSize: 13 },
   saveBtn:           { marginTop: 40, padding: 15, borderRadius: 12, alignItems: "center" },
   saveBtnText:       { color: "#fff", fontSize: 16 },
-});
+});1

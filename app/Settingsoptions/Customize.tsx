@@ -337,4 +337,4 @@ const styles = StyleSheet.create({
   colorBlock:     { paddingHorizontal: 16, paddingVertical: 14 },
   confirmBtn:     { borderRadius: 16, paddingVertical: 16, alignItems: 'center', shadowColor: '#004F7F', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
   confirmBtnText: { color: '#FFFFFF', fontSize: 16 },
-});
+});1

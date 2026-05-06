@@ -500,4 +500,4 @@ const styles = StyleSheet.create({
     navIconImg:           { width: 44, height: 44 },
     navText:             { fontSize: 11, fontWeight: '500' },
     cameraButton:        { position: 'absolute', top: -26, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', borderWidth: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 6 },
-});
+});1

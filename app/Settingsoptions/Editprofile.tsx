@@ -542,4 +542,4 @@ const styles = StyleSheet.create({
     confirmText:        { color: "#fff", fontSize: 16 },
     changePasswordBtn:  { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, marginTop: 16 },
     changePasswordText: { color: "#fff", fontSize: 10},
-});
+});1
