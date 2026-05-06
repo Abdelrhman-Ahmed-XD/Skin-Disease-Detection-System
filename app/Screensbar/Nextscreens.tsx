@@ -586,4 +586,4 @@ const styles = StyleSheet.create({
     welcomeLabel:         { fontSize: 18, color: '#00A3A3', fontStyle: 'italic' },
     userName:             { fontSize: 18, fontWeight: '700', color: '#1F2937', marginTop: 2 },
     notificationButton:   { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F9FAFB', justifyContent: 'center', alignItems: 'center' },
-});1
+});

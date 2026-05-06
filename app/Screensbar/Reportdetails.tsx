@@ -832,4 +832,4 @@ const styles = StyleSheet.create({
         padding: 16, borderRadius: 12, gap: 12, borderWidth: 1,
     },
     warningText: {flex: 1, fontSize: 13, lineHeight: 18},
-});1
+});

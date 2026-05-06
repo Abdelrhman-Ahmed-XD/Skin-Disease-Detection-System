@@ -464,4 +464,4 @@ const styles = StyleSheet.create({
   recommendationBox:    { borderRadius: 10, padding: 10, borderLeftWidth: 3 },
   consultButton:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 10, paddingVertical: 10, marginTop: 6, gap: 6 },
   consultButtonText:    { color: '#FFFFFF', fontSize: 13 },
-});1
+});

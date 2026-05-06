@@ -141,4 +141,4 @@ const styles = StyleSheet.create({
   featureTextWrapper: { flex: 1 },
   featureTitle:       { fontSize: 20, marginBottom: 10 },
   featureDescription: { fontSize: 13, lineHeight: 20 },
-});1
+});
