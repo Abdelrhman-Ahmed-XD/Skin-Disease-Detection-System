@@ -10,7 +10,7 @@ import {
     StatusBar, StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCustomize } from '../Customize/Customizecontext';
+import { FONT_FAMILY_MAP, useCustomize } from '../Customize/Customizecontext';
 import { useTranslation } from '../Customize/translations';
 import { useTheme } from '../ThemeContext';
 import { loadAllScansFromFirestore } from '../../Firebase/firestoreService';
@@ -364,7 +364,7 @@ export default function ReportsPage() {
     const customText = {
         fontSize:   settings.fontSize,
         color:      settings.textColor,
-        fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
+        fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
     };
 
     const pageBg = isDark ? colors.background : settings.backgroundColor;
@@ -556,7 +556,7 @@ export default function ReportsPage() {
           >
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, customText, { color: isDark ? "#fff" : "#374151" }]}>
+          <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },,styles.headerTitle, customText, { color: isDark ? "#fff" : "#374151" }]}>
             {t("reports")}
           </Text>
           <View style={{ width: 40 }} />
@@ -624,7 +624,7 @@ export default function ReportsPage() {
 
                       {/* ── Badge يمين: Front / Back — أزرق داكن ── */}
                       <View style={styles.imageBadgeRight}>
-                        <Text style={styles.imageBadgeText}>
+                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },,styles.imageBadgeText]}>
                           {mole.bodyView === "front"
                             ? t("frontBody")
                             : mole.bodyView === "back"
@@ -661,7 +661,7 @@ export default function ReportsPage() {
                         styles.reportHeader,
                         { flexDirection: isArabic ? "row-reverse" : "row" },
                       ]}>
-                        <Text style={[styles.reportTitle, customText, { color: '#00E5FF' }]}>
+                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },styles.reportTitle, customText, { color: '#00E5FF' }]}>
                           {t("reportNum")}{reportNumber}
                         </Text>
                         <Text style={[
@@ -674,6 +674,7 @@ export default function ReportsPage() {
                       </View>
 
                       <Text style={[
+                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                         styles.reportText,
                         customText,
                         { color: colors.subText, textAlign: isArabic ? "right" : "left" },
@@ -703,6 +704,7 @@ export default function ReportsPage() {
                               color={isDark ? "#E8F4F8" : "#374151"}
                             />
                             <Text style={[
+                              { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                               styles.downloadButtonText,
                               { color: isDark ? "#E8F4F8" : "#374151" },
                             ]}>
@@ -718,7 +720,7 @@ export default function ReportsPage() {
 
               {/* ── Download All Button ── */}
               <TouchableOpacity
-                style={[styles.downloadAllButton, {
+                style={[,styles.downloadAllButton, {
                   backgroundColor: colors.primary,
                   flexDirection:   isArabic ? "row-reverse" : "row",
                 }]}
@@ -731,7 +733,7 @@ export default function ReportsPage() {
                 ) : (
                   <>
                     <Ionicons name="cloud-download-outline" size={22} color="#FFFFFF" />
-                    <Text style={styles.downloadAllText}>{t("downloadAll")}</Text>
+                    <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.downloadAllText]}>{t("downloadAll")}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -740,7 +742,7 @@ export default function ReportsPage() {
         </ScrollView>
 
         {/* ── Bottom Nav ── */}
-        <View style={styles.bottomNavContainer}>
+        <View style={[styles.bottomNavContainer]}>
           <View style={[styles.bottomNav, { backgroundColor: colors.navBg, borderTopColor: colors.border }]}>
             {["Home", "Reports"].map((tabName) => {
               const tab      = bottomTabs.find((t) => t.name === tabName)!;
@@ -762,7 +764,7 @@ export default function ReportsPage() {
                   ]}>
                     <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
-                  <Text style={[
+                  <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                     styles.navText,
                     { color: isActive ? colors.navActive : colors.navText },
                     isActive && { fontWeight: "700" },
@@ -794,6 +796,7 @@ export default function ReportsPage() {
                     <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
                   <Text style={[
+                    { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                     styles.navText,
                     { color: isActive ? colors.navActive : colors.navText },
                     isActive && { fontWeight: "700" },
@@ -832,40 +835,40 @@ const styles = StyleSheet.create({
     container:          { flex: 1 },
     header:             { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
     backButton:         { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    headerTitle:        { fontSize: 22, fontWeight: 'bold' },
+    headerTitle:        { fontSize: 22 },
     scrollView:         { flex: 1 },
     scrollContent:      { padding: 16, paddingBottom: 100 },
     loadingContainer:   { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 100 },
     loadingText:        { marginTop: 12, fontSize: 16 },
     emptyContainer:     { alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
     emptyIcon:          { width: 90, height: 90 },
-    emptyTitle:         { fontSize: 20, fontWeight: '700', marginTop: 16 },
+    emptyTitle:         { fontSize: 20, marginTop: 16 },
     emptyText:          { fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 },
     reportCard:         { borderRadius: 16, marginBottom: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
     imageContainer:     { position: 'relative', width: '100%', height: 200 },
     reportImage:        { width: '100%', height: '100%' },
     reportNumberBadge:     { position: 'absolute', bottom: 12, left: 12, backgroundColor: 'rgba(0,79,127,0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-    reportNumberBadgeText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+    reportNumberBadgeText: { color: '#FFFFFF', fontSize: 14 },
     imageBadgeRight:    { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,79,127,0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-    imageBadgeText:     { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+    imageBadgeText:     { color: '#FFFFFF', fontSize: 12 },
     imageBadgeLeft:     { position: 'absolute', top: 12, left: 12, width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
     platformIcon:       { width: 22, height: 22, tintColor: '#FFFFFF' },
     expandIcon:         { position: 'absolute', bottom: 12, right: 12, backgroundColor: 'rgba(0,79,127,0.8)', width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
     reportContent:      { padding: 16 },
     reportHeader:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    reportTitle:        { fontSize: 18, fontWeight: '700' },
+    reportTitle:        { fontSize: 18},
     reportDate:         { fontSize: 12 },
     reportText:         { fontSize: 14, lineHeight: 20, marginBottom: 16 },
     downloadButton:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1 },
-    downloadButtonText: { fontSize: 14, fontWeight: '600', marginLeft: 6 },
+    downloadButtonText: { fontSize: 14, marginLeft: 6 },
     downloadAllButton:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 16, marginTop: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4, marginBottom: 25 },
-    downloadAllText:    { fontSize: 16, fontWeight: '700', color: '#FFFFFF', marginLeft: 8 },
+    downloadAllText:    { fontSize: 16, color: '#FFFFFF', marginLeft: 8 },
     bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' },
     bottomNav:          { flexDirection: 'row', paddingVertical: 10, borderTopWidth: 1, width: '100%', paddingBottom: 16, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
     navCenterSpacer:    { flex: 1 },
     navItem:            { flex: 1, alignItems: 'center', justifyContent: 'center' },
     navIcon:            { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
     navIconImg:         { width: 44, height: 44 },
-    navText:            { fontSize: 11, fontWeight: '500' },
+    navText:            { fontSize: 11 },
     cameraButton:       { position: 'absolute', top: -26, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', borderWidth: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 6 },
 });

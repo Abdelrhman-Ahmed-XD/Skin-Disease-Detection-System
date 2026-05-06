@@ -5,7 +5,7 @@ import {
   LayoutAnimation, Platform, SafeAreaView, ScrollView,
   StatusBar, StyleSheet, Text, TouchableOpacity, UIManager, View,
 } from 'react-native';
-import { useCustomize } from '../Customize/Customizecontext';
+import { FONT_FAMILY_MAP, useCustomize } from '../Customize/Customizecontext';
 import { useTranslation } from '../Customize/translations';
 import { useTheme } from '../ThemeContext';
 
@@ -49,11 +49,9 @@ export default function HelpPage() {
   const customText = {
     fontSize: settings.fontSize,
     color: isDark ? "#FFFFFF" : settings.textColor,
-    fontFamily:
-      settings.fontFamily === "System" ? undefined : settings.fontFamily,
+    fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
   };
 
-  // ✅ الـ background بيجي من settings.backgroundColor لما مش dark، وفي dark بيجي colors.background
   const pageBg = isDark ? colors.background : settings.backgroundColor;
 
   const faqs = isArabic ? faqsAr : faqsEn;
@@ -65,15 +63,18 @@ export default function HelpPage() {
 
   const accentColor = isDark ? '#4BA3C7' : '#2A7DA0';
 
+  // ✅ FIX: لون الإجابة يتغير حسب الـ dark mode
+  const answerColor = isDark ? '#FFFFFF' : settings.textColor;
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]}>
       <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
       <View style={[styles.header, { backgroundColor: colors.card }]}>
         <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
-          <Ionicons name={isArabic ? "chevron-back" : "chevron-back"} size={24} color={colors.text} />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, customText]}>{t('help')}</Text>
+        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.headerTitle, customText]}>{t('help')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -102,7 +103,7 @@ export default function HelpPage() {
                 <Text
                   style={[
                     styles.questionText,
-                    customText,
+                    { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                     {
                       color: isOpen
                         ? accentColor
@@ -153,14 +154,18 @@ export default function HelpPage() {
                         { flexDirection: isArabic ? "row-reverse" : "row" },
                       ]}
                     >
-                      <Text style={[styles.bullet, { color: accentColor }]}>
+                      <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.bullet, { color: accentColor }]}>
                         →
                       </Text>
                       <Text
                         style={[
                           styles.answerText,
-                          customText,
-                          { textAlign: isArabic ? "right" : "left" },
+                          { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
+                          {
+                            // ✅ FIX: أضفنا color هنا
+                            color: answerColor,
+                            textAlign: isArabic ? "right" : "left",
+                          },
                         ]}
                       >
                         {answer}

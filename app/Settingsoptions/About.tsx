@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React from 'react';
 import { SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useCustomize } from '../Customize/Customizecontext';
+import { FONT_FAMILY_MAP, useCustomize } from '../Customize/Customizecontext';
 import { useTranslation } from '../Customize/translations';
 import { useTheme } from '../ThemeContext';
 
@@ -14,8 +14,7 @@ export default function AboutPage() {
   const customText = {
     fontSize: settings.fontSize,
     color: isDark ? "#FFFFFF" : settings.textColor,
-    fontFamily:
-      settings.fontFamily === "System" ? undefined : settings.fontFamily,
+    fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
   };
 
   // ✅ background من settings في light mode
@@ -29,13 +28,13 @@ export default function AboutPage() {
         <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
           <Ionicons name={isArabic ? "chevron-back" : "chevron-back"} size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, customText]}>{t('aboutUs')}</Text>
+        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.headerTitle, customText]}>{t('aboutUs')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.mainTitle, customText, { textAlign: isArabic ? 'right' : 'center' }]}>{t('appName')}</Text>
-        <Text style={[styles.mainSubtitle, { color: '#2A7DA0', textAlign: isArabic ? 'right' : 'center', fontSize: settings.fontSize, fontFamily: customText.fontFamily }]}>{t('usingAI')}</Text>
+        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.mainTitle, customText, { textAlign: isArabic ? 'right' : 'center' }]}>{t('appName')}</Text>
+        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.mainSubtitle, { color: '#2A7DA0', textAlign: isArabic ? 'right' : 'center', fontSize: settings.fontSize, fontFamily: customText.fontFamily }]}>{t('usingAI')}</Text>
         <View style={[styles.divider, { backgroundColor: '#2A7DA0' }]} />
 
         <Section title={isArabic ? 'مقدمة' : 'Introduction'} colors={colors} isArabic={isArabic} customText={customText}>
@@ -62,7 +61,7 @@ export default function AboutPage() {
             : 'The app targets patients with skin problems, general practitioners, dermatologists, pharmacists, and nurses who frequently encounter patients questions about skin diseases.'}
         </Section>
 
-        <Text style={[styles.sectionTitle, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{t('keyFeatures')}</Text>
+        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.sectionTitle, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{t('keyFeatures')}</Text>
 
         <FeatureCard
           icon="camera-outline"
@@ -128,18 +127,18 @@ const styles = StyleSheet.create({
   container:          { flex: 1 },
   header:             { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
   backButton:         { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  headerTitle:        { fontSize: 20, fontWeight: 'bold' },
+  headerTitle:        { fontSize: 20},
   scrollView:         { flex: 1 },
   scrollContent:      { paddingHorizontal: 16, paddingBottom: 20 },
-  mainTitle:          { fontSize: 22, fontWeight: '800', textAlign: 'center', marginTop: 8 },
-  mainSubtitle:       { fontSize: 15, fontWeight: '500', textAlign: 'center', marginTop: 4 },
+  mainTitle:          { fontSize: 22,  textAlign: 'center', marginTop: 8 },
+  mainSubtitle:       { fontSize: 15,  textAlign: 'center', marginTop: 4 },
   divider:            { height: 2, borderRadius: 2, marginVertical: 16, opacity: 0.3 },
   section:            { marginBottom: 20, borderRadius: 14, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
-  sectionTitle:       { fontSize: 16, fontWeight: '700', marginBottom: 10, marginTop: 4 },
+  sectionTitle:       { fontSize: 16,  marginBottom: 10, marginTop: 4 },
   sectionBody:        { fontSize: 14, lineHeight: 22 },
   featureCard:        { flexDirection: 'row', borderRadius: 14, padding: 14, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1, alignItems: 'flex-start' },
   featureIconWrapper: { width: 42, height: 42, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 },
   featureTextWrapper: { flex: 1 },
-  featureTitle:       { fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  featureTitle:       { fontSize: 20, marginBottom: 10 },
   featureDescription: { fontSize: 13, lineHeight: 20 },
 });

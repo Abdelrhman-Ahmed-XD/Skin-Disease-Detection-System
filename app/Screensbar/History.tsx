@@ -6,7 +6,7 @@ import {
     StyleSheet, Text, TouchableOpacity, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCustomize } from '../Customize/Customizecontext';
+import { FONT_FAMILY_MAP, useCustomize } from '../Customize/Customizecontext';
 import { useTranslation } from '../Customize/translations';
 import { useTheme } from '../ThemeContext';
 import { loadAllScansFromFirestore, deleteMole as deleteMoleService } from '../../Firebase/firestoreService';
@@ -33,8 +33,7 @@ export default function HistoryPage() {
     const customText = {
       fontSize: settings.fontSize,
       color: isDark ? "#FFFFFF" : settings.textColor,
-      fontFamily:
-        settings.fontFamily === "System" ? undefined : settings.fontFamily,
+      fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
     };
 
     const pageBg = isDark ? colors.background : settings.backgroundColor;
@@ -120,7 +119,7 @@ export default function HistoryPage() {
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerTitleRow}>
-            <Text style={[styles.headerTitle, customText]}>{t("history")}</Text>
+            <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.headerTitle, customText]}>{t("history")}</Text>
           </View>
           <View style={{ width: 40 }} />
         </View>
@@ -159,7 +158,7 @@ export default function HistoryPage() {
           ) : (
             <>
               <Text
-                style={[
+                style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.countLabel, customText, 
                   styles.countLabel,
                   customText,
                   {
@@ -296,6 +295,7 @@ export default function HistoryPage() {
                             />
                             <Text
                               style={[
+                                { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                                 { color: isDark ? "#fff" : "#004f7f" },
                                 styles.badgeText,
                                 {
@@ -338,6 +338,7 @@ export default function HistoryPage() {
                           {
                             color: colors.subText,
                             textAlign: isArabic ? "right" : "left",
+                            fontFamily: FONT_FAMILY_MAP[settings.fontFamily]
                           },
                         ]}
                         numberOfLines={3}
@@ -387,6 +388,7 @@ export default function HistoryPage() {
                   </View>
                   <Text
                     style={[
+                      { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                       styles.navText,
                       { color: isActive ? colors.navActive : colors.navText },
                       isActive && { fontWeight: "700" },
@@ -426,6 +428,7 @@ export default function HistoryPage() {
                   </View>
                   <Text
                     style={[
+                      { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                       styles.navText,
                       { color: isActive ? colors.navActive : colors.navText },
                       isActive && { fontWeight: "700" },
@@ -468,10 +471,10 @@ const styles = StyleSheet.create({
     header:              { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
     backButton:          { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     headerTitleRow:      { flexDirection: 'row', alignItems: 'center' },
-    headerTitle:         { fontSize: 22, fontWeight: 'bold' },
+    headerTitle:         { fontSize: 22 },
     scrollView:          { flex: 1 },
     scrollContent:       { padding: 16, paddingBottom: 110 },
-    countLabel:          { fontSize: 13, fontWeight: '600', marginBottom: 12, marginLeft: 4 },
+    countLabel:          { fontSize: 13,  marginBottom: 12, marginLeft: 4 },
     emptyContainer:      { alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
     emptyIcon:           { width: 90, height: 90 },
     emptyTitle:          { fontSize: 20, fontWeight: '700', marginTop: 16 },
@@ -481,7 +484,7 @@ const styles = StyleSheet.create({
     thumbnail:           { width: 72, height: 72, borderRadius: 12 },
     thumbnailPlaceholder:{ width: 72, height: 72, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     cardInfo:            { flex: 1 },
-    cardTitle:           { fontWeight: '700', marginBottom: 4 },
+    cardTitle:           {  marginBottom: 4 },
     cardDate:            { marginBottom: 6 },
     badgeRow:            { flexDirection: 'row', gap: 6 },
     badge:               { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },

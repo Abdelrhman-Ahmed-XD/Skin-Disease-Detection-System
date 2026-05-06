@@ -10,7 +10,7 @@ import {
     StyleSheet, Text, TouchableOpacity, View, ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useCustomize} from '../Customize/Customizecontext';
+import {FONT_FAMILY_MAP, useCustomize} from '../Customize/Customizecontext';
 import {useTranslation} from '../Customize/translations';
 import {useTheme} from '../ThemeContext';
 
@@ -302,7 +302,7 @@ export default function ReportDetailsPage() {
     const customText = {
         fontSize: settings.fontSize,
         color: settings.textColor,
-        fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
+        fontFamily: FONT_FAMILY_MAP[settings.fontFamily]
     };
     const pageBg = isDark ? colors.background : settings.backgroundColor;
 
@@ -376,6 +376,7 @@ export default function ReportDetailsPage() {
                 </TouchableOpacity>
                 <Text
                     style={[
+                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                         styles.headerTitle,
                         customText,
                         {color: isDark ? "#fff" : "#000"},
@@ -458,6 +459,7 @@ export default function ReportDetailsPage() {
                         />
                         <Text
                             style={[
+                                { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                                 styles.sectionTitle,
                                 customText,
                                 {color: isDark ? "#fff" : "#004f7f"},
@@ -521,6 +523,7 @@ export default function ReportDetailsPage() {
                     >
                         <Text
                             style={[
+                                { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                                 styles.reportNumber,
                                 customText,
                                 {color: isDark ? "#fff" : "#004f7f"},
@@ -531,6 +534,7 @@ export default function ReportDetailsPage() {
                         </Text>
                         <Text
                             style={[
+                                { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                                 styles.dateText,
                                 {color: isDark ? "#fff" : "#004f7f"},
                             ]}
@@ -558,6 +562,7 @@ export default function ReportDetailsPage() {
                             >
                                 <Text
                                     style={[
+                                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                                         styles.infoLabel,
                                         {color: isDark ? "#fff" : "#004f7f"},
                                     ]}
@@ -566,6 +571,7 @@ export default function ReportDetailsPage() {
                                 </Text>
                                 <Text
                                     style={[
+                                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                                         styles.infoValue,
                                         {color: isDark ? "#fff" : "#004f7f"},
                                     ]}
@@ -593,6 +599,7 @@ export default function ReportDetailsPage() {
                             >
                                 <Text
                                     style={[
+                                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                                         styles.infoLabel,
                                         {color: isDark ? "#fff" : "#004f7f"},
                                     ]}
@@ -601,6 +608,7 @@ export default function ReportDetailsPage() {
                                 </Text>
                                 <Text
                                     style={[
+                                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                                         styles.infoValue,
                                         {color: isDark ? "#fff" : "#004f7f"},
                                     ]}
@@ -611,6 +619,7 @@ export default function ReportDetailsPage() {
                         </View>
                         <View
                             style={[
+                                
                                 styles.infoItem,
                                 {flexDirection: isArabic ? "row-reverse" : "row"},
                             ]}
@@ -628,6 +637,7 @@ export default function ReportDetailsPage() {
                             >
                                 <Text
                                     style={[
+                                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                                         styles.infoLabel,
                                         {color: isDark ? "#fff" : "#004f7f"},
                                     ]}
@@ -636,6 +646,7 @@ export default function ReportDetailsPage() {
                                 </Text>
                                 <Text
                                     style={[
+                                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                                         styles.infoValue,
                                         {color: isDark ? "#fff" : "#004f7f"},
                                     ]}
@@ -663,6 +674,7 @@ export default function ReportDetailsPage() {
                             style={[
                                 styles.analysisTitle,
                                 {color: isDark ? "#fff" : "#004f7f"},
+                                {fontFamily: FONT_FAMILY_MAP[settings.fontFamily]},
                             ]}
                         >
                             {t("analysisResults")}
@@ -673,6 +685,7 @@ export default function ReportDetailsPage() {
                             styles.analysisText,
                             {color: isDark ? "#fff" : "#004f7f"},
                             {textAlign: isArabic ? "right" : "left"},
+                            {fontFamily: FONT_FAMILY_MAP[settings.fontFamily]},
                         ]}
                     >
                         {analysis}
@@ -681,7 +694,7 @@ export default function ReportDetailsPage() {
 
                 {/* Download Button */}
                 <TouchableOpacity
-                    style={[
+                    style={[ styles.downloadButton,
                         styles.downloadButton,
                         {
                             backgroundColor: colors.primary,
@@ -696,7 +709,7 @@ export default function ReportDetailsPage() {
                     {isDownloading ? (
                         <View style={{flexDirection: "row", alignItems: "center", gap: 10}}>
                             <ActivityIndicator size="small" color="#fff"/>
-                            <Text style={[styles.downloadButtonText, {fontFamily: customText.fontFamily}]}>
+                            <Text style={[styles.downloadButtonText, { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },]}>
                                 Generating PDF...
                             </Text>
                         </View>
@@ -729,6 +742,7 @@ export default function ReportDetailsPage() {
                             {
                                 color: isDark ? "#FCD34D" : "#92400E",
                                 textAlign: isArabic ? "right" : "left",
+                                fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
                             },
                         ]}
                     >
@@ -764,7 +778,7 @@ const styles = StyleSheet.create({
         width: 40, height: 40, borderRadius: 12,
         alignItems: 'center', justifyContent: 'center',
     },
-    headerTitle: {fontSize: 20, fontWeight: 'bold'},
+    headerTitle: {fontSize: 20},
     scrollView: {flex: 1},
     scrollContent: {padding: 16, paddingBottom: 40},
     imageContainer: {
@@ -777,7 +791,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,79,127,0.9)',
         paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16,
     },
-    imageBadgeText: {color: '#FFFFFF', fontSize: 14, fontWeight: '600'},
+    imageBadgeText: {color: '#FFFFFF', fontSize: 14},
     infoCard: {
         borderRadius: 16, padding: 20, marginBottom: 16,
         shadowColor: '#000', shadowOffset: {width: 0, height: 2},
@@ -787,8 +801,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center', gap: 10,
         marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1,
     },
-    sectionTitle: {fontSize: 16, fontWeight: '700'},
-    reportNumber: {fontSize: 20, fontWeight: '700'},
+    sectionTitle: {fontSize: 16},
+    reportNumber: {fontSize: 20 },
     dateText: {fontSize: 13, marginLeft: 'auto'},
     patientGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 10},
     patientItem: {width: '30%', flexGrow: 1, borderRadius: 10, padding: 10, borderWidth: 1},
@@ -806,13 +820,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center', gap: 10,
         marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1,
     },
-    analysisTitle: {fontSize: 18, fontWeight: '700'},
+    analysisTitle: {fontSize: 18},
     analysisText: {fontSize: 15, lineHeight: 24},
     downloadButton: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         paddingVertical: 16, borderRadius: 16, marginBottom: 16, gap: 10,
     },
-    downloadButtonText: {fontSize: 16, fontWeight: '700', color: '#FFFFFF'},
+    downloadButtonText: {fontSize: 16, color: '#FFFFFF'},
     warningCard: {
         flexDirection: 'row', alignItems: 'center',
         padding: 16, borderRadius: 12, gap: 12, borderWidth: 1,

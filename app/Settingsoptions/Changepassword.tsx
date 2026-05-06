@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../../Firebase/firebaseConfig";
-import { useCustomize } from "../Customize/Customizecontext";
+import { FONT_FAMILY_MAP, useCustomize } from "../Customize/Customizecontext";
 import { useTranslation } from "../Customize/translations";
 import { useTheme } from "../ThemeContext";
 
@@ -21,8 +21,7 @@ export default function ChangePassword() {
   const customText = {
     fontSize: settings.fontSize,
     color: isDark ? "#FFFFFF" : settings.textColor,
-    fontFamily:
-      settings.fontFamily === "System" ? undefined : settings.fontFamily,
+    fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
   };
 
   const pageBg = isDark ? colors.background : settings.backgroundColor;
@@ -140,7 +139,7 @@ export default function ChangePassword() {
           >
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, customText]}>{t('changePassword')}</Text>
+          <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.headerTitle, customText]}>{t('changePassword')}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -159,7 +158,7 @@ export default function ChangePassword() {
                 onChangeText={setCurrentPassword}
                 textAlign={isArabic ? 'right' : 'left'}
                 editable={!isLoading}
-                style={[styles.passwordInput, customText, {
+                style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.passwordInput, customText, {
                   backgroundColor: colors.card,
                   borderColor: colors.border,
                   paddingRight: isArabic ? 13 : 45,
@@ -187,7 +186,7 @@ export default function ChangePassword() {
                 onChangeText={setNewPassword}
                 textAlign={isArabic ? 'right' : 'left'}
                 editable={!isLoading}
-                style={[styles.passwordInput, customText, {
+                style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.passwordInput, customText, {
                   backgroundColor: colors.card,
                   borderColor: colors.border,
                   paddingRight: isArabic ? 13 : 45,
@@ -202,7 +201,7 @@ export default function ChangePassword() {
             </TouchableOpacity>
           </View>
           {!!newPasswordError && (
-              <Text style={[styles.errorText, customText, { color: 'red', textAlign: isArabic ? 'right' : 'left' }]}>
+              <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.errorText, customText, { color: 'red', textAlign: isArabic ? 'right' : 'left' }]}>
                 {newPasswordError}
               </Text>
           )}
@@ -217,7 +216,7 @@ export default function ChangePassword() {
                           size={16}
                           color={item.pass ? "#22C55E" : colors.subText}
                       />
-                      <Text style={[styles.strengthText, customText, { color: item.pass ? "#22C55E" : settings.textColor }]}>
+                      <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.strengthText, customText, { color: item.pass ? "#22C55E" : settings.textColor }]}>
                         {item.label}
                       </Text>
                     </View>
@@ -226,7 +225,7 @@ export default function ChangePassword() {
           )}
 
           {/* Confirm Password */}
-          <Text style={[styles.label, customText, { textAlign: isArabic ? 'right' : 'left' }]}>
+          <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.label, customText, { textAlign: isArabic ? 'right' : 'left' }]}>
             {t('confirmNewPassword')}
           </Text>
           <View style={styles.passwordWrapper}>
@@ -238,7 +237,7 @@ export default function ChangePassword() {
                 onChangeText={setConfirmPassword}
                 textAlign={isArabic ? 'right' : 'left'}
                 editable={!isLoading}
-                style={[
+                style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                   styles.passwordInput, customText,
                   {
                     backgroundColor: colors.card,
@@ -256,7 +255,7 @@ export default function ChangePassword() {
             </TouchableOpacity>
           </View>
           {!!confirmError && (
-              <Text style={[styles.errorText, customText, { color: 'red', textAlign: isArabic ? 'right' : 'left' }]}>
+              <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.errorText, customText, { color: 'red', textAlign: isArabic ? 'right' : 'left' }]}>
                 {confirmError}
               </Text>
           )}
@@ -273,7 +272,7 @@ export default function ChangePassword() {
             {isLoading ? (
                 <ActivityIndicator color="#fff" size="small" />
             ) : (
-                <Text style={[styles.saveBtnText, { fontFamily: customText.fontFamily }]}>
+                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.saveBtnText]}>
                   {t('change')}
                 </Text>
             )}
@@ -288,7 +287,7 @@ const styles = StyleSheet.create({
   container:         { flex: 1 },
   header:            { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
   backBtn:           { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  headerTitle:       { fontSize: 22, fontWeight: "bold" },
+  headerTitle:       { fontSize: 22},
   content:           { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 },
   label:             { fontSize: 15, fontWeight: "600", marginTop: 22, marginBottom: 8 },
   passwordWrapper:   { position: "relative" },
@@ -299,5 +298,5 @@ const styles = StyleSheet.create({
   strengthRow:       { alignItems: "center", gap: 6 },
   strengthText:      { fontSize: 13 },
   saveBtn:           { marginTop: 40, padding: 15, borderRadius: 12, alignItems: "center" },
-  saveBtnText:       { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  saveBtnText:       { color: "#fff", fontSize: 16 },
 });

@@ -7,13 +7,20 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  CustomizeSettings, DEFAULT_SETTINGS, FontFamily, Language, useCustomize,
+  CustomizeSettings, DEFAULT_SETTINGS, FONT_FAMILY_MAP, FontFamily, Language, useCustomize,
 } from '../Customize/Customizecontext';
 import { useTranslation } from '../Customize/translations';
 import { useTheme } from '../ThemeContext';
 
 const LANGUAGES: Language[] = ['English', 'Arabic'];
-const FONT_FAMILIES: FontFamily[] = ['System', 'Inter', 'SpaceMono', 'Roboto'];
+const FONT_FAMILIES: FontFamily[] = [
+  'System',
+  'EduAuVicWaNtHand',
+  'SupermercadoOne',
+  'PlaywriteNZ',
+  'PlaywriteDESAS',
+  'BricolageGrotesque',
+];
 
 const TEXT_COLORS = [
   { label: 'Black', value: '#1F2937' },
@@ -142,11 +149,13 @@ export default function CustomizePage() {
   const [draft, setDraft] = useState<CustomizeSettings>({ ...settings });
   const { t, isArabic } = useTranslation(draft.language);
 
+  // ✅ الإصلاح: استخدام FONT_FAMILY_MAP عشان ياخد الاسم الحقيقي للفونت
+  const previewFont = FONT_FAMILY_MAP[draft.fontFamily];
+
   const customText = {
-    fontSize: settings.fontSize,
-    color: isDark ? "#FFFFFF" : settings.textColor,
-    fontFamily:
-      settings.fontFamily === "System" ? undefined : settings.fontFamily,
+    fontSize:   settings.fontSize,
+    color:      isDark ? '#FFFFFF' : settings.textColor,
+    fontFamily: FONT_FAMILY_MAP[settings.fontFamily], // ✅ كمان هنا
   };
 
   const pageBg = isDark ? colors.background : settings.backgroundColor;
@@ -158,8 +167,6 @@ export default function CustomizePage() {
     ]);
   };
 
-  const previewFont = draft.fontFamily === 'System' ? undefined : draft.fontFamily;
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
       <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
@@ -167,7 +174,7 @@ export default function CustomizePage() {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card }]}>
         <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
-          <Ionicons name={isArabic ? 'chevron-back' : 'chevron-back'} size={24} color={colors.text} />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleRow}>
           <Text style={[styles.headerTitle, customText]}>{t('customize')}</Text>
@@ -185,7 +192,9 @@ export default function CustomizePage() {
       >
         {/* Live Preview */}
         <View style={[styles.previewCard, { backgroundColor: draft.backgroundColor }]}>
-          <Text style={[styles.previewLabel, { color: draft.textColor, fontSize: 11, fontFamily: previewFont }]}>{t('preview')}</Text>
+          <Text style={[styles.previewLabel, { color: draft.textColor, fontSize: 11, fontFamily: previewFont }]}>
+            {t('preview')}
+          </Text>
           <Text style={{ fontSize: draft.fontSize, color: draft.textColor, fontFamily: previewFont, fontWeight: '500', textAlign: 'center', marginTop: 6 }}>
             {t('previewText')}
           </Text>
@@ -194,7 +203,7 @@ export default function CustomizePage() {
         {/* Settings Card */}
         <View style={[styles.card, { backgroundColor: colors.card }]}>
 
-          {/* Language - zIndex عالي */}
+          {/* Language */}
           <View style={[styles.row, styles.rowBorder, {
             borderBottomColor: colors.border,
             flexDirection: isArabic ? 'row-reverse' : 'row',
@@ -216,7 +225,7 @@ export default function CustomizePage() {
             />
           </View>
 
-          {/* Font Type - zIndex أقل */}
+          {/* Font Type */}
           <View style={[styles.row, styles.rowBorder, {
             borderBottomColor: colors.border,
             flexDirection: isArabic ? 'row-reverse' : 'row',
@@ -293,7 +302,9 @@ export default function CustomizePage() {
 
         {/* Confirm */}
         <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: colors.primary }]} onPress={handleConfirm} activeOpacity={0.85}>
-          <Text style={[styles.confirmBtnText, { fontFamily: customText.fontFamily, fontSize: settings.fontSize }]}>{t('confirm')}</Text>
+          <Text style={[styles.confirmBtnText, { fontFamily: FONT_FAMILY_MAP[settings.fontFamily], fontSize: settings.fontSize }]}>
+            {t('confirm')}
+          </Text>
         </TouchableOpacity>
 
         <View style={{ height: 30 }} />
@@ -310,7 +321,7 @@ const styles = StyleSheet.create({
   backButton:     { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   resetButton:    { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle:    { fontSize: 22, fontWeight: 'bold' },
+  headerTitle:    { fontSize: 22 },
   previewCard:    { borderRadius: 14, padding: 16, marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
   previewLabel:   { fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
   card:           { borderRadius: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, overflow: 'visible', zIndex: 10 },
@@ -319,11 +330,11 @@ const styles = StyleSheet.create({
   fullWidth:      { width: '100%' },
   labelRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   iconWrap:       { width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  iconText:       { fontSize: 18, fontWeight: '800' },
-  iconTextSm:     { fontSize: 12, fontWeight: '700' },
-  label:          { fontSize: 15, fontWeight: '600' },
+  iconText:       { fontSize: 18 },
+  iconTextSm:     { fontSize: 12 },
+  label:          { fontSize: 15 },
   swatchRow:      { flexDirection: 'row', gap: 8 },
   colorBlock:     { paddingHorizontal: 16, paddingVertical: 14 },
   confirmBtn:     { borderRadius: 16, paddingVertical: 16, alignItems: 'center', shadowColor: '#004F7F', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
-  confirmBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  confirmBtnText: { color: '#FFFFFF', fontSize: 16 },
 });

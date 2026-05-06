@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from "../../Firebase/firebaseConfig";
-import { useCustomize } from '../Customize/Customizecontext';
+import { FONT_FAMILY_MAP, useCustomize } from '../Customize/Customizecontext';
 import { useTranslation } from '../Customize/translations';
 import {
     NOTIFICATIONS_ENABLED_KEY,
@@ -76,9 +76,9 @@ export default function FirstHomePage() {
     const [fontsLoaded] = useFonts({ DancingScript_700Bold });
 
     const customText = {
-      fontSize:   settings.fontSize,
-      color:      isDark ? "#FFFFFF" : settings.textColor,
-      fontFamily: settings.fontFamily === "System" ? undefined : settings.fontFamily,
+      fontSize: settings.fontSize,
+      color: isDark ? "#FFFFFF" : settings.textColor,
+      fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
     };
 
     const pageBg = isDark ? colors.background : settings.backgroundColor;
@@ -360,7 +360,7 @@ export default function FirstHomePage() {
               <Text style={[styles.welcomeLabel, { color: "#00A3A3", fontFamily: fontsLoaded ? "DancingScript_700Bold" : undefined }]}>
                 {isArabic ? "أهلاً،" : "Welcome,"}
               </Text>
-              <Text style={[styles.userName, customText, { marginLeft: isArabic ? 0 : 4, marginRight: isArabic ? 4 : 0 }]}>
+              <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.userName, customText, { marginLeft: isArabic ? 0 : 4, marginRight: isArabic ? 4 : 0 },]}>
                 {userName}
               </Text>
             </View>
@@ -383,7 +383,7 @@ export default function FirstHomePage() {
         <View style={styles.titleContainer}>
           <Text style={[styles.title, customText]}>
             <Text>{isArabic ? "دعنا نفحص " : "Let's Check your "}</Text>
-            <Text style={[styles.titleBold, { color: "#00A3A3" }]}>{isArabic ? "جلدك" : "Skin"}</Text>
+            <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.titleBold, { color: "#00A3A3" }]}>{isArabic ? "جلدك" : "Skin"}</Text>
           </Text>
         </View>
 
@@ -430,12 +430,12 @@ export default function FirstHomePage() {
         <View style={styles.bottomControls}>
           <View style={[styles.toggleWrapper, { backgroundColor: isDark ? "#1E2A35" : "#B8D4DE" }]}>
             <TouchableOpacity onPress={() => toggleBodyView("front")} style={[styles.toggleButton, bodyView === "front" && styles.toggleButtonActive]}>
-              <Text style={[styles.toggleText, { color: bodyView === "front" ? "#FFFFFF" : colors.subText }]}>
+              <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.toggleText, { color: bodyView === "front" ? "#FFFFFF" : colors.subText }]}>
                 {isArabic ? "أمامي" : "Front"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => toggleBodyView("back")} style={[styles.toggleButton, bodyView === "back" && styles.toggleButtonActive]}>
-              <Text style={[styles.toggleText, { color: bodyView === "back" ? "#FFFFFF" : colors.subText }]}>
+              <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.toggleText, { color: bodyView === "back" ? "#FFFFFF" : colors.subText }]}>
                 {isArabic ? "خلفي" : "Back"}
               </Text>
             </TouchableOpacity>
@@ -453,7 +453,7 @@ export default function FirstHomePage() {
                   <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" }, isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
                     <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
-                  <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: "700" }]}>
+                  <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: "700" }]}>
                     {tab.name}
                   </Text>
                 </TouchableOpacity>
@@ -468,7 +468,7 @@ export default function FirstHomePage() {
                   <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" }, isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
                     <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
-                  <Text style={[styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: "700" }]}>
+                  <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: "700" }]}>
                     {tab.name}
                   </Text>
                 </TouchableOpacity>
@@ -489,23 +489,23 @@ export default function FirstHomePage() {
           <View style={styles.onboardingOverlay}>
             <View style={[styles.onboardingBox, { backgroundColor: colors.card }]}>
               <Ionicons name="hand-left-outline" size={40} color="#004F7F" style={{ marginBottom: 12 }} />
-              <Text style={[styles.onboardingTitle, { color: isDark ? '#fff' : '#1F2937' }]}>
+              <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.onboardingTitle, { color: isDark ? '#fff' : '#1F2937' }]}>
                 Tips
               </Text>
               <View style={styles.onboardingRow}>
                 <Ionicons name="search-outline" size={20} color="#00A3A3" />
-                <Text style={[styles.onboardingText, { color: isDark ? '#ccc' : '#374151' }]}>
+                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.onboardingText, { color: isDark ? '#ccc' : '#374151' }]}>
                   You can pinch to zoom in/out on the body map.
                 </Text>
               </View>
               <View style={styles.onboardingRow}>
                 <Ionicons name="time-outline" size={20} color="#00A3A3" />
-                <Text style={[styles.onboardingText, { color: isDark ? '#ccc' : '#374151' }]}>
+                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.onboardingText, { color: isDark ? '#ccc' : '#374151' }]}>
                   Long press (2 seconds) on a point to delete it.
                 </Text>
               </View>
               <TouchableOpacity style={styles.onboardingBtn} onPress={dismissOnboarding} activeOpacity={0.85}>
-                <Text style={styles.onboardingBtnText}>Got it!</Text>
+                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.onboardingBtnText]}>Got it!</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     profilePhoto:         { width: 52, height: 52, borderRadius: 26 },
     welcomeContainer:     { flex: 1, marginLeft: 12, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
     welcomeLabel:         { fontSize: 20 },
-    userName:             { fontWeight: 'bold', marginLeft: 4, marginTop: 3, fontSize: 17 },
+    userName:             { marginLeft: 4, marginTop: 3, fontSize: 17 },
     notificationButton:   { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
     notifBadge:           { position: 'absolute', top: 4, right: 4, backgroundColor: '#EF4444', borderRadius: 9, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 1.5, borderColor: '#FFFFFF' },
     notifBadgeText:       { color: '#FFFFFF', fontSize: 10, fontWeight: '800', lineHeight: 13 },
