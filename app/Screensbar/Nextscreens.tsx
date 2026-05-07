@@ -198,11 +198,12 @@ export default function Nextscreens() {
         }).catch(() => {});
     }, []);
 
+    // ── FIX: line 205 — cast result to Mole[] ─────────────────
     useEffect(() => {
         const loadMoles = async () => {
             try {
                 const data = await loadMolesFromFirestore();
-                setMoles(data);
+                setMoles(data as Mole[]);
             } catch (err) {
                 console.log('Error loading moles:', err);
             }
@@ -210,6 +211,7 @@ export default function Nextscreens() {
         loadMoles();
     }, []);
 
+    // ── FIX: line 224 — cast result to Mole[] ─────────────────
     useFocusEffect(
         React.useCallback(() => {
             setActiveTab('Home');
@@ -221,7 +223,7 @@ export default function Nextscreens() {
             }, 350);
 
             loadMolesFromFirestore()
-                .then(data => setMoles(data))
+                .then(data => setMoles(data as Mole[]))
                 .catch(err => console.log('Focus reload moles error:', err));
 
             return () => clearTimeout(t);

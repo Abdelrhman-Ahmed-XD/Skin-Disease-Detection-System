@@ -6,27 +6,87 @@ import React, {
 } from 'react';
 import { auth, db } from '../../Firebase/firebaseConfig';
 
+// ─── Font Imports ─────────────────────────────────────────────────────────────
+// Run these installs:
+// npx expo install @expo-google-fonts/edu-au-vic-wa-nt-hand
+// npx expo install @expo-google-fonts/supermercado-one
+// npx expo install @expo-google-fonts/playwrite-nz-guides
+// npx expo install @expo-google-fonts/playwrite-de-sas
+// npx expo install @expo-google-fonts/bricolage-grotesque
+
+import {
+  EduAUVICWANTHand_400Regular,
+  useFonts as useEduAuVicWaNtHandFonts,
+} from '@expo-google-fonts/edu-au-vic-wa-nt-hand';
+
+import {
+  SupermercadoOne_400Regular,
+  useFonts as useSupermercadoOneFonts,
+} from '@expo-google-fonts/supermercado-one';
+
+import {
+  PlaywriteNZGuides_400Regular,
+  useFonts as usePlaywriteNZFonts,
+} from '@expo-google-fonts/playwrite-nz-guides';
+
+import {
+  PlaywriteDESAS_100Thin,
+  PlaywriteDESAS_200ExtraLight,
+  PlaywriteDESAS_300Light,
+  PlaywriteDESAS_400Regular,
+  useFonts as usePlaywriteDESASFonts,
+} from '@expo-google-fonts/playwrite-de-sas';
+
+import {
+  BricolageGrotesque_400Regular,
+  BricolageGrotesque_500Medium,
+  BricolageGrotesque_600SemiBold,
+  BricolageGrotesque_700Bold,
+  useFonts as useBricolageGrotesqueFonts,
+} from '@expo-google-fonts/bricolage-grotesque';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type Language   = 'English' | 'Arabic';
-export type FontFamily = 'System' | 'Inter' | 'SpaceMono' | 'Roboto';
+export type Language = 'English' | 'Arabic';
+export type FontFamily =
+  | 'System'
+  | 'EduAuVicWaNtHand'
+  | 'SupermercadoOne'
+  | 'PlaywriteNZ'
+  | 'PlaywriteDESAS'
+  | 'BricolageGrotesque';
 
 export interface CustomizeSettings {
+  fontFamilyFONT_FAMILY_MAP: any;
   language:            Language;
   fontFamily:          FontFamily;
   fontSize:            number;
   textColor:           string;
   backgroundColor:     string;
-  textColorCustomized: boolean; // false = use dark-mode default, true = user picked a color
+  textColorCustomized: boolean;
 }
 
 export const DEFAULT_SETTINGS: CustomizeSettings = {
-  language:            'English',
-  fontFamily:          'System',
-  fontSize:            16,
-  textColor:           '#1F2937',
-  backgroundColor:     '#D8E9F0',
+  language: 'English',
+  fontFamily: 'System',
+  fontSize: 16,
+  textColor: '#1F2937',
+  backgroundColor: '#D8E9F0',
   textColorCustomized: false,
+  fontFamilyFONT_FAMILY_MAP: undefined
+};
+
+// ─── Font name map ────────────────────────────────────────────────────────────
+// Usage in any screen:
+// <Text style={{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }}>...</Text>
+
+export const FONT_FAMILY_MAP: Record<FontFamily, string | undefined> = {
+  System:             undefined,                        // React Native default
+  EduAuVicWaNtHand:   'EduAUVICWANTHand_400Regular',
+  SupermercadoOne:    'SupermercadoOne_400Regular',
+  PlaywriteNZ:        'PlaywriteNZGuides_400Regular',
+  PlaywriteDESAS:     'PlaywriteDESAS_400Regular',
+  BricolageGrotesque: 'BricolageGrotesque_400Regular',
 };
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -35,12 +95,14 @@ interface CustomizeContextValue {
   settings:           CustomizeSettings;
   saveSettings:       (s: CustomizeSettings) => Promise<void>;
   effectiveTextColor: (isDark: boolean) => string;
+  fontsLoaded:        boolean;
 }
 
 const CustomizeContext = createContext<CustomizeContextValue>({
   settings:           DEFAULT_SETTINGS,
   saveSettings:       async () => {},
   effectiveTextColor: () => DEFAULT_SETTINGS.textColor,
+  fontsLoaded:        false,
 });
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -49,9 +111,33 @@ export function CustomizeProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<CustomizeSettings>(DEFAULT_SETTINGS);
   const uidRef = useRef<string | null>(null);
 
+  // ── Load all Google Fonts ──
+  const [eduLoaded]       = useEduAuVicWaNtHandFonts({ EduAUVICWANTHand_400Regular });
+  const [supLoaded]       = useSupermercadoOneFonts({ SupermercadoOne_400Regular });
+  const [pwNZLoaded]      = usePlaywriteNZFonts({ PlaywriteNZGuides_400Regular });
+  const [pwDESASLoaded]   = usePlaywriteDESASFonts({
+    PlaywriteDESAS_100Thin,
+    PlaywriteDESAS_200ExtraLight,
+    PlaywriteDESAS_300Light,
+    PlaywriteDESAS_400Regular,
+  });
+  const [bricolageLoaded] = useBricolageGrotesqueFonts({
+    BricolageGrotesque_400Regular,
+    BricolageGrotesque_500Medium,
+    BricolageGrotesque_600SemiBold,
+    BricolageGrotesque_700Bold,
+  });
+
+  const fontsLoaded =
+    !!eduLoaded &&
+    !!supLoaded &&
+    !!pwNZLoaded &&
+    !!pwDESASLoaded &&
+    !!bricolageLoaded;
+
   // Per-user AsyncStorage key
   const storageKey = (uid: string | null) =>
-      uid ? `appCustomizeSettings_${uid}` : 'appCustomizeSettings_guest';
+    uid ? `appCustomizeSettings_${uid}` : 'appCustomizeSettings_guest';
 
   // Load from AsyncStorage (instant, no flicker)
   const loadFromStorage = useCallback(async (uid: string | null) => {
@@ -75,7 +161,6 @@ export function CustomizeProvider({ children }: { children: React.ReactNode }) {
         if (data?.customizeSettings) {
           const merged: CustomizeSettings = { ...DEFAULT_SETTINGS, ...data.customizeSettings };
           setSettings(merged);
-          // Keep AsyncStorage in sync
           await AsyncStorage.setItem(storageKey(uid), JSON.stringify(merged));
           console.log('✅ Customize settings loaded from Firestore');
           return merged;
@@ -87,19 +172,15 @@ export function CustomizeProvider({ children }: { children: React.ReactNode }) {
     return null;
   }, []);
 
-  // Watch auth state — load settings for the right user
+  // Watch auth state
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         uidRef.current = user.uid;
-        // Remove the old shared key so it never bleeds into this user's session
         try { await AsyncStorage.removeItem('appCustomizeSettings'); } catch {}
-        // 1. Load from AsyncStorage immediately (no flicker)
         await loadFromStorage(user.uid);
-        // 2. Then override with Firestore (latest truth)
         await loadFromFirestore(user.uid);
       } else {
-        // Logged out — reset to defaults
         uidRef.current = null;
         setSettings(DEFAULT_SETTINGS);
       }
@@ -107,19 +188,17 @@ export function CustomizeProvider({ children }: { children: React.ReactNode }) {
     return unsub;
   }, [loadFromStorage, loadFromFirestore]);
 
-  // Save settings — AsyncStorage instantly, Firestore in background
+  // Save settings
   const saveSettings = useCallback(async (newSettings: CustomizeSettings) => {
     setSettings(newSettings);
     const uid = uidRef.current;
 
-    // Save to AsyncStorage
     try {
       await AsyncStorage.setItem(storageKey(uid), JSON.stringify(newSettings));
     } catch (e) {
       console.log('⚠️ AsyncStorage save failed:', e);
     }
 
-    // Save to Firestore
     if (uid) {
       try {
         const userRef = doc(db, 'users', uid);
@@ -127,7 +206,6 @@ export function CustomizeProvider({ children }: { children: React.ReactNode }) {
         console.log('✅ Customize settings saved to Firestore');
       } catch {
         try {
-          // Document might not exist yet
           await setDoc(doc(db, 'users', uid), { customizeSettings: newSettings }, { merge: true });
         } catch (e2) {
           console.log('⚠️ Firestore save failed:', e2);
@@ -137,18 +215,15 @@ export function CustomizeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Dark-mode aware text color
-  // - If user picked a custom color (textColorCustomized=true) → always use it
-  // - If dark mode ON  → white #FFFFFF
-  // - If dark mode OFF → dark  #1F2937
   const effectiveTextColor = useCallback((isDark: boolean): string => {
     if (settings.textColorCustomized) return settings.textColor;
     return isDark ? '#FFFFFF' : '#1F2937';
   }, [settings.textColor, settings.textColorCustomized]);
 
   return (
-      <CustomizeContext.Provider value={{ settings, saveSettings, effectiveTextColor }}>
-        {children}
-      </CustomizeContext.Provider>
+    <CustomizeContext.Provider value={{ settings, saveSettings, effectiveTextColor, fontsLoaded }}>
+      {children}
+    </CustomizeContext.Provider>
   );
 }
 

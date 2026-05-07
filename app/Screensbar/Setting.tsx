@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from "../../Firebase/firebaseConfig";
-import { useCustomize } from '../Customize/Customizecontext';
+import { FONT_FAMILY_MAP, useCustomize } from '../Customize/Customizecontext';
 import { useTranslation } from '../Customize/translations';
 import { NOTIFICATIONS_ENABLED_KEY } from '../Screensbar/notificationsData';
 import { useTheme } from "../ThemeContext";
@@ -39,7 +39,7 @@ export default function SettingsPage() {
   const customText = {
     fontSize:   settings.fontSize,
     color:      effectiveTextColor(isDark),
-    fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
+    fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
   };
 
   const pageBg = isDark ? colors.background : settings.backgroundColor;
@@ -186,24 +186,30 @@ export default function SettingsPage() {
                 resizeMode="contain"
               />
             </View>
-            <Text style={[styles.modalTitle, customText]}>
+            <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.modalTitle, customText]}>
               {t("logoutConfirmTitle")}
             </Text>
-            <Text style={styles.modalEmail}>{profileEmail}</Text>
+            <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.modalEmail, customText]}>
+              {profileEmail}
+            </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.stayButton, { backgroundColor: colors.primary }]}
                 onPress={() => setLogoutModalVisible(false)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.stayButtonText}>{t("stay")}</Text>
+                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.stayButtonText]}>
+                  {t("stay")}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.logoutButton}
                 onPress={handleLogout}
                 activeOpacity={0.8}
               >
-                <Text style={styles.logoutButtonText}>{t("logout")}</Text>
+                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.logoutButtonText]}>
+                  {t("logout")}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -223,7 +229,7 @@ export default function SettingsPage() {
         >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, customText]}>{t("settings")}</Text>
+        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.headerTitle, customText]}>{t("settings")}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -272,7 +278,7 @@ export default function SettingsPage() {
             ]}
           >
             <Text
-              style={[styles.profileName, customText, { fontWeight: "700" }]}
+              style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.profileName, customText]}
             >
               {profileName || "No Name"}
             </Text>
@@ -294,7 +300,7 @@ export default function SettingsPage() {
 
         {/* Preferences Section */}
         <Text
-          style={[
+          style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
             styles.sectionTitle,
             customText,
             { color: colors.subText, textAlign: isArabic ? "right" : "left" },
@@ -342,7 +348,7 @@ export default function SettingsPage() {
 
         {/* App Section */}
         <Text
-          style={[
+          style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
             styles.sectionTitle,
             customText,
             { color: colors.subText, textAlign: isArabic ? "right" : "left" },
@@ -414,7 +420,7 @@ export default function SettingsPage() {
                   />
                 </View>
                 <Text
-                  style={[
+                  style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                     styles.navText,
                     { color: isActive ? colors.navActive : colors.navText },
                     isActive && { fontWeight: "700" },
@@ -455,6 +461,7 @@ export default function SettingsPage() {
                 </View>
                 <Text
                   style={[
+                    { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                     styles.navText,
                     { color: isActive ? colors.navActive : colors.navText },
                     isActive && { fontWeight: "700" },
@@ -523,7 +530,7 @@ const styles = StyleSheet.create({
   },
   modalEmail: {
     fontSize: 14,
-    fontWeight: "700",
+    
     color: "#004F7F",
     textDecorationLine: "underline",
     marginBottom: 28,
@@ -535,7 +542,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
   },
-  stayButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  stayButtonText: { color: "#FFFFFF", fontSize: 15},
   logoutButton: {
     flex: 1,
     backgroundColor: "#E74C3C",
@@ -543,7 +550,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
   },
-  logoutButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  logoutButtonText: { color: "#FFFFFF", fontSize: 15},
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -566,7 +573,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { fontSize: 20, fontWeight: "bold" },
+  headerTitle: { fontSize: 20},
   scrollView: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 110 },
   profileCard: {
@@ -592,7 +599,7 @@ const styles = StyleSheet.create({
   profileAvatarImage: { width: 52, height: 52, borderRadius: 26 },
   profileAvatarIconImg: { width: 52, height: 52 },
   profileInfo: { flex: 1 },
-  profileName: { fontSize: 16, fontWeight: "700" },
+  profileName: { fontSize: 16},
   profileEmail: { fontSize: 13, marginTop: 2 },
   sectionTitle: {
     fontSize: 13,

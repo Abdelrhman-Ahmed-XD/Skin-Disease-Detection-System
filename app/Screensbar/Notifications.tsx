@@ -7,7 +7,7 @@ import {
   StyleSheet, Text, TouchableOpacity, UIManager, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCustomize } from '../Customize/Customizecontext';
+import { FONT_FAMILY_MAP, useCustomize } from '../Customize/Customizecontext';
 import { useTranslation } from '../Customize/translations';
 import { useTheme } from '../ThemeContext';
 import {
@@ -28,8 +28,7 @@ export default function NotificationsPage() {
   const customText = {
     fontSize: settings.fontSize,
     color: isDark ? "#FFFFFF" : settings.textColor,
-    fontFamily:
-      settings.fontFamily === "System" ? undefined : settings.fontFamily,
+    fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
   };
 
   // ✅ background من settings في light mode
@@ -87,27 +86,65 @@ export default function NotificationsPage() {
       <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]}>
         <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
         <View style={[styles.header, { backgroundColor: colors.card }]}>
-          <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
-            <Ionicons name={isArabic ? "chevron-forward" : "chevron-back"} size={24} color={colors.text} />
+          <TouchableOpacity
+            style={[styles.backButton, { borderColor: colors.border }]}
+            onPress={() => router.back()}
+          >
+            <Ionicons
+              name={isArabic ? "chevron-forward" : "chevron-back"}
+              size={24}
+              color={colors.text}
+            />
           </TouchableOpacity>
           <View style={styles.headerTitleRow}>
-            <Text style={[styles.headerTitle, customText]}>{t('notifications')}</Text>
+            <Text
+              style={[
+                styles.headerTitle,
+                { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
+                customText,
+              ]}
+            >
+              {t("notifications")}
+            </Text>
           </View>
           <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.disabledContainer}>
-          <View style={[styles.disabledIconWrap, { backgroundColor: colors.card }]}>
-            <Ionicons name="notifications-off-outline" size={48} color={colors.subText} />
+          <View
+            style={[styles.disabledIconWrap, { backgroundColor: colors.card }]}
+          >
+            <Ionicons
+              name="notifications-off-outline"
+              size={48}
+              color={colors.subText}
+            />
           </View>
-          <Text style={[styles.disabledTitle, customText]}>{t('notificationsDisabled')}</Text>
-          <Text style={[styles.disabledSubtitle, customText]}>{t('notificationsDisabledSub')}</Text>
+          <Text style={[styles.disabledTitle, customText]}>
+            {t("notificationsDisabled")}
+          </Text>
+          <Text style={[styles.disabledSubtitle, customText]}>
+            {t("notificationsDisabledSub")}
+          </Text>
           <TouchableOpacity
-            style={[styles.goToSettingsBtn, { backgroundColor: accentColor, flexDirection: isArabic ? 'row-reverse' : 'row' }]}
-            onPress={() => router.push('/Screensbar/Setting')}
+            style={[
+              styles.goToSettingsBtn,
+              {
+                backgroundColor: accentColor,
+                flexDirection: isArabic ? "row-reverse" : "row",
+              },
+            ]}
+            onPress={() => router.push("/Screensbar/Setting")}
           >
             <Ionicons name="settings-outline" size={16} color="#FFFFFF" />
-            <Text style={[styles.goToSettingsBtnText, { fontFamily: customText.fontFamily }]}>{t('goToSettings')}</Text>
+            <Text
+              style={[
+                styles.goToSettingsBtnText,
+                { fontFamily: customText.fontFamily },
+              ]}
+            >
+              {t("goToSettings")}
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -119,25 +156,50 @@ export default function NotificationsPage() {
       <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
       <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
-          <Ionicons name={isArabic ? "chevron-back" : "chevron-back"} size={24} color={colors.text} />
+        <TouchableOpacity
+          style={[styles.backButton, { borderColor: colors.border }]}
+          onPress={() => router.back()}
+        >
+          <Ionicons
+            name={isArabic ? "chevron-back" : "chevron-back"}
+            size={24}
+            color={colors.text}
+          />
         </TouchableOpacity>
         <View style={styles.headerTitleRow}>
-          <Text style={[styles.headerTitle, customText]}>{t('notifications')}</Text>
+          <Text
+            style={[
+              styles.headerTitle,
+              customText,
+            ]}
+          >
+            {t("notifications")}
+          </Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
 
       {unreadCount > 0 && (
-<TouchableOpacity 
-  style={[styles.markAllRow, { alignSelf: 'flex-end', marginRight: 16 }]} 
-  onPress={markAllRead}
->
-  <Text style={[styles.markAllText, customText, { color: accentColor }]}>{t('markAllRead')}</Text>
-</TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.markAllRow,
+            { alignSelf: "flex-end", marginRight: 16 },
+          ]}
+          onPress={markAllRead}
+        >
+          <Text
+            style={[styles.markAllText, customText, { color: accentColor }]}
+          >
+            {t("markAllRead")}
+          </Text>
+        </TouchableOpacity>
       )}
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {notifications.map((notif) => {
           const isOpen = openId === notif.id;
           return (
@@ -271,7 +333,12 @@ export default function NotificationsPage() {
                         size={15}
                         color={accentColor}
                       />
-                      <Text style={[styles.expandedSectionTitle, customText]}>
+                      <Text
+                        style={[
+                          styles.expandedSectionTitle,
+                          customText,
+                        ]}
+                      >
                         {t("aboutCondition")}
                       </Text>
                     </View>
@@ -307,7 +374,12 @@ export default function NotificationsPage() {
                         size={15}
                         color={accentColor}
                       />
-                      <Text style={[styles.expandedSectionTitle, customText]}>
+                      <Text
+                        style={[
+                          styles.expandedSectionTitle,
+                          customText,
+                        ]}
+                      >
                         {t("recommendation")}
                       </Text>
                     </View>
@@ -335,7 +407,8 @@ export default function NotificationsPage() {
                     <Text
                       style={[
                         styles.consultButtonText,
-                        { fontFamily: customText.fontFamily },
+                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
+                        ,
                       ]}
                     >
                       {t("consultDoctor")}
@@ -357,17 +430,17 @@ const styles = StyleSheet.create({
   header:               { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
   backButton:           { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   headerTitleRow:       { flexDirection: 'row', alignItems: 'center' },
-  headerTitle:          { fontSize: 22, fontWeight: 'bold' },
+  headerTitle:          { fontSize: 22 },
   markAllRow:           { marginBottom: 6, marginTop: -6 },
-  markAllText:          { fontSize: 12, fontWeight: '600', textDecorationLine: 'underline' },
+  markAllText:          { fontSize: 12, textDecorationLine: 'underline' },
   scrollView:           { flex: 1 },
   scrollContent:        { paddingHorizontal: 15, paddingTop: 4 },
   disabledContainer:    { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
   disabledIconWrap:     { width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center', marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  disabledTitle:        { fontSize: 18, fontWeight: '700', marginBottom: 10, textAlign: 'center' },
+  disabledTitle:        { fontSize: 18, marginBottom: 10, textAlign: 'center' },
   disabledSubtitle:     { fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
   goToSettingsBtn:      { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24 },
-  goToSettingsBtnText:  { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  goToSettingsBtnText:  { color: '#FFFFFF', fontSize: 14,  },
   notifCard:            { borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: 'transparent', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1, overflow: 'hidden' },
   unreadDot:            { position: 'absolute', top: 14, left: 10, width: 8, height: 8, borderRadius: 4, zIndex: 10 },
   notifRow:             { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, paddingLeft: 22 },
@@ -375,7 +448,7 @@ const styles = StyleSheet.create({
   notifImageOpen:       { width: 56, height: 56, borderRadius: 28 },
   notifTextBlock:       { flex: 1, marginLeft: 12 },
   notifLabel:           { fontSize: 12, marginBottom: 2 },
-  notifDisease:         { fontSize: 15, fontWeight: '600' },
+  notifDisease:         { fontSize: 15 },
   notifTime:            { fontSize: 11, marginTop: 3 },
   arrowBox:             { width: 28, height: 28, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
   expandedContent:      { paddingHorizontal: 16, paddingBottom: 14 },
@@ -383,12 +456,12 @@ const styles = StyleSheet.create({
   confidenceRow:        { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   confidenceLabel:      { fontSize: 13, marginLeft: 5 },
   confidenceBadge:      { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
-  confidenceBadgeText:  { fontSize: 13, fontWeight: '700' },
+  confidenceBadgeText:  { fontSize: 13,  },
   expandedSection:      { marginBottom: 10 },
   expandedSectionHeader:{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  expandedSectionTitle: { fontSize: 13, fontWeight: '700', marginLeft: 5 },
+  expandedSectionTitle: { fontSize: 13, marginLeft: 5 },
   expandedText:         { fontSize: 13, lineHeight: 19, paddingLeft: 20 },
   recommendationBox:    { borderRadius: 10, padding: 10, borderLeftWidth: 3 },
   consultButton:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 10, paddingVertical: 10, marginTop: 6, gap: 6 },
-  consultButtonText:    { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  consultButtonText:    { color: '#FFFFFF', fontSize: 13 },
 });

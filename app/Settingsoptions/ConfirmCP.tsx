@@ -3,7 +3,7 @@ import { router } from 'expo-router'
 import React from 'react'
 import { Image, Pressable, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useCustomize } from '../Customize/Customizecontext'
+import { FONT_FAMILY_MAP, useCustomize } from '../Customize/Customizecontext'
 import { useTranslation } from '../Customize/translations'
 import { useTheme } from '../ThemeContext'
 
@@ -15,7 +15,7 @@ export default function ConfirmCP() {
   const customText = {
     fontSize:   settings.fontSize,
     color:      effectiveTextColor(isDark),
-    fontFamily: settings.fontFamily === 'System' ? undefined : settings.fontFamily,
+    fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
   }
 
   // ✅ background من settings في light mode
@@ -43,11 +43,11 @@ export default function ConfirmCP() {
                   tintColor: isDark ? "#22C55E" : undefined,
                 }}
             />
-            <Text style={[customText, { fontSize: settings.fontSize > 20 ? settings.fontSize : 24, fontWeight: "bold", textAlign: "center" }]}>
+            <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, customText, { fontSize: settings.fontSize > 20 ? settings.fontSize : 24, fontWeight: "bold", textAlign: "center" }]}>
               {t('passwordChangedSuccess')}
             </Text>
             <TouchableOpacity onPress={() => router.push("/Settingsoptions/Editprofile")} style={{ width: "100%" }}>
-              <Text style={[styles.Continue, customText, { backgroundColor: colors.primary, color: '#fff' }]}>
+              <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.Continue, customText, { backgroundColor: colors.primary, color: '#fff' }]}>
                 {t('continue')}
               </Text>
             </TouchableOpacity>
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 5,
     fontSize: 16,
-    fontWeight: "bold",
+  
     textAlign: "center",
   },
 })

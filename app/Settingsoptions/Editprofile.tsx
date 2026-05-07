@@ -10,7 +10,7 @@ import {
     TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useCustomize } from "../Customize/Customizecontext";
+import { FONT_FAMILY_MAP, useCustomize } from "../Customize/Customizecontext";
 import { useTranslation } from "../Customize/translations";
 import { useTheme } from "../ThemeContext";
 import { loadProfileFromFirestore, saveProfileToFirestore } from "../../Firebase/firestoreProfileService";
@@ -56,7 +56,7 @@ export default function EditProfile() {
     const customText = {
       fontSize:   settings.fontSize,
       color:      isDark ? "#FFFFFF" : settings.textColor,
-      fontFamily: settings.fontFamily === "System" ? undefined : settings.fontFamily,
+      fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
     };
 
     const pageBg = isDark ? colors.background : settings.backgroundColor;
@@ -241,7 +241,7 @@ export default function EditProfile() {
                 <TouchableOpacity style={[styles.backBtn, { borderColor: colors.border }]} onPress={() => router.back()}>
                     <Ionicons name="chevron-back" size={24} color={colors.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, customText]}>{t('editProfile')}</Text>
+                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.headerTitle, customText]}>{t('editProfile')}</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -257,7 +257,7 @@ export default function EditProfile() {
                 </TouchableOpacity>
 
                 {/* First Name */}
-                <Text style={[styles.label, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{t('firstName')}</Text>
+                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.label, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{t('firstName')}</Text>
                 <TextInput
                     style={inputStyle}
                     value={firstName}
@@ -268,7 +268,7 @@ export default function EditProfile() {
                 />
 
                 {/* Last Name */}
-                <Text style={[styles.label, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{t('lastName')}</Text>
+                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.label, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{t('lastName')}</Text>
                 <TextInput
                     style={inputStyle}
                     value={lastName}
@@ -497,7 +497,7 @@ export default function EditProfile() {
                     activeOpacity={0.85}
                 >
                     {saving ? <ActivityIndicator color="#fff" /> : (
-                        <Text style={[styles.confirmText, { fontFamily: customText.fontFamily }]}>{t('confirm')}</Text>
+                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.confirmText, { fontFamily: customText.fontFamily }]}>{t('confirm')}</Text>
                     )}
                 </TouchableOpacity>
 
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     loadingWrap:        { flex: 1, justifyContent: "center", alignItems: "center" },
     header:             { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
     backBtn:            { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-    headerTitle:        { fontSize: 20, fontWeight: "bold" },
+    headerTitle:        { fontSize: 20},
     scrollContent:      { paddingHorizontal: 20, paddingBottom: 40 },
     avatarWrap:         { alignSelf: "center", marginBottom: 24, position: "relative" },
     avatar:             { width: 90, height: 90, borderRadius: 45, borderWidth: 2, justifyContent: "center", alignItems: "center", overflow: "hidden" },
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
     dropdownDivider:    { height: 1, marginHorizontal: 12 },
     colorCircle:        { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: "#E5E7EB" },
     confirmBtn:         { borderRadius: 14, paddingVertical: 16, marginTop: 16, alignItems: "center" },
-    confirmText:        { color: "#fff", fontSize: 16, fontWeight: "700" },
+    confirmText:        { color: "#fff", fontSize: 16 },
     changePasswordBtn:  { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, marginTop: 16 },
-    changePasswordText: { color: "#fff", fontSize: 10, fontWeight: "600" },
+    changePasswordText: { color: "#fff", fontSize: 10},
 });

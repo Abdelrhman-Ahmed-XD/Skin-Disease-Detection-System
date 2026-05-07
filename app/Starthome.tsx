@@ -21,7 +21,6 @@ export default function StartUp() {
           <Image
             source={require("../assets/images/Starthome.png")}
             style={styles.image}
-            resizeMode="cover"
           />
         )}
         <TouchableOpacity style={styles.button1} onPress={handleProceedHome}>
