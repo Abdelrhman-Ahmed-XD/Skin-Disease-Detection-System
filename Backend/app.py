@@ -38,6 +38,9 @@ from email.mime.text import MIMEText
 # ── Disease info ──────────────────────────────────────────────────────────────
 from disease_info import DISEASE_INFO
 
+# ── Email templates ───────────────────────────────────────────────────────────
+from email_templates import get_otp_email_html, get_password_reset_html, get_email_change_html
+
 load_dotenv()
 
 # ==============================================================================
@@ -562,20 +565,12 @@ def send_otp():
     email    = data.get("email", "").strip()
     name     = data.get("name", "User")
     otp_code = data.get("otp_code", "")
+    source   = data.get("source", "mobile")
     if not email or not otp_code:
         return jsonify({"error": "email and otp_code are required"}), 400
     try:
-        html = f"""
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-          <h2 style="color:#0891b2">Verify your SkinSight account</h2>
-          <p>Hello {name},</p>
-          <p>Your verification code is:</p>
-          <div style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#0891b2;padding:16px 0">{otp_code}</div>
-          <p style="color:#64748b;font-size:13px">This code expires in 10 minutes. Do not share it with anyone.</p>
-          <hr style="border:none;border-top:1px solid #e2e8f0"/>
-          <p style="color:#94a3b8;font-size:12px">SkinSight · Snap.Detect.Protect</p>
-        </div>"""
-        _send_email(email, "Your SkinSight verification code", html)
+        html = get_otp_email_html(name, otp_code, source)
+        _send_email(email, "SkinSight – Your Verification Code", html)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -585,22 +580,21 @@ def send_otp():
 def send_password_reset():
     data     = request.get_json()
     email    = data.get("email", "").strip()
-    name     = data.get("name", "User")
     otp_code = data.get("otp_code", "")
+    source   = data.get("source", "mobile")
     if not email or not otp_code:
         return jsonify({"error": "email and otp_code are required"}), 400
+    # Securely fetch real first name from Firebase Auth
+    name = "User"
     try:
-        html = f"""
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-          <h2 style="color:#0891b2">Reset your SkinSight password</h2>
-          <p>Hello {name},</p>
-          <p>Your password reset code is:</p>
-          <div style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#0891b2;padding:16px 0">{otp_code}</div>
-          <p style="color:#64748b;font-size:13px">This code expires in 10 minutes. If you did not request a password reset, please ignore this email.</p>
-          <hr style="border:none;border-top:1px solid #e2e8f0"/>
-          <p style="color:#94a3b8;font-size:12px">SkinSight · Snap.Detect.Protect</p>
-        </div>"""
-        _send_email(email, "Reset your SkinSight password", html)
+        user = firebase_auth.get_user_by_email(email)
+        if user.display_name:
+            name = user.display_name.strip().split(" ")[0]
+    except Exception:
+        pass
+    try:
+        html = get_password_reset_html(name, otp_code, source)
+        _send_email(email, "SkinSight – Password Reset Code", html)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -608,13 +602,14 @@ def send_password_reset():
 
 @app.route("/api/send-email-change-otp", methods=["POST"])
 def send_email_change_otp():
-    data     = request.get_json()
-    email    = data.get("email", "").strip()
-    name     = data.get("name", "User")
-    uid      = data.get("uid", "")
-    otp_code = data.get("otp_code", "")
+    data      = request.get_json()
+    new_email = data.get("email", "").strip()
+    otp_code  = data.get("otp_code", "")
+    source    = data.get("source", "mobile")
+    uid       = data.get("uid", "")
 
-    # If we have a uid, try to fetch the real name from Firestore
+    # Fetch real first name from Firestore profile
+    name = data.get("name", "User")
     if uid:
         try:
             db   = get_firebase()
@@ -623,22 +618,13 @@ def send_email_change_otp():
                 profile = snap.to_dict()
                 name = f"{profile.get('firstName', '')} {profile.get('lastName', '')}".strip() or name
         except Exception:
-            pass  # fallback to provided name
+            pass
 
-    if not email or not otp_code:
+    if not new_email or not otp_code:
         return jsonify({"error": "email and otp_code are required"}), 400
     try:
-        html = f"""
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-          <h2 style="color:#0891b2">Verify your new email — SkinSight</h2>
-          <p>Hello {name},</p>
-          <p>Your email verification code is:</p>
-          <div style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#0891b2;padding:16px 0">{otp_code}</div>
-          <p style="color:#64748b;font-size:13px">This code expires in 10 minutes. If you did not request an email change, please ignore this email.</p>
-          <hr style="border:none;border-top:1px solid #e2e8f0"/>
-          <p style="color:#94a3b8;font-size:12px">SkinSight · Snap.Detect.Protect</p>
-        </div>"""
-        _send_email(email, "Verify your new SkinSight email", html)
+        html = get_email_change_html(name, otp_code, new_email, source)
+        _send_email(new_email, "SkinSight – Email Change Verification", html)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
