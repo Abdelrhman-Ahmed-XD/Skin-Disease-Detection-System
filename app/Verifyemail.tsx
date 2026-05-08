@@ -194,10 +194,12 @@ export default function Verifyemail() {
         try {
             const saved = await AsyncStorage.getItem("signupDraft");
             const data = saved ? JSON.parse(saved) : {};
+            // Write BOTH flags. emailVerifiedConfirmed is the secure key that
+            // SignUp.tsx trusts — it is ONLY written here, never on dismiss/cancel.
             data.isEmailVerified = true;
+            data.emailVerifiedConfirmed = data.email || email;
             await AsyncStorage.setItem("signupDraft", JSON.stringify(data));
 
-            // FIXED: We strictly use router.back() so we don't accidentally create duplicate screens!
             router.back();
 
         } catch (err) {

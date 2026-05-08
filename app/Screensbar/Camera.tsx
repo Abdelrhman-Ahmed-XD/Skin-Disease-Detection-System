@@ -1,13 +1,8 @@
+// ====================== 2. Camera.tsx (FIXED) ======================
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    Dimensions,
-    Image,
-    StatusBar,
-    Alert,
+    View, Text, StyleSheet, TouchableOpacity, Dimensions,
+    Image, StatusBar, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,22 +11,28 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db, auth } from '@/Firebase/firebaseConfig';
+import { db, auth } from '../../Firebase/firebaseConfig';
 import {
-    collection,
-    addDoc,
-    updateDoc,
-    doc,
-    serverTimestamp,
+    collection, addDoc, updateDoc, doc, serverTimestamp,
 } from 'firebase/firestore';
 
 const MOLES_STORAGE_KEY = 'savedMoles';
 const { width } = Dimensions.get('window');
 
-// ── Cloudinary config ───────────────────────────────────────────
 const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME!;
 const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+type MoleResult = {
+    status?: string | null;
+    disease?: string | null;
+    confidence?: number | null;
+    segmentedUrl?: string | null;
+    description?: string | null;
+    tips?: string[];
+    precautions?: string[];
+    message?: string | null;
+};
 
 type Mole = {
     id: string;
@@ -40,24 +41,15 @@ type Mole = {
     timestamp: number;
     photoUri?: string;
     bodyView: 'front' | 'back' | 'N/A' | string;
-    firestoreId?: string; // ← Firestore document ID
-    source?: string;      // ← FIXED: Added source to clear TS2353
+    firestoreId?: string;
+    source?: string;
+    result?: MoleResult | null;
 };
 
 type ScreenMode = 'existing_preview' | 'camera' | 'new_preview';
 
-// ── Convert local URI → base64 string ─────────────────────────
-async function uriToBase64(uri: string): Promise<string> {
-    const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: 'base64',
-    });
-    return base64;
-}
-
-// ── Upload photo to Cloudinary ─────────────────────────────────
 async function uploadToCloudinary(localUri: string): Promise<string> {
     try {
-        console.log('☁️ Uploading to Cloudinary...');
         const formData = new FormData();
         formData.append('file', {
             uri: localUri,
@@ -67,18 +59,13 @@ async function uploadToCloudinary(localUri: string): Promise<string> {
         formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
         formData.append('folder', 'skinsight_scans');
 
-        const response = await fetch(CLOUDINARY_UPLOAD_URL, {
-            method: 'POST',
-            body: formData,
-        });
-
+        const response = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: formData });
         const data = await response.json();
 
         if (response.ok && data.secure_url) {
-            console.log('✅ Uploaded to Cloudinary:', data.secure_url);
             return data.secure_url;
         } else {
-            throw new Error(data.error?.message || 'Cloudinary upload failed');
+            throw new Error(data.error?.message || 'Upload failed');
         }
     } catch (err) {
         console.log('❌ Cloudinary upload error:', err);
@@ -86,7 +73,6 @@ async function uploadToCloudinary(localUri: string): Promise<string> {
     }
 }
 
-// ── Fallback: copy to permanent local storage ───────────────────
 async function copyToLocalStorage(tempUri: string): Promise<string> {
     try {
         const fileName = `scan_${Date.now()}.jpg`;
@@ -98,53 +84,17 @@ async function copyToLocalStorage(tempUri: string): Promise<string> {
         const permanentUri = `${permanentDir}${fileName}`;
         await FileSystem.copyAsync({ from: tempUri, to: permanentUri });
         return permanentUri;
-    } catch (err) {
+    } catch {
         return tempUri;
     }
 }
 
-// ── Save scan to Firestore ─────────────────────────────────────
-async function saveToFirestore(
-    photoUri: string,
-    bodyView: string,
-    x: number,
-    y: number,
-    analysis?: string
-): Promise<string | null> {
-    try {
-        const user = auth.currentUser;
-        if (!user) return null;
-
-        const scansRef = collection(db, 'users', user.uid, 'scans');
-        const docRef = await addDoc(scansRef, {
-            photoUri,
-            bodyView,
-            x,
-            y,
-            analysis: analysis || null,
-            createdAt: serverTimestamp(),
-            source: 'mobile'
-        });
-
-        return docRef.id;
-    } catch (err) {
-        return null;
-    }
-}
-
-async function updateFirestoreScan(
-    firestoreId: string,
-    photoUri: string
-): Promise<void> {
+async function updateFirestoreScan(firestoreId: string, photoUri: string): Promise<void> {
     try {
         const user = auth.currentUser;
         if (!user) return;
-
         const scanRef = doc(db, 'users', user.uid, 'scans', firestoreId);
-        await updateDoc(scanRef, {
-            photoUri,
-            updatedAt: serverTimestamp(),
-        });
+        await updateDoc(scanRef, { photoUri, updatedAt: serverTimestamp() });
     } catch (err) {}
 }
 
@@ -166,6 +116,7 @@ export default function CameraScreen() {
         isEditing && existingPhotoUri ? 'existing_preview' : 'camera'
     );
     const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+    const [photoSource, setPhotoSource] = useState<'camera' | 'gallery'>('camera');
     const [facing, setFacing] = useState<CameraType>('back');
     const [isSaving, setIsSaving] = useState(false);
     const cameraRef = useRef<CameraView>(null);
@@ -173,9 +124,7 @@ export default function CameraScreen() {
     const [permission, requestPermission] = useCameraPermissions();
 
     useEffect(() => {
-        if (permission && !permission.granted) {
-            requestPermission();
-        }
+        if (permission && !permission.granted) requestPermission();
     }, [permission]);
 
     const takePicture = async () => {
@@ -184,6 +133,7 @@ export default function CameraScreen() {
                 const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
                 if (photo) {
                     setCapturedPhoto(photo.uri);
+                    setPhotoSource('camera');
                     setScreenMode('new_preview');
                 }
             } catch (err) {
@@ -206,6 +156,7 @@ export default function CameraScreen() {
         });
         if (!result.canceled && result.assets.length > 0) {
             setCapturedPhoto(result.assets[0].uri);
+            setPhotoSource('gallery');
             setScreenMode('new_preview');
         }
     };
@@ -214,21 +165,56 @@ export default function CameraScreen() {
         setIsSaving(true);
         try {
             const permanentUri = await uploadToCloudinary(photoUri);
-            const base64 = await uriToBase64(photoUri);
+
+            let predictionData = null;
+            try {
+                const flaskUrl = process.env.EXPO_PUBLIC_FLASK_URL;
+                const response = await fetch(`${flaskUrl}/api/predict`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageUrl: permanentUri,
+                        photoType: photoSource === 'camera' ? 'phone' : 'dermo'
+                    })
+                });
+                predictionData = await response.json();
+            } catch (e) {
+                console.log("Prediction API Error:", e);
+            }
 
             let firestoreId: string | null = null;
             const finalBodyView = hasPosition ? bodyView : 'N/A';
+
+            // ✅ FIX: Replaced all undefined variables with 'null' so Firebase accepts it!
+            const resultPayload = predictionData ? {
+                status: predictionData.status ?? null,
+                disease: predictionData.disease ?? null,
+                confidence: predictionData.confidence ?? null,
+                segmentedUrl: predictionData.segmented_url ?? predictionData.segmentedUrl ?? null,
+                description: predictionData.description ?? null,
+                tips: predictionData.tips || [],
+                precautions: predictionData.precautions || [],
+                message: predictionData.message ?? null,
+            } : null;
 
             if (isEditing && moleId && existingFirestoreId) {
                 await updateFirestoreScan(existingFirestoreId, permanentUri);
                 firestoreId = existingFirestoreId;
             } else {
-                firestoreId = await saveToFirestore(
-                    permanentUri,
-                    finalBodyView,
-                    tapX ?? 0,
-                    tapY ?? 0
-                );
+                const user = auth.currentUser;
+                if (user) {
+                    const scansRef = collection(db, 'users', user.uid, 'scans');
+                    const docRef = await addDoc(scansRef, {
+                        photoUri: permanentUri,
+                        bodyView: finalBodyView,
+                        x: tapX ?? 0,
+                        y: tapY ?? 0,
+                        result: resultPayload,
+                        createdAt: serverTimestamp(),
+                        source: 'mobile'
+                    });
+                    firestoreId = docRef.id;
+                }
             }
 
             const existing = await AsyncStorage.getItem(MOLES_STORAGE_KEY);
@@ -236,13 +222,10 @@ export default function CameraScreen() {
 
             if (isEditing && moleId) {
                 const updated = currentMoles.map((m) =>
-                    m.id === moleId
-                        ? { ...m, photoUri: permanentUri, firestoreId: firestoreId ?? m.firestoreId }
-                        : m
+                    m.id === moleId ? { ...m, photoUri: permanentUri, firestoreId, result: resultPayload } : m
                 );
                 await AsyncStorage.setItem(MOLES_STORAGE_KEY, JSON.stringify(updated));
             } else {
-                // ALWAYS save locally so it shows in history immediately
                 const newMole: Mole = {
                     id: `mole_${Date.now()}`,
                     x: tapX ?? 0,
@@ -251,15 +234,24 @@ export default function CameraScreen() {
                     photoUri: permanentUri,
                     bodyView: finalBodyView,
                     firestoreId: firestoreId ?? undefined,
-                    source: 'mobile'
+                    source: 'mobile',
+                    result: resultPayload || undefined,
                 };
-                await AsyncStorage.setItem(
-                    MOLES_STORAGE_KEY,
-                    JSON.stringify([...currentMoles, newMole])
-                );
+                await AsyncStorage.setItem(MOLES_STORAGE_KEY, JSON.stringify([...currentMoles, newMole]));
             }
 
-            router.back();
+            if (predictionData) {
+                router.push({
+                    pathname: '/Screensbar/ResultsScreen',
+                    params: {
+                        result: JSON.stringify(predictionData),
+                        originalUri: photoUri,
+                    }
+                });
+            } else {
+                router.back();
+            }
+
         } catch (err) {
             Alert.alert('Error', 'Failed to save photo');
             console.log('confirmPhoto error:', err);
@@ -377,7 +369,7 @@ export default function CameraScreen() {
                     >
                         <Ionicons name="checkmark-outline" size={22} color="#fff" />
                         <Text style={styles.confirmBtnText}>
-                            {isSaving ? 'Saving...' : isEditing ? 'Update Photo' : 'Save Photo'}
+                            {isSaving ? 'Analyzing...' : isEditing ? 'Update Photo' : 'Analyze Image'}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -388,8 +380,11 @@ export default function CameraScreen() {
     return (
         <View style={styles.cameraContainer}>
             <StatusBar barStyle="light-content" backgroundColor="#000" />
-            <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
 
+            <CameraView ref={cameraRef} style={StyleSheet.absoluteFillObject} facing={facing} />
+
+            {/* ✅ FIX: UI Overlay is now placed ON TOP of CameraView instead of inside it */}
+            <View style={StyleSheet.absoluteFillObject}>
                 <View style={styles.topBar}>
                     <TouchableOpacity
                         style={styles.topBtn}
@@ -434,58 +429,57 @@ export default function CameraScreen() {
                     </TouchableOpacity>
                     <View style={{ width: 72 }} />
                 </View>
-            </CameraView>
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    centered:             { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
-    loadingText:          { color: '#fff', fontSize: 16 },
-    permissionContainer:  { flex: 1, backgroundColor: '#D8E9F0', justifyContent: 'center', alignItems: 'center', padding: 32 },
-    permissionTitle:      { fontSize: 22, fontWeight: '700', color: '#1F2937', marginTop: 20, marginBottom: 10 },
-    permissionText:       { fontSize: 15, color: '#6B7280', textAlign: 'center', lineHeight: 22 },
-    permissionBtn:        { marginTop: 28, backgroundColor: '#004F7F', paddingVertical: 14, paddingHorizontal: 36, borderRadius: 16 },
-    permissionBtnText:    { color: '#fff', fontWeight: '700', fontSize: 16 },
-    backLink:             { marginTop: 16 },
-    backLinkText:         { color: '#00A3A3', fontSize: 14, fontWeight: '600' },
-    cameraContainer:      { flex: 1, backgroundColor: '#000' },
-    camera:               { flex: 1 },
-    topBar:               { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 52, paddingHorizontal: 20, paddingBottom: 12 },
-    topBtn:               { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-    topTitle:             { color: '#fff', fontSize: 18, fontWeight: '600' },
-    scanFrameWrapper:     { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    scanFrame:            { width: width * 0.7, height: width * 0.7, position: 'relative' },
-    corner:               { position: 'absolute', width: 28, height: 28, borderColor: '#fff', borderWidth: 3 },
-    cornerTL:             { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 6 },
-    cornerTR:             { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 6 },
-    cornerBL:             { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 6 },
-    cornerBR:             { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 6 },
-    scanHint:             { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 20, textAlign: 'center', paddingHorizontal: 30 },
-    bottomBar:            { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 30, paddingBottom: 48, paddingTop: 20 },
-    captureBtn:           { width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(255,255,255,0.3)', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#fff' },
-    captureBtnInner:      { width: 58, height: 58, borderRadius: 29, backgroundColor: '#fff' },
-    galleryBtn:           { width: 72, height: 72, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', gap: 4 },
-    galleryBtnText:       { color: '#fff', fontSize: 11, fontWeight: '600' },
-    previewContainer:     { flex: 1, backgroundColor: '#000' },
-    previewImage:         { flex: 1, width: '100%', resizeMode: 'cover' },
-    previewTopBar:        { position: 'absolute', top: 52, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
-    previewTopBtn:        { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-    previewTitle:         { color: '#fff', fontSize: 18, fontWeight: '600' },
-    previewBadge:         { position: 'absolute', top: 110, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,79,127,0.85)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-    previewBadgeText:     { color: '#fff', fontSize: 12, fontWeight: '600' },
-    savingBadge:          { position: 'absolute', top: 150, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,163,163,0.9)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-    savingBadgeText:      { color: '#fff', fontSize: 12, fontWeight: '600' },
-    existingActions:      { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 10, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 20, paddingHorizontal: 20 },
-    keepBtn:              { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
-    keepBtnText:          { color: '#004F7F', fontWeight: '700', fontSize: 14 },
-    galleryActionBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#00A3A3', paddingVertical: 14, borderRadius: 14 },
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
+    loadingText: { color: '#fff', fontSize: 16 },
+    permissionContainer: { flex: 1, backgroundColor: '#D8E9F0', justifyContent: 'center', alignItems: 'center', padding: 32 },
+    permissionTitle: { fontSize: 22, fontWeight: '700', color: '#1F2937', marginTop: 20, marginBottom: 10 },
+    permissionText: { fontSize: 15, color: '#6B7280', textAlign: 'center', lineHeight: 22 },
+    permissionBtn: { marginTop: 28, backgroundColor: '#004F7F', paddingVertical: 14, paddingHorizontal: 36, borderRadius: 16 },
+    permissionBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+    backLink: { marginTop: 16 },
+    backLinkText: { color: '#00A3A3', fontSize: 14, fontWeight: '600' },
+    cameraContainer: { flex: 1, backgroundColor: '#000' },
+    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 52, paddingHorizontal: 20, paddingBottom: 12 },
+    topBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+    topTitle: { color: '#fff', fontSize: 18, fontWeight: '600' },
+    scanFrameWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    scanFrame: { width: width * 0.7, height: width * 0.7, position: 'relative' },
+    corner: { position: 'absolute', width: 28, height: 28, borderColor: '#fff', borderWidth: 3 },
+    cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 6 },
+    cornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 6 },
+    cornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 6 },
+    cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 6 },
+    scanHint: { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 20, textAlign: 'center', paddingHorizontal: 30 },
+    bottomBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 30, paddingBottom: 48, paddingTop: 20 },
+    captureBtn: { width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(255,255,255,0.3)', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#fff' },
+    captureBtnInner: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#fff' },
+    galleryBtn: { width: 72, height: 72, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', gap: 4 },
+    galleryBtnText: { color: '#fff', fontSize: 11, fontWeight: '600' },
+    previewContainer: { flex: 1, backgroundColor: '#000' },
+    previewImage: { flex: 1, width: '100%', resizeMode: 'cover' },
+    previewTopBar: { position: 'absolute', top: 52, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
+    previewTopBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    previewTitle: { color: '#fff', fontSize: 18, fontWeight: '600' },
+    previewBadge: { position: 'absolute', top: 110, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,79,127,0.85)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+    previewBadgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+    savingBadge: { position: 'absolute', top: 150, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,163,163,0.9)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+    savingBadgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+    existingActions: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 10, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 20, paddingHorizontal: 20 },
+    keepBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
+    keepBtnText: { color: '#004F7F', fontWeight: '700', fontSize: 14 },
+    galleryActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#00A3A3', paddingVertical: 14, borderRadius: 14 },
     galleryActionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-    cameraActionBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#004F7F', paddingVertical: 14, borderRadius: 14 },
-    cameraActionBtnText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
-    previewActions:       { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 20, paddingHorizontal: 30, gap: 16 },
-    retakeBtn:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
-    retakeBtnText:        { color: '#004F7F', fontWeight: '700', fontSize: 15 },
-    confirmBtn:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#004F7F', paddingVertical: 14, borderRadius: 14 },
-    confirmBtnText:       { color: '#fff', fontWeight: '700', fontSize: 15 },
+    cameraActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#004F7F', paddingVertical: 14, borderRadius: 14 },
+    cameraActionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    previewActions: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 20, paddingHorizontal: 30, gap: 16 },
+    retakeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
+    retakeBtnText: { color: '#004F7F', fontWeight: '700', fontSize: 15 },
+    confirmBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#004F7F', paddingVertical: 14, borderRadius: 14 },
+    confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

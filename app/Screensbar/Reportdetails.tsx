@@ -87,7 +87,7 @@ const skinColorLabel = (hex: string | null) => {
     return hex ? (map[hex] || hex) : 'N/A';
 };
 
-// ── Build PDF HTML ────────────────────────────────────────────
+// ── Build PDF HTML (KEPT EXACTLY AS ORIGINAL) ─────────────────
 const buildReportHTML = (params: {
     reportIndex: number;
     date: string;
@@ -313,8 +313,25 @@ export default function ReportDetailsPage() {
     const bodyView = params.bodyView as string;
     const x = parseFloat(params.x as string);
     const y = parseFloat(params.y as string);
-    const analysis = params.analysis as string || t('analysisInProgress');
     const reportIndex = parseInt(params.reportIndex as string);
+
+    // ── Extract nested AI result ───────────────────────────────
+    let aiResult: any = {};
+    try {
+        if (params.result) {
+            aiResult = JSON.parse(params.result as string);
+        }
+    } catch (e) {
+        console.log('Failed to parse aiResult', e);
+    }
+
+    const analysis = aiResult.disease || (params.analysis as string) || t('analysisInProgress');
+    const confidence = aiResult.confidence || 0;
+    const maskUrl = aiResult.segmentedUrl || aiResult.segmented_url;
+    const description = aiResult.description || '';
+    const tips = aiResult.tips || [];
+    const precautions = aiResult.precautions || [];
+    const sources = aiResult.sources || [];
 
     const formatDate = (ts: number) =>
         new Date(ts).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US', {
@@ -322,7 +339,7 @@ export default function ReportDetailsPage() {
             hour: '2-digit', minute: '2-digit',
         });
 
-    // ── Download Report (same logic as Reports page) ──────────
+    // ── Download Report (UNCHANGED) ───────────────────────────
     const downloadReport = async () => {
         if (isDownloading) return;
         setIsDownloading(true);
@@ -360,113 +377,48 @@ export default function ReportDetailsPage() {
     };
 
     return (
-        <SafeAreaView
-            style={[styles.container, {backgroundColor: pageBg}]}
-            edges={["top"]}
-        >
+        <SafeAreaView style={[styles.container, {backgroundColor: pageBg}]} edges={["top"]}>
             <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg}/>
 
             {/* Header */}
             <View style={[styles.header, {backgroundColor: colors.card}]}>
-                <TouchableOpacity
-                    style={[styles.backButton, {borderColor: colors.border}]}
-                    onPress={() => router.back()}
-                >
+                <TouchableOpacity style={[styles.backButton, {borderColor: colors.border}]} onPress={() => router.back()}>
                     <Ionicons name="chevron-back" size={24} color={colors.text}/>
                 </TouchableOpacity>
-                <Text
-                    style={[
-                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                        styles.headerTitle,
-                        customText,
-                        {color: isDark ? "#fff" : "#000"},
-                    ]}
-                >
-                    {t("reportDetails")}
-                </Text>
-                <TouchableOpacity
-                    style={[
-                        styles.downloadHeaderButton,
-                        {backgroundColor: isDark ? "#004f7f" : "#E8F4F8"},
-                    ]}
-                    onPress={downloadReport}
-                    disabled={isDownloading}
-                >
-                    {isDownloading ? (
-                        <ActivityIndicator size="small" color={colors.primary}/>
-                    ) : (
-                        <Ionicons
-                            name="download-outline"
-                            size={24}
-                            color={isDark ? "#fff" : "#004f7f"}
-                        />
-                    )}
+                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.headerTitle, customText, {color: isDark ? "#fff" : "#000"}]}>{t("reportDetails")}</Text>
+                <TouchableOpacity style={[styles.downloadHeaderButton, {backgroundColor: isDark ? "#004f7f" : "#E8F4F8"}]} onPress={downloadReport} disabled={isDownloading}>
+                    {isDownloading ? <ActivityIndicator size="small" color={colors.primary}/> : <Ionicons name="download-outline" size={24} color={isDark ? "#fff" : "#004f7f"} />}
                 </TouchableOpacity>
             </View>
 
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Scan Image */}
-                <View style={styles.imageContainer}>
-                    {photoUri ? (
-                        <Image
-                            source={{uri: photoUri}}
-                            style={styles.mainImage}
-                            resizeMode="cover"
-                        />
-                    ) : (
-                        <View
-                            style={[
-                                styles.mainImage,
-                                {
-                                    backgroundColor: colors.card,
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                },
-                            ]}
-                        >
-                            <Ionicons
-                                name="image-outline"
-                                size={48}
-                                color={colors.subText}
-                            />
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                {/* Side-by-Side Images */}
+                <View style={styles.imagePairContainer}>
+                    <View style={styles.imageBox}>
+                        <Text style={[styles.imageLabel, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>Original</Text>
+                        <Image source={{ uri: photoUri }} style={[styles.scanImage, { backgroundColor: colors.card }]} />
+
+                        {/* ADDED THIS BADGE BACK */}
+                        <View style={styles.imageBadge}>
+                            <Text style={[styles.imageBadgeText, {fontFamily: customText.fontFamily}]}>
+                                {bodyView === "front" ? t("frontBody") : bodyView === "back" ? t("backBody") : "N/A"}
+                            </Text>
+                        </View>
+
+                    </View>
+                    {maskUrl && (
+                        <View style={styles.imageBox}>
+                            <Text style={[styles.imageLabel, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>U-Net Mask</Text>
+                            <Image source={{ uri: maskUrl }} style={[styles.scanImage, { borderColor: '#00A3A3', borderWidth: 2, backgroundColor: '#000' }]} />
                         </View>
                     )}
-                    <View style={styles.imageBadge}>
-                        <Text
-                            style={[
-                                styles.imageBadgeText,
-                                {fontFamily: customText.fontFamily},
-                            ]}
-                        >
-                            {bodyView === "front" ? t("frontBody") : bodyView === "back" ? t("backBody") : "N/A"}
-                        </Text>
-                    </View>
                 </View>
 
-                {/* Patient Info Card */}
+                {/* Patient Information Card */}
                 <View style={[styles.infoCard, {backgroundColor: colors.card}]}>
-                    <View
-                        style={[styles.infoHeader, {borderBottomColor: colors.border}]}
-                    >
-                        <Ionicons
-                            name="person-outline"
-                            size={20}
-                            color={isDark ? "#fff" : "#004f7f"}
-                        />
-                        <Text
-                            style={[
-                                { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                                styles.sectionTitle,
-                                customText,
-                                {color: isDark ? "#fff" : "#004f7f"},
-                            ]}
-                        >
-                            Patient Information
-                        </Text>
+                    <View style={[styles.infoHeader, {borderBottomColor: colors.border}]}>
+                        <Ionicons name="person-outline" size={20} color={isDark ? "#fff" : "#004f7f"} />
+                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.sectionTitle, customText, {color: isDark ? "#fff" : "#004f7f"}]}>Patient Information</Text>
                     </View>
                     <View style={[styles.patientGrid]}>
                         {[
@@ -477,34 +429,9 @@ export default function ReportDetailsPage() {
                             {label: "Eye Color", value: eyeColor},
                             {label: "Skin Tone", value: skinColor},
                         ].map((item) => (
-                            <View
-                                key={item.label}
-                                style={[
-                                    styles.patientItem,
-                                    {
-                                        backgroundColor: isDark ? "#004f7f" : "#F4FBFF",
-                                        borderColor: "#fff",
-                                    },
-                                ]}
-                            >
-                                <Text
-                                    style={[
-                                        styles.infoLabel,
-                                        customText,
-                                        {color: isDark ? "#fff" : "#004f7f"},
-                                    ]}
-                                >
-                                    {item.label}
-                                </Text>
-                                <Text
-                                    style={[
-                                        styles.infoValue,
-                                        customText,
-                                        {color: isDark ? "#fff" : "#004f7f"},
-                                    ]}
-                                >
-                                    {item.value}
-                                </Text>
+                            <View key={item.label} style={[styles.patientItem, {backgroundColor: isDark ? "#004f7f" : "#F4FBFF", borderColor: "#fff"}]}>
+                                <Text style={[styles.infoLabel, customText, {color: isDark ? "#fff" : "#004f7f"}]}>{item.label}</Text>
+                                <Text style={[styles.infoValue, customText, {color: isDark ? "#fff" : "#004f7f"}]}>{item.value}</Text>
                             </View>
                         ))}
                     </View>
@@ -512,242 +439,114 @@ export default function ReportDetailsPage() {
 
                 {/* Scan Info Card */}
                 <View style={[styles.infoCard, {backgroundColor: colors.card}]}>
-                    <View
-                        style={[
-                            styles.infoHeader,
-                            {
-                                borderBottomColor: colors.border,
-                                flexDirection: isArabic ? "row-reverse" : "row",
-                            },
-                        ]}
-                    >
-                        <Text
-                            style={[
-                                { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                                styles.reportNumber,
-                                customText,
-                                {color: isDark ? "#fff" : "#004f7f"},
-                            ]}
-                        >
-                            {t("reportNum")}
-                            {reportIndex + 1}
-                        </Text>
-                        <Text
-                            style={[
-                                { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                                styles.dateText,
-                                {color: isDark ? "#fff" : "#004f7f"},
-                            ]}
-                        >
-                            {formatDate(timestamp)}
-                        </Text>
+                    <View style={[styles.infoHeader, {borderBottomColor: colors.border, flexDirection: isArabic ? "row-reverse" : "row"}]}>
+                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.reportNumber, customText, {color: isDark ? "#fff" : "#004f7f"}]}>{t("reportNum")}{reportIndex + 1}</Text>
+                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.dateText, {color: isDark ? "#fff" : "#004f7f"}]}>{formatDate(timestamp)}</Text>
                     </View>
                     <View style={[styles.infoGrid]}>
-                        <View
-                            style={[
-                                styles.infoItem,
-                                {flexDirection: isArabic ? "row-reverse" : "row"},
-                            ]}
-                        >
-                            <Ionicons
-                                name="location-outline"
-                                size={20}
-                                color={isDark ? "#fff" : "#004f7f"}
-                            />
-                            <View
-                                style={[
-                                    styles.infoTextContainer,
-                                    {alignItems: isArabic ? "flex-end" : "flex-start"},
-                                ]}
-                            >
-                                <Text
-                                    style={[
-                                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                                        styles.infoLabel,
-                                        {color: isDark ? "#fff" : "#004f7f"},
-                                    ]}
-                                >
-                                    {t("location")}
-                                </Text>
-                                <Text
-                                    style={[
-                                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                                        styles.infoValue,
-                                        {color: isDark ? "#fff" : "#004f7f"},
-                                    ]}
-                                >
-                                    {bodyView === "front" ? t("frontBody") : bodyView === "back" ? t("backBody") : "N/A"} {bodyView === "front" || bodyView === "back" ? "Body" : ""}
-                                </Text>
+                        <View style={[styles.infoItem, {flexDirection: isArabic ? "row-reverse" : "row"}]}>
+                            <Ionicons name="location-outline" size={20} color={isDark ? "#fff" : "#004f7f"} />
+                            <View style={[styles.infoTextContainer, {alignItems: isArabic ? "flex-end" : "flex-start"}]}>
+                                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.infoLabel, {color: isDark ? "#fff" : "#004f7f"}]}>{t("location")}</Text>
+                                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.infoValue, {color: isDark ? "#fff" : "#004f7f"}]}>{bodyView === "front" ? t("frontBody") : bodyView === "back" ? t("backBody") : "N/A"} {bodyView === "front" || bodyView === "back" ? "Body" : ""}</Text>
                             </View>
                         </View>
-                        <View
-                            style={[
-                                styles.infoItem,
-                                {flexDirection: isArabic ? "row-reverse" : "row"},
-                            ]}
-                        >
-                            <Ionicons
-                                name="navigate-outline"
-                                size={20}
-                                color={isDark ? "#fff" : "#004f7f"}
-                            />
-                            <View
-                                style={[
-                                    styles.infoTextContainer,
-                                    {alignItems: isArabic ? "flex-end" : "flex-start"},
-                                ]}
-                            >
-                                <Text
-                                    style={[
-                                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                                        styles.infoLabel,
-                                        {color: isDark ? "#fff" : "#004f7f"},
-                                    ]}
-                                >
-                                    {t("coordinates")}
-                                </Text>
-                                <Text
-                                    style={[
-                                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                                        styles.infoValue,
-                                        {color: isDark ? "#fff" : "#004f7f"},
-                                    ]}
-                                >
-                                    x: {x.toFixed(1)}, y: {y.toFixed(1)}
-                                </Text>
+                        <View style={[styles.infoItem, {flexDirection: isArabic ? "row-reverse" : "row"}]}>
+                            <Ionicons name="navigate-outline" size={20} color={isDark ? "#fff" : "#004f7f"} />
+                            <View style={[styles.infoTextContainer, {alignItems: isArabic ? "flex-end" : "flex-start"}]}>
+                                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.infoLabel, {color: isDark ? "#fff" : "#004f7f"}]}>{t("coordinates")}</Text>
+                                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.infoValue, {color: isDark ? "#fff" : "#004f7f"}]}>x: {x.toFixed(1)}, y: {y.toFixed(1)}</Text>
                             </View>
                         </View>
-                        <View
-                            style={[
-                                
-                                styles.infoItem,
-                                {flexDirection: isArabic ? "row-reverse" : "row"},
-                            ]}
-                        >
-                            <Ionicons
-                                name="finger-print-outline"
-                                size={20}
-                                color={isDark ? "#fff" : "#004f7f"}
-                            />
-                            <View
-                                style={[
-                                    styles.infoTextContainer,
-                                    {alignItems: isArabic ? "flex-end" : "flex-start"},
-                                ]}
-                            >
-                                <Text
-                                    style={[
-                                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                                        styles.infoLabel,
-                                        {color: isDark ? "#fff" : "#004f7f"},
-                                    ]}
-                                >
-                                    {t("reportId")}
-                                </Text>
-                                <Text
-                                    style={[
-                                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                                        styles.infoValue,
-                                        {color: isDark ? "#fff" : "#004f7f"},
-                                    ]}
-                                >
-                                    {moleId.substring(0, 12)}...
-                                </Text>
+                        <View style={[styles.infoItem, {flexDirection: isArabic ? "row-reverse" : "row"}]}>
+                            <Ionicons name="finger-print-outline" size={20} color={isDark ? "#fff" : "#004f7f"} />
+                            <View style={[styles.infoTextContainer, {alignItems: isArabic ? "flex-end" : "flex-start"}]}>
+                                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.infoLabel, {color: isDark ? "#fff" : "#004f7f"}]}>{t("reportId")}</Text>
+                                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.infoValue, {color: isDark ? "#fff" : "#004f7f"}]}>{moleId.substring(0, 12)}...</Text>
                             </View>
                         </View>
                     </View>
                 </View>
 
-                {/* Analysis Card */}
-                <View style={[styles.analysisCard, {backgroundColor: colors.card}]}>
-                    <View
-                        style={[
-                            styles.analysisHeader,
-                            {
-                                borderBottomColor: colors.border,
-                                flexDirection: isArabic ? "row-reverse" : "row",
-                            },
-                        ]}
-                    >
-                        <Ionicons name="document-text" size={24} color={isDark ? "#fff" : "#004f7f"}/>
-                        <Text
-                            style={[
-                                styles.analysisTitle,
-                                {color: isDark ? "#fff" : "#004f7f"},
-                                {fontFamily: FONT_FAMILY_MAP[settings.fontFamily]},
-                            ]}
-                        >
-                            {t("analysisResults")}
-                        </Text>
+                {/* Detected Condition + Confidence Bar */}
+                <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <Text style={[styles.sectionTitle, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>Detected Condition</Text>
+                    <Text style={[{ fontFamily: customText.fontFamily }, styles.diseaseTitle, { color: isDark ? '#fff' : '#004F7F' }]}>{analysis}</Text>
+
+                    <View style={styles.confidenceRow}>
+                        <Text style={[{ fontFamily: customText.fontFamily }, styles.confLabel, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>AI Confidence</Text>
+                        <Text style={[{ fontFamily: customText.fontFamily }, styles.confValue, { color: isDark ? '#fff' : '#004F7F' }]}>{confidence}%</Text>
                     </View>
-                    <Text
-                        style={[
-                            styles.analysisText,
-                            {color: isDark ? "#fff" : "#004f7f"},
-                            {textAlign: isArabic ? "right" : "left"},
-                            {fontFamily: FONT_FAMILY_MAP[settings.fontFamily]},
-                        ]}
-                    >
-                        {analysis}
-                    </Text>
+                    <View style={[styles.confBarBg, { backgroundColor: isDark ? '#374151' : '#E5E7EB' }]}>
+                        <View style={[styles.confBarFill, { width: `${confidence}%`, backgroundColor: confidence >= 80 ? '#22C55E' : confidence >= 60 ? '#F59E0B' : '#EF4444' }]} />
+                    </View>
                 </View>
+
+                {description && (
+                    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                        <Text style={[styles.sectionTitle, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>About this condition</Text>
+                        <Text style={[{ fontFamily: customText.fontFamily }, styles.descriptionText, { color: isDark ? '#D1D5DB' : '#374151' }]}>{description}</Text>
+                    </View>
+                )}
+
+                {/* Tips */}
+                {tips.length > 0 && (
+                    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                        <Text style={[styles.sectionTitle, { color: '#00A3A3' }]}>Tips & Recommendations</Text>
+                        {tips.map((tip: string, idx: number) => (
+                            <View key={idx} style={styles.bulletRow}>
+                                <Ionicons name="checkmark-circle" size={18} color="#00A3A3" style={{ marginTop: 2 }} />
+                                <Text style={[{ fontFamily: customText.fontFamily }, styles.bulletText, { color: isDark ? '#D1D5DB' : '#374151' }]}>{tip}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
+
+                {/* Precautions */}
+                {precautions.length > 0 && (
+                    <View style={[styles.card, { backgroundColor: isDark ? '#2a1111' : '#FEF2F2', borderColor: '#EF444455', borderWidth: 1 }]}>
+                        <Text style={[styles.sectionTitle, { color: '#EF4444' }]}>When to see a doctor</Text>
+                        {precautions.map((pre: string, idx: number) => (
+                            <View key={idx} style={styles.bulletRow}>
+                                <Ionicons name="medical" size={16} color="#EF4444" style={{ marginTop: 3 }} />
+                                <Text style={[{ fontFamily: customText.fontFamily }, styles.bulletText, { color: isDark ? '#FECACA' : '#991B1B' }]}>{pre}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
+
+                {/* Medical References */}
+                {sources.length > 0 && (
+                    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                        <Text style={[styles.sectionTitle, { color: '#6B7280' }]}>Medical References</Text>
+                        {sources.map((source: string, idx: number) => (
+                            <View key={idx} style={styles.bulletRow}>
+                                <Ionicons name="link-outline" size={16} color="#6B7280" style={{ marginTop: 2 }} />
+                                <Text style={[{ fontFamily: customText.fontFamily, fontStyle: 'italic' }, styles.bulletText, { color: '#6B7280' }]}>{source}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
 
                 {/* Download Button */}
-                <TouchableOpacity
-                    style={[ styles.downloadButton,
-                        styles.downloadButton,
-                        {
-                            backgroundColor: colors.primary,
-                            flexDirection: isArabic ? "row-reverse" : "row",
-                            opacity: isDownloading ? 0.7 : 1,
-                        },
-                    ]}
-                    onPress={downloadReport}
-                    activeOpacity={0.8}
-                    disabled={isDownloading}
-                >
+                <TouchableOpacity style={[styles.downloadButton, { backgroundColor: colors.primary, flexDirection: isArabic ? "row-reverse" : "row", opacity: isDownloading ? 0.7 : 1 }]} onPress={downloadReport} activeOpacity={0.8} disabled={isDownloading}>
                     {isDownloading ? (
                         <View style={{flexDirection: "row", alignItems: "center", gap: 10}}>
                             <ActivityIndicator size="small" color="#fff"/>
-                            <Text style={[styles.downloadButtonText, { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },]}>
-                                Generating PDF...
-                            </Text>
+                            <Text style={[styles.downloadButtonText, { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }]}>Generating PDF...</Text>
                         </View>
                     ) : (
                         <>
                             <Ionicons name="cloud-download-outline" size={24} color="#FFFFFF"/>
-                            <Text style={[styles.downloadButtonText, {fontFamily: customText.fontFamily}]}>
-                                {t("downloadAsPDF")}
-                            </Text>
+                            <Text style={[styles.downloadButtonText, {fontFamily: customText.fontFamily}]}>{t("downloadAsPDF")}</Text>
                         </>
                     )}
                 </TouchableOpacity>
 
                 {/* Disclaimer */}
-                <View
-                    style={[
-                        styles.warningCard,
-                        {
-                            backgroundColor: isDark ? "#2D2000" : "#FEF3C7",
-                            borderColor: isDark ? "#5C4000" : "#FCD34D",
-                            flexDirection: isArabic ? "row-reverse" : "row",
-                        },
-                    ]}
-                >
+                <View style={[styles.warningCard, { backgroundColor: isDark ? "#2D2000" : "#FEF3C7", borderColor: isDark ? "#5C4000" : "#FCD34D", flexDirection: isArabic ? "row-reverse" : "row" }]}>
                     <Ionicons name="information-circle-outline" size={20} color="#F59E0B"/>
-                    <Text
-                        style={[
-                            styles.warningText,
-                            customText,
-                            {
-                                color: isDark ? "#FCD34D" : "#92400E",
-                                textAlign: isArabic ? "right" : "left",
-                                fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
-                            },
-                        ]}
-                    >
-                        {t("medicalDisclaimer")}
-                    </Text>
+                    <Text style={[styles.warningText, customText, { color: isDark ? "#FCD34D" : "#92400E", textAlign: isArabic ? "right" : "left", fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }]}>{t("medicalDisclaimer")}</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -756,80 +555,46 @@ export default function ReportDetailsPage() {
 
 const styles = StyleSheet.create({
     container: {flex: 1},
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 15,
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.06,
-        shadowRadius: 4,
-        elevation: 2,
-        margin: 15,
-    },
-    backButton: {
-        width: 40, height: 40, borderRadius: 12, borderWidth: 1,
-        alignItems: 'center', justifyContent: 'center',
-    },
-    downloadHeaderButton: {
-        width: 40, height: 40, borderRadius: 12,
-        alignItems: 'center', justifyContent: 'center',
-    },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
+    backButton: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    downloadHeaderButton: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     headerTitle: {fontSize: 20},
     scrollView: {flex: 1},
     scrollContent: {padding: 16, paddingBottom: 40},
-    imageContainer: {
-        position: 'relative', width: '100%', height: height * 0.45,
-        borderRadius: 16, overflow: 'hidden', marginBottom: 16,
-    },
-    mainImage: {width: '100%', height: '100%'},
-    imageBadge: {
-        position: 'absolute', top: 16, right: 16,
-        backgroundColor: 'rgba(0,79,127,0.9)',
-        paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16,
-    },
-    imageBadgeText: {color: '#FFFFFF', fontSize: 14},
-    infoCard: {
-        borderRadius: 16, padding: 20, marginBottom: 16,
-        shadowColor: '#000', shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
-    },
-    infoHeader: {
-        flexDirection: 'row', alignItems: 'center', gap: 10,
-        marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1,
-    },
-    sectionTitle: {fontSize: 16},
-    reportNumber: {fontSize: 20 },
-    dateText: {fontSize: 13, marginLeft: 'auto'},
+
+    imagePairContainer: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 20 },
+    imageBox: { flex: 1, alignItems: 'center' },
+    imageLabel: { fontSize: 12, marginBottom: 6, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+    scanImage: { width: '100%', aspectRatio: 1, borderRadius: 16, overflow: 'hidden' },
+
+    card: { borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+    sectionTitle: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
+    diseaseTitle: { fontSize: 24, fontWeight: '800', marginBottom: 16 },
+    confidenceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+    confLabel: { fontSize: 14, fontWeight: '600' },
+    confValue: { fontSize: 18, fontWeight: '800' },
+    confBarBg: { height: 8, borderRadius: 4, overflow: 'hidden' },
+    confBarFill: { height: '100%', borderRadius: 4 },
+    descriptionText: { fontSize: 15, lineHeight: 24 },
+    bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
+    bulletText: { fontSize: 15, lineHeight: 22, flex: 1 },
+
+    infoCard: { borderRadius: 16, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
+    infoHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1 },
     patientGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 10},
-    patientItem: {width: '30%', flexGrow: 1, borderRadius: 10, padding: 10, borderWidth: 1},
+    patientItem: {width: '45%', flexGrow: 1, borderRadius: 10, padding: 10, borderWidth: 1},
     infoGrid: {gap: 16},
     infoItem: {flexDirection: 'row', alignItems: 'center', gap: 12},
     infoTextContainer: {flex: 1},
     infoLabel: {fontSize: 12, marginBottom: 2},
     infoValue: {fontSize: 15, fontWeight: '600'},
-    analysisCard: {
-        borderRadius: 16, padding: 20, marginBottom: 16,
-        shadowColor: '#000', shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
-    },
-    analysisHeader: {
-        flexDirection: 'row', alignItems: 'center', gap: 10,
-        marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1,
-    },
-    analysisTitle: {fontSize: 18},
-    analysisText: {fontSize: 15, lineHeight: 24},
-    downloadButton: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        paddingVertical: 16, borderRadius: 16, marginBottom: 16, gap: 10,
-    },
+    reportNumber: {fontSize: 20 },
+    dateText: {fontSize: 13, marginLeft: 'auto'},
+
+    downloadButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 16, marginBottom: 16, gap: 10 },
     downloadButtonText: {fontSize: 16, color: '#FFFFFF'},
-    warningCard: {
-        flexDirection: 'row', alignItems: 'center',
-        padding: 16, borderRadius: 12, gap: 12, borderWidth: 1,
-    },
+    warningCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, gap: 12, borderWidth: 1 },
     warningText: {flex: 1, fontSize: 13, lineHeight: 18},
+    imageBadge: { position: 'absolute', bottom: 8, right: 8, backgroundColor: 'rgba(0,79,127,0.9)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    imageBadgeText: {color: '#FFFFFF', fontSize: 11, fontWeight: 'bold'},
 });

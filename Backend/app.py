@@ -37,8 +37,6 @@ from email.mime.text import MIMEText
 
 # ── Disease info ──────────────────────────────────────────────────────────────
 from disease_info import DISEASE_INFO
-
-# ── Email templates ───────────────────────────────────────────────────────────
 from email_templates import get_otp_email_html, get_password_reset_html, get_email_change_html
 
 load_dotenv()
@@ -584,7 +582,7 @@ def send_password_reset():
     source   = data.get("source", "mobile")
     if not email or not otp_code:
         return jsonify({"error": "email and otp_code are required"}), 400
-    # Securely fetch real first name from Firebase Auth
+    # Fetch real first name from Firebase Auth
     name = "User"
     try:
         user = firebase_auth.get_user_by_email(email)
@@ -607,9 +605,9 @@ def send_email_change_otp():
     otp_code  = data.get("otp_code", "")
     source    = data.get("source", "mobile")
     uid       = data.get("uid", "")
+    name      = data.get("name", "User")
 
     # Fetch real first name from Firestore profile
-    name = data.get("name", "User")
     if uid:
         try:
             db   = get_firebase()

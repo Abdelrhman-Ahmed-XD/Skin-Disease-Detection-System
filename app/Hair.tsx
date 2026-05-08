@@ -18,8 +18,8 @@ const STORAGE_KEY = "signupDraft";
 const hairColors = [
   { name: "Black", border: "#000", color: "#000000" },
   { name: "Brown", border: "#7B4B1A", color: "#7B4B1A" },
-  { name: "Light Blue", border: "#D4A853", color: "#D4A853" },
-  { name: "Light Green", border: "#C0392B", color: "#C0392B" },
+  { name: "Gold", border: "#D4A853", color: "#D4A853" },
+  { name: "Red", border: "#C0392B", color: "#C0392B" },
   { name: "Grey", border: "#9AA0A6", color: "#9AA0A6" },
 ];
 

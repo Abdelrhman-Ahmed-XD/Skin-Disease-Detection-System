@@ -27,10 +27,30 @@ const Icons = {
 
 const { width } = Dimensions.get('window');
 
+// ── Updated Types for Nested Result Architecture ───────────────
+export type MoleResult = {
+    status?: string;
+    disease?: string;
+    confidence?: number;
+    segmentedUrl?: string;
+    description?: string;
+    tips?: string[];
+    precautions?: string[];
+    sources?: string[];
+    message?: string;
+};
+
 type Mole = {
-    id: string; x: number; y: number; timestamp: number;
-    photoUri?: string; bodyView: 'front' | 'back' | 'N/A' | string;
-    analysis?: string; source?: string; description?: string;
+    id: string;
+    x: number;
+    y: number;
+    timestamp: number;
+    photoUri?: string;
+    bodyView: 'front' | 'back' | 'N/A' | string;
+    analysis?: string;        // legacy support
+    source?: string;
+    description?: string;
+    result?: MoleResult;
 };
 
 // ── Save PDF ──────────────────────────────────────────────────
@@ -99,6 +119,7 @@ const getPlatform = (source?: string): string =>
     isWeb(source) ? 'Web' : 'Mobile App';
 
 // ── Single Report HTML ────────────────────────────────────────
+// (KEPT EXACTLY AS PROVIDED)
 const buildReportHTML = (params: {
     reportIndex: number; date: string; bodyView: string;
     moleId: string; analysis: string; imageBase64: string;
@@ -207,6 +228,7 @@ body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:18px
 </html>`;
 
 // ── All Reports HTML ──────────────────────────────────────────
+// (KEPT EXACTLY AS PROVIDED)
 const buildAllReportsHTML = (params: {
     rows: Array<{
         index: number; date: string; bodyView: string; analysis: string;
@@ -403,8 +425,6 @@ export default function ReportsPage() {
         }).catch(() => {});
     }, []);
 
-    useEffect(() => { loadMoles(); }, []);
-
     useFocusEffect(
         React.useCallback(() => {
             setActiveTab('Reports');
@@ -415,11 +435,7 @@ export default function ReportsPage() {
     const loadMoles = async () => {
         try {
             const data = await loadAllScansFromFirestore();
-            // ✅ FIX: فلتر صارم — بس moles عندها photoUri حقيقي (مش فاضي أو spaces)
-            const filtered = data.filter(
-                (m: Mole) => m.photoUri && m.photoUri.trim() !== ''
-            );
-            // الأقدم = index 0 = Report #1
+            const filtered = data.filter((m: Mole) => m.photoUri && m.photoUri.trim() !== '');
             const sorted = filtered.sort((a: Mole, b: Mole) => a.timestamp - b.timestamp);
             setMoles(sorted);
         } catch (err) {
@@ -444,7 +460,7 @@ export default function ReportsPage() {
                 ),
                 bodyView:    mole.bodyView,
                 moleId:      mole.id,
-                analysis:    mole.analysis || t('analysisInProgress'),
+                analysis:    mole.result?.disease || mole.analysis || t('analysisInProgress'),
                 imageBase64,
                 frontBody:   t('frontBody'),
                 backBody:    t('backBody'),
@@ -487,7 +503,7 @@ export default function ReportsPage() {
                                      { month: 'short', day: 'numeric', year: 'numeric' }
                                  ),
                     bodyView:    mole.bodyView,
-                    analysis:    mole.analysis || t('analysisInProgress'),
+                    analysis:    mole.result?.disease || mole.analysis || t('analysisInProgress'),
                     imageBase64,
                     frontBody:   t('frontBody'),
                     backBody:    t('backBody'),
@@ -541,7 +557,6 @@ export default function ReportsPage() {
         History: t('historyTab'), Settings: t('settingsTab'),
     };
 
-    // عكس للعرض فقط: الأحدث يظهر فوق، الأقدم في الأسفل
     const displayMoles = [...moles].reverse();
 
     return (
@@ -556,7 +571,7 @@ export default function ReportsPage() {
           >
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },,styles.headerTitle, customText, { color: isDark ? "#fff" : "#374151" }]}>
+          <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.headerTitle, customText, { color: isDark ? "#fff" : "#374151" }]}>
             {t("reports")}
           </Text>
           <View style={{ width: 40 }} />
@@ -584,34 +599,29 @@ export default function ReportsPage() {
             </View>
           ) : (
             <>
-              {/*
-                ── منطق الترقيم ──
-                moles مرتبة: index 0 = الأقدم = Report #1
-                displayMoles = معكوسة للعرض (الأحدث فوق)
-                displayIndex 0 = الأحدث → reportNumber = moles.length
-                displayIndex last = الأقدم → reportNumber = 1
-              */}
               {displayMoles.map((mole, displayIndex) => {
                 const reportNumber = moles.length - displayIndex;
-                const webScan     = isWeb(mole.source);
+                const webScan = isWeb(mole.source);
+                const diseaseName = mole.result?.disease || mole.analysis || t("analysisInProgress");
+                const confidence = mole.result?.confidence || 0;
 
                 return (
                   <View key={mole.id} style={[styles.reportCard, { backgroundColor: colors.card }]}>
 
-                    {/* ── صورة الـ report ── */}
                     <TouchableOpacity
                       style={styles.imageContainer}
                       onPress={() => router.push({
                         pathname: "/Screensbar/Reportdetails",
                         params: {
                           moleId:      mole.id,
-                          photoUri:    mole.photoUri,
+                          photoUri:    mole.photoUri || "",
                           timestamp:   mole.timestamp.toString(),
                           bodyView:    mole.bodyView,
                           x:           mole.x.toString(),
                           y:           mole.y.toString(),
-                          analysis:    mole.analysis || "",
+                          analysis:    diseaseName,
                           reportIndex: (reportNumber - 1).toString(),
+                          result:      JSON.stringify(mole.result || {}),
                         },
                       })}
                       activeOpacity={0.9}
@@ -622,9 +632,8 @@ export default function ReportsPage() {
                         resizeMode="cover"
                       />
 
-                      {/* ── Badge يمين: Front / Back — أزرق داكن ── */}
                       <View style={styles.imageBadgeRight}>
-                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },,styles.imageBadgeText]}>
+                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.imageBadgeText]}>
                           {mole.bodyView === "front"
                             ? t("frontBody")
                             : mole.bodyView === "back"
@@ -633,7 +642,6 @@ export default function ReportsPage() {
                         </Text>
                       </View>
 
-                      {/* ── Badge شمال: icon الجهاز ── */}
                       <View style={[
                         styles.imageBadgeLeft,
                         {
@@ -649,19 +657,17 @@ export default function ReportsPage() {
                         />
                       </View>
 
-                      {/* ── زرار التكبير ── */}
                       <View style={styles.expandIcon}>
                         <Ionicons name="expand-outline" size={20} color="#FFFFFF" />
                       </View>
                     </TouchableOpacity>
 
-                    {/* ── محتوى الكارد ── */}
                     <View style={styles.reportContent}>
                       <View style={[
                         styles.reportHeader,
                         { flexDirection: isArabic ? "row-reverse" : "row" },
                       ]}>
-                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },styles.reportTitle, customText, { color: '#00E5FF' }]}>
+                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.reportTitle, customText, { color: '#00E5FF' }]}>
                           {t("reportNum")}{reportNumber}
                         </Text>
                         <Text style={[
@@ -679,8 +685,24 @@ export default function ReportsPage() {
                         customText,
                         { color: colors.subText, textAlign: isArabic ? "right" : "left" },
                       ]}>
-                        {mole.analysis || t("analysisInProgress")}
+                        {diseaseName}
                       </Text>
+
+                      {confidence > 0 && (
+                        <View style={{ marginVertical: 8 }}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <Text style={{ fontSize: 12, color: colors.subText }}>Confidence</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>{confidence}%</Text>
+                          </View>
+                          <View style={{ height: 6, backgroundColor: isDark ? '#374151' : '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
+                            <View style={{
+                              height: '100%',
+                              width: `${confidence}%`,
+                              backgroundColor: confidence >= 80 ? '#22C55E' : confidence >= 60 ? '#F59E0B' : '#EF4444'
+                            }} />
+                          </View>
+                        </View>
+                      )}
 
                       <TouchableOpacity
                         style={[styles.downloadButton, {
@@ -718,9 +740,8 @@ export default function ReportsPage() {
                 );
               })}
 
-              {/* ── Download All Button ── */}
               <TouchableOpacity
-                style={[,styles.downloadAllButton, {
+                style={[styles.downloadAllButton, {
                   backgroundColor: colors.primary,
                   flexDirection:   isArabic ? "row-reverse" : "row",
                 }]}
@@ -764,7 +785,8 @@ export default function ReportsPage() {
                   ]}>
                     <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
-                  <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
+                  <Text style={[
+                    { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
                     styles.navText,
                     { color: isActive ? colors.navActive : colors.navText },
                     isActive && { fontWeight: "700" },
@@ -847,8 +869,6 @@ const styles = StyleSheet.create({
     reportCard:         { borderRadius: 16, marginBottom: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
     imageContainer:     { position: 'relative', width: '100%', height: 200 },
     reportImage:        { width: '100%', height: '100%' },
-    reportNumberBadge:     { position: 'absolute', bottom: 12, left: 12, backgroundColor: 'rgba(0,79,127,0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-    reportNumberBadgeText: { color: '#FFFFFF', fontSize: 14 },
     imageBadgeRight:    { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,79,127,0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
     imageBadgeText:     { color: '#FFFFFF', fontSize: 12 },
     imageBadgeLeft:     { position: 'absolute', top: 12, left: 12, width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
@@ -856,7 +876,7 @@ const styles = StyleSheet.create({
     expandIcon:         { position: 'absolute', bottom: 12, right: 12, backgroundColor: 'rgba(0,79,127,0.8)', width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
     reportContent:      { padding: 16 },
     reportHeader:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    reportTitle:        { fontSize: 18},
+    reportTitle:        { fontSize: 18 },
     reportDate:         { fontSize: 12 },
     reportText:         { fontSize: 14, lineHeight: 20, marginBottom: 16 },
     downloadButton:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1 },

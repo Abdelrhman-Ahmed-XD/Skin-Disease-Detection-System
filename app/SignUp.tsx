@@ -45,7 +45,7 @@ export default function SignUp() {
     const [isEmailVerified, setIsEmailVerified] = useState(false);
     const [verifiedEmail, setVerifiedEmail] = useState("");
 
-    // ── Load saved data (Now uses FocusEffect so it refreshes when coming back from verification!)
+    // ── Load saved data on focus ──────────────────────────────
     useFocusEffect(
         useCallback(() => {
             const loadSavedData = async () => {
@@ -57,8 +57,17 @@ export default function SignUp() {
                         setLastName(data.lastName || "");
                         setEmail(data.email || "");
                         // password is never stored in AsyncStorage for security
-                        setIsEmailVerified(data.isEmailVerified || false);
-                        setVerifiedEmail(data.isEmailVerified ? data.email : "");
+
+                        // ── BUG FIX ───────────────────────────────────────────
+                        // We ONLY trust "emailVerifiedConfirmed" — a key written
+                        // exclusively by Verifyemail after a successful OTP entry,
+                        // never on dismiss/cancel. This prevents pressing X from
+                        // accidentally marking the email as verified.
+                        const confirmedEmail = data.emailVerifiedConfirmed || "";
+                        const currentEmail   = data.email || "";
+                        const trulyVerified  = confirmedEmail !== "" && confirmedEmail === currentEmail;
+                        setIsEmailVerified(trulyVerified);
+                        setVerifiedEmail(trulyVerified ? confirmedEmail : "");
                     }
                 } catch (err) {
                     console.log("Load Error:", err);
@@ -68,7 +77,7 @@ export default function SignUp() {
         }, [])
     );
 
-    // ── Email verified check ──────────────────────────────────
+    // ── Email verified check — reacts to email field edits too ───────────────
     useEffect(() => {
         if (email === verifiedEmail && verifiedEmail !== "") {
             setIsEmailVerified(true);

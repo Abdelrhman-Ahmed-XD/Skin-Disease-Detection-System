@@ -21,8 +21,30 @@ const Icons = {
 
 const { width } = Dimensions.get('window');
 
-// FIXED: Updated type to allow 'N/A' and source string
-type Mole = { id: string; x: number; y: number; timestamp: number; photoUri?: string; bodyView: 'front' | 'back' | 'N/A' | string; firestoreId?: string; analysis?: string; source?: string; };
+// ── Updated Types for Nested Result Structure ─────────────────────
+type MoleResult = {
+    status?: string;
+    disease?: string;
+    confidence?: number;
+    segmentedUrl?: string;
+    description?: string;
+    tips?: string[];
+    precautions?: string[];
+    message?: string;
+};
+
+type Mole = {
+    id: string;
+    x: number;
+    y: number;
+    timestamp: number;
+    photoUri?: string;
+    bodyView: 'front' | 'back' | 'N/A' | string;
+    firestoreId?: string;
+    analysis?: string;        // legacy support
+    source?: string;
+    result?: MoleResult;
+};
 
 export default function HistoryPage() {
     const router = useRouter();
@@ -101,7 +123,7 @@ export default function HistoryPage() {
         History: t('historyTab'), Settings: t('settingsTab'),
     };
 
-    // Sort: newest first (top), oldest last (bottom)
+    // Sort: newest first (top)
     const sortedMoles = [...moles].sort((a, b) => b.timestamp - a.timestamp);
 
     return (
@@ -158,9 +180,7 @@ export default function HistoryPage() {
           ) : (
             <>
               <Text
-                style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.countLabel, customText, 
-                  styles.countLabel,
-                  customText,
+                style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.countLabel, customText,
                   {
                     color: colors.subText,
                     textAlign: isArabic ? "right" : "left",
@@ -170,115 +190,91 @@ export default function HistoryPage() {
                 {moles.length}{" "}
                 {moles.length === 1 ? t("entry") : t("entriesFound")}
               </Text>
-              {sortedMoles.map((mole, index) => (
-                <View
-                  key={mole.id}
-                  style={[styles.card, { backgroundColor: colors.card }]}
-                >
-                  <View
-                    style={[
-                      styles.cardRow,
-                      { flexDirection: isArabic ? "row-reverse" : "row" },
-                    ]}
-                  >
-                    {mole.photoUri ? (
-                      <TouchableOpacity
-                        onPress={() =>
-                          router.push({
-                            pathname: "/Screensbar/Camera",
-                            params: {
-                              tapX: mole.x.toFixed(2),
-                              tapY: mole.y.toFixed(2),
-                              bodyView: mole.bodyView,
-                              moleId: mole.id,
-                              existingPhotoUri: mole.photoUri || "",
-                              firestoreId: mole.firestoreId || "",
-                            },
-                          })
-                        }
-                        activeOpacity={0.85}
-                      >
-                        <Image
-                          source={{ uri: mole.photoUri }}
-                          style={styles.thumbnail}
-                          resizeMode="cover"
-                        />
-                      </TouchableOpacity>
-                    ) : (
-                      <View
-                        style={[
-                          styles.thumbnailPlaceholder,
-                          { backgroundColor: isDark ? "#2A3F50" : "#E8F4F8" },
-                        ]}
-                      >
-                        <Ionicons
-                          name="scan-outline"
-                          size={28}
-                          color={colors.primary}
-                        />
-                      </View>
-                    )}
 
+              {sortedMoles.map((mole, index) => {
+                const reportNumber = moles.length - index; // Report #N logic
+                const result = mole.result || {};
+                const displayDisease = result.disease || mole.analysis || 'Analysis in progress';
+
+                return (
+                  <View
+                    key={mole.id}
+                    style={[styles.card, { backgroundColor: colors.card }]}
+                  >
                     <View
                       style={[
-                        styles.cardInfo,
-                        { alignItems: isArabic ? "flex-end" : "flex-start" },
+                        styles.cardRow,
+                        { flexDirection: isArabic ? "row-reverse" : "row" },
                       ]}
                     >
-                      <Text style={[styles.cardTitle, customText]}>
-                        {t("entryNum")}
-                        {moles.length - index}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.cardDate,
-                          customText,
-                          {
-                            color: colors.subText,
-                            fontSize: Math.max(11, settings.fontSize - 4),
-                          },
-                        ]}
-                      >
-                        {formatDate(mole.timestamp)}
-                      </Text>
-                      <View
-                        style={[
-                          ,
-                          styles.badgeRow,
-                          { flexDirection: isArabic ? "row-reverse" : "row" },
-                        ]}
-                      >
+                      {mole.photoUri ? (
+                        <TouchableOpacity
+                          onPress={() =>
+                            router.push({
+                              pathname: "/Screensbar/Reportdetails",
+                              params: {
+                                moleId: mole.id,
+                                photoUri: mole.photoUri || "",
+                                timestamp: mole.timestamp.toString(),
+                                bodyView: mole.bodyView,
+                                x: mole.x.toString(),
+                                y: mole.y.toString(),
+                                analysis: displayDisease,
+                                reportIndex: (reportNumber - 1).toString(),
+                                result: JSON.stringify(result),
+                              },
+                            })
+                          }
+                          activeOpacity={0.85}
+                        >
+                          <Image
+                            source={{ uri: mole.photoUri }}
+                            style={styles.thumbnail}
+                            resizeMode="cover"
+                          />
+                        </TouchableOpacity>
+                      ) : (
                         <View
                           style={[
-                            styles.badge,
-                            {
-                              backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-                              flexDirection: isArabic ? "row-reverse" : "row",
-                            },
+                            styles.thumbnailPlaceholder,
+                            { backgroundColor: isDark ? "#2A3F50" : "#E8F4F8" },
                           ]}
                         >
                           <Ionicons
-                            name="body-outline"
-                            size={12}
-                            color={isDark ? "#fff" : "#004f7f"}
+                            name="scan-outline"
+                            size={28}
+                            color={colors.primary}
                           />
-                          <Text
-                            style={[
-                              styles.badgeText,
-                              {
-                                color: isDark ? "#fff" : "#004f7f",
-                                fontSize: Math.max(11, settings.fontSize - 4),
-                              },
-                            ]}
-                          >
-                            {mole.bodyView === "front"
-                              ? t("frontBody")
-                              : mole.bodyView === "back"
-                              ? t("backBody")
-                              : "N/A"}
-                          </Text>
                         </View>
-                        {mole.analysis && (
+                      )}
+
+                      <View
+                        style={[
+                          styles.cardInfo,
+                          { alignItems: isArabic ? "flex-end" : "flex-start" },
+                        ]}
+                      >
+                        <Text style={[styles.cardTitle, customText]}>
+                          {t("entryNum")}{reportNumber}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.cardDate,
+                            customText,
+                            {
+                              color: colors.subText,
+                              fontSize: Math.max(11, settings.fontSize - 4),
+                            },
+                          ]}
+                        >
+                          {formatDate(mole.timestamp)}
+                        </Text>
+                        <View
+                          style={[
+                            styles.badgeRow,
+                            { flexDirection: isArabic ? "row-reverse" : "row" },
+                          ]}
+                        >
                           <View
                             style={[
                               styles.badge,
@@ -289,66 +285,97 @@ export default function HistoryPage() {
                             ]}
                           >
                             <Ionicons
-                              name="checkmark-circle-outline"
+                              name="body-outline"
                               size={12}
-                              color="#10B981"
+                              color={isDark ? "#fff" : "#004f7f"}
                             />
                             <Text
                               style={[
-                                { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                                { color: isDark ? "#fff" : "#004f7f" },
                                 styles.badgeText,
                                 {
-                                  color: "#10B981",
+                                  color: isDark ? "#fff" : "#004f7f",
                                   fontSize: Math.max(11, settings.fontSize - 4),
                                 },
                               ]}
                             >
-                              {t("analyzed")}
+                              {mole.bodyView === "front"
+                                ? t("frontBody")
+                                : mole.bodyView === "back"
+                                ? t("backBody")
+                                : "N/A"}
                             </Text>
                           </View>
-                        )}
+                          {(result.disease || mole.analysis) && (
+                            <View
+                              style={[
+                                styles.badge,
+                                {
+                                  backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                                  flexDirection: isArabic ? "row-reverse" : "row",
+                                },
+                              ]}
+                            >
+                              <Ionicons
+                                name="checkmark-circle-outline"
+                                size={12}
+                                color="#10B981"
+                              />
+                              <Text
+                                style={[
+                                  { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
+                                  styles.badgeText,
+                                  {
+                                    color: "#10B981",
+                                    fontSize: Math.max(11, settings.fontSize - 4),
+                                  },
+                                ]}
+                              >
+                                {t("analyzed")}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
                       </View>
-                    </View>
 
-                    <TouchableOpacity
-                      style={styles.deleteButton}
-                      onPress={() => deleteMole(mole.id)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons
-                        name="trash-outline"
-                        size={20}
-                        color="#EF4444"
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  {mole.analysis && (
-                    <View
-                      style={[
-                        styles.analysisBox,
-                        { backgroundColor: isDark ? "#1A2F3F" : "#F4FBFF" },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.analysisText,
-                          { color: isDark ? "#fff" : "#004f7f" },
-                          {
-                            color: colors.subText,
-                            textAlign: isArabic ? "right" : "left",
-                            fontFamily: FONT_FAMILY_MAP[settings.fontFamily]
-                          },
-                        ]}
-                        numberOfLines={3}
+                      <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={() => deleteMole(mole.id)}
+                        activeOpacity={0.7}
                       >
-                        {mole.analysis}
-                      </Text>
+                        <Ionicons
+                          name="trash-outline"
+                          size={20}
+                          color="#EF4444"
+                        />
+                      </TouchableOpacity>
                     </View>
-                  )}
-                </View>
-              ))}
+
+                    {(result.disease || mole.analysis) && (
+                      <View
+                        style={[
+                          styles.analysisBox,
+                          { backgroundColor: isDark ? "#1A2F3F" : "#F4FBFF" },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.analysisText,
+                            { color: isDark ? "#fff" : "#004f7f" },
+                            {
+                              color: colors.subText,
+                              textAlign: isArabic ? "right" : "left",
+                              fontFamily: FONT_FAMILY_MAP[settings.fontFamily]
+                            },
+                          ]}
+                          numberOfLines={3}
+                        >
+                          {displayDisease}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
             </>
           )}
         </ScrollView>
