@@ -22,10 +22,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from "../../Firebase/firebaseConfig";
 import { FONT_FAMILY_MAP, useCustomize } from '../Customize/Customizecontext';
 import { useTranslation } from '../Customize/translations';
-import {
-    NOTIFICATIONS_ENABLED_KEY,
-    NOTIFICATIONS_STORAGE_KEY,
-} from '../Screensbar/notificationsData';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+
 import { useTheme } from '../ThemeContext';
 
 const Icons = {
@@ -228,24 +226,36 @@ export default function FirstHomePage() {
         },
     })).current;
 
-    const loadNotifData = async () => {
-        try {
-            const enabledVal = await AsyncStorage.getItem(NOTIFICATIONS_ENABLED_KEY);
-            const enabled = enabledVal === null ? true : enabledVal === 'true';
-            setNotificationsEnabled(enabled);
-            if (enabled) {
-                const saved = await AsyncStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
-                if (saved) {
-                    const notifs = JSON.parse(saved);
-                    setUnreadCount(notifs.filter((n: any) => !n.read).length);
+// ── UPDATED REAL-TIME LISTENER (RESPECTS SETTINGS) ──
+    useFocusEffect(
+        React.useCallback(() => {
+            let unsubscribe: () => void = () => {};
+
+            const startListener = async () => {
+                const user = auth.currentUser;
+                // Check if user turned off notifications in Settings
+                const enabledVal = await AsyncStorage.getItem('notificationsEnabled');
+                // If null (first time), we treat it as 'true'
+                const isEnabled = enabledVal === null ? true : enabledVal === 'true';
+                setNotificationsEnabled(isEnabled);
+                if (isEnabled && user) {
+                    const q = query(
+                        collection(db, 'users', user.uid, 'notifications'),
+                        where('isRead', '==', false)
+                    );
+
+                    unsubscribe = onSnapshot(q, (snapshot) => {
+                        setUnreadCount(snapshot.docs.length);
+                    });
+                } else {
+                    setUnreadCount(0); // Hide the dot if disabled
                 }
-            } else {
-                setUnreadCount(0);
-            }
-        } catch (err) {
-            console.log('Error loading notif data:', err);
-        }
-    };
+            };
+
+            startListener();
+            return () => unsubscribe(); // Clean up when leaving the page
+        }, [])
+    );
 
     useFocusEffect(
         React.useCallback(() => {
@@ -270,7 +280,7 @@ export default function FirstHomePage() {
                 }
             };
             loadUserData();
-            loadNotifData();
+            // loadNotifData(); <── DELETED THIS
         }, [])
     );
 
@@ -366,16 +376,26 @@ export default function FirstHomePage() {
             </View>
 
             <TouchableOpacity
-              style={[styles.notificationButton, { backgroundColor: isDark ? "#1E2A35" : "#F9FAFB" }]}
-              onPress={() => router.push("/Screensbar/Notifications")}
-            >
-              <Image source={Icons.notification} style={styles.notifIconImg} resizeMode="contain" />
-              {notificationsEnabled && unreadCount > 0 && (
-                <View style={styles.notifBadge}>
-                  <Text style={styles.notifBadgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+  style={[styles.notificationButton, { backgroundColor: isDark ? "#1E2A35" : "#F9FAFB" }]}
+  onPress={() => router.push("/Screensbar/Notifications")} // Always allow entry
+>
+  <View style={{ position: 'relative' }}>
+    <Image
+      source={Icons.notification}
+      style={[
+        styles.notifIconImg,
+        !notificationsEnabled && { tintColor: '#9CA3AF', opacity: 0.6 }
+      ]}
+      resizeMode="contain"
+    />
+    {!notificationsEnabled && <View style={styles.disabledLine} />}
+    {notificationsEnabled && unreadCount > 0 && (
+      <View style={styles.notifBadge}>
+        <Text style={styles.notifBadgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+      </View>
+    )}
+  </View>
+</TouchableOpacity>
           </View>
         </View>
 
@@ -560,4 +580,14 @@ const styles = StyleSheet.create({
     onboardingText:       { flex: 1, fontSize: 14, lineHeight: 20 },
     onboardingBtn:        { marginTop: 8, backgroundColor: '#004F7F', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
     onboardingBtnText:    { color: '#fff', fontWeight: '700', fontSize: 15 },
+    disabledLine: {
+        position: 'absolute',
+        top: '45%',
+        left: '34%',
+        width: '60%',
+        height: 2,
+        backgroundColor: '#9CA3AF',
+        transform: [{ rotate: '45deg' }],
+        borderRadius: 1,
+    },
 });

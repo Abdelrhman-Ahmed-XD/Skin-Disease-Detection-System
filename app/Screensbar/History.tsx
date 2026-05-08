@@ -248,14 +248,14 @@ export default function HistoryPage() {
                         </View>
                       )}
 
-                      <View
+                     <View
                         style={[
                           styles.cardInfo,
                           { alignItems: isArabic ? "flex-end" : "flex-start" },
                         ]}
                       >
                         <Text style={[styles.cardTitle, customText]}>
-                          {t("entryNum")}{reportNumber}
+                          {t("reportNum")} {reportNumber}
                         </Text>
                         <Text
                           style={[

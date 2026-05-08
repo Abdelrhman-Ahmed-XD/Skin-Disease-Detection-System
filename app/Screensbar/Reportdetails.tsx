@@ -7,7 +7,7 @@ import {shareAsync} from 'expo-sharing';
 import React, {useEffect, useState} from 'react';
 import {
     Alert, Dimensions, Image, Platform, ScrollView, StatusBar,
-    StyleSheet, Text, TouchableOpacity, View, ActivityIndicator,
+    StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Linking
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {FONT_FAMILY_MAP, useCustomize} from '../Customize/Customizecontext';
@@ -398,7 +398,6 @@ export default function ReportDetailsPage() {
                         <Text style={[styles.imageLabel, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>Original</Text>
                         <Image source={{ uri: photoUri }} style={[styles.scanImage, { backgroundColor: colors.card }]} />
 
-                        {/* ADDED THIS BADGE BACK */}
                         <View style={styles.imageBadge}>
                             <Text style={[styles.imageBadgeText, {fontFamily: customText.fontFamily}]}>
                                 {bodyView === "front" ? t("frontBody") : bodyView === "back" ? t("backBody") : "N/A"}
@@ -437,37 +436,6 @@ export default function ReportDetailsPage() {
                     </View>
                 </View>
 
-                {/* Scan Info Card */}
-                <View style={[styles.infoCard, {backgroundColor: colors.card}]}>
-                    <View style={[styles.infoHeader, {borderBottomColor: colors.border, flexDirection: isArabic ? "row-reverse" : "row"}]}>
-                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.reportNumber, customText, {color: isDark ? "#fff" : "#004f7f"}]}>{t("reportNum")}{reportIndex + 1}</Text>
-                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.dateText, {color: isDark ? "#fff" : "#004f7f"}]}>{formatDate(timestamp)}</Text>
-                    </View>
-                    <View style={[styles.infoGrid]}>
-                        <View style={[styles.infoItem, {flexDirection: isArabic ? "row-reverse" : "row"}]}>
-                            <Ionicons name="location-outline" size={20} color={isDark ? "#fff" : "#004f7f"} />
-                            <View style={[styles.infoTextContainer, {alignItems: isArabic ? "flex-end" : "flex-start"}]}>
-                                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.infoLabel, {color: isDark ? "#fff" : "#004f7f"}]}>{t("location")}</Text>
-                                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.infoValue, {color: isDark ? "#fff" : "#004f7f"}]}>{bodyView === "front" ? t("frontBody") : bodyView === "back" ? t("backBody") : "N/A"} {bodyView === "front" || bodyView === "back" ? "Body" : ""}</Text>
-                            </View>
-                        </View>
-                        <View style={[styles.infoItem, {flexDirection: isArabic ? "row-reverse" : "row"}]}>
-                            <Ionicons name="navigate-outline" size={20} color={isDark ? "#fff" : "#004f7f"} />
-                            <View style={[styles.infoTextContainer, {alignItems: isArabic ? "flex-end" : "flex-start"}]}>
-                                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.infoLabel, {color: isDark ? "#fff" : "#004f7f"}]}>{t("coordinates")}</Text>
-                                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.infoValue, {color: isDark ? "#fff" : "#004f7f"}]}>x: {x.toFixed(1)}, y: {y.toFixed(1)}</Text>
-                            </View>
-                        </View>
-                        <View style={[styles.infoItem, {flexDirection: isArabic ? "row-reverse" : "row"}]}>
-                            <Ionicons name="finger-print-outline" size={20} color={isDark ? "#fff" : "#004f7f"} />
-                            <View style={[styles.infoTextContainer, {alignItems: isArabic ? "flex-end" : "flex-start"}]}>
-                                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.infoLabel, {color: isDark ? "#fff" : "#004f7f"}]}>{t("reportId")}</Text>
-                                <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.infoValue, {color: isDark ? "#fff" : "#004f7f"}]}>{moleId.substring(0, 12)}...</Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-
                 {/* Detected Condition + Confidence Bar */}
                 <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <Text style={[styles.sectionTitle, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>Detected Condition</Text>
@@ -502,7 +470,7 @@ export default function ReportDetailsPage() {
                     </View>
                 )}
 
-                {/* Precautions */}
+               {/* Precautions */}
                 {precautions.length > 0 && (
                     <View style={[styles.card, { backgroundColor: isDark ? '#2a1111' : '#FEF2F2', borderColor: '#EF444455', borderWidth: 1 }]}>
                         <Text style={[styles.sectionTitle, { color: '#EF4444' }]}>When to see a doctor</Text>
@@ -515,16 +483,32 @@ export default function ReportDetailsPage() {
                     </View>
                 )}
 
-                {/* Medical References */}
+                {/* Medical References (SMART LINK PARSER ADDED) */}
                 {sources.length > 0 && (
                     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
                         <Text style={[styles.sectionTitle, { color: '#6B7280' }]}>Medical References</Text>
-                        {sources.map((source: string, idx: number) => (
-                            <View key={idx} style={styles.bulletRow}>
-                                <Ionicons name="link-outline" size={16} color="#6B7280" style={{ marginTop: 2 }} />
-                                <Text style={[{ fontFamily: customText.fontFamily, fontStyle: 'italic' }, styles.bulletText, { color: '#6B7280' }]}>{source}</Text>
-                            </View>
-                        ))}
+                        {sources.map((source: string, idx: number) => {
+                            const match = source.match(/(.*?)\s*\((https?:\/\/[^)]+)\)/);
+                            let displayName = source;
+                            let linkUrl = `https://www.google.com/search?q=${encodeURIComponent(source + ' skin condition')}`;
+
+                            if (match) {
+                                displayName = match[1].trim();
+                                linkUrl = match[2].trim();
+                            } else if (source.startsWith('http')) {
+                                displayName = "View Medical Reference";
+                                linkUrl = source.trim();
+                            }
+
+                            return (
+                                <TouchableOpacity key={idx} style={styles.bulletRow} activeOpacity={0.7} onPress={() => Linking.openURL(linkUrl)}>
+                                    <Ionicons name="link-outline" size={18} color="#00A3A3" style={{ marginTop: 2 }} />
+                                    <Text style={[{ fontFamily: customText.fontFamily, fontStyle: 'italic', textDecorationLine: 'underline' }, styles.bulletText, { color: '#00A3A3' }]}>
+                                        {displayName}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 )}
 

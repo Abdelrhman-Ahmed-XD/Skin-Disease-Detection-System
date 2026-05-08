@@ -71,7 +71,7 @@ DISEASE_INFO = {
         "sources": [
             "WHO Skin Cancer Guidelines 2023 (https://www.who.int/health-topics/skin-cancer)",
             "American Cancer Society: Melanoma Skin Cancer (https://www.cancer.org/cancer/types/melanoma-skin-cancer.html)",
-            "NIH National Cancer Institute: Melanoma Treatment (https://www.cancer.gov/types/melanoma/patient/melanoma-treatment-pdq)",
+            "NIH National Cancer Institute: Melanoma Treatment (https://www.cancer.gov/types/skin/patient/melanoma-treatment-pdq)",
             "Harvard Medical School: Understanding Melanoma (https://www.health.harvard.edu/cancer/melanoma-overview)",
             "IARC: Radiation: A Review of Human Carcinogens (https://publications.iarc.fr/118)",
             "PubMed: JAMA Dermatology Melanoma Epidemiology (https://jamanetwork.com/journals/jamadermatology)"
@@ -108,7 +108,7 @@ DISEASE_INFO = {
         "sources": [
             "Mayo Clinic: Seborrheic Keratosis (https://www.mayoclinic.org/diseases-conditions/seborrheic-keratosis/symptoms-causes/syc-20353878)",
             "American Academy of Dermatology: Seborrheic Keratoses (https://www.aad.org/public/diseases/a-z/seborrheic-keratoses-overview)",
-            "NIH MedlinePlus: Seborrheic Keratosis (https://medlineplus.gov/ency/article/000846.htm)",
+            "NIH MedlinePlus: Seborrheic Keratosis (https://medlineplus.gov/ency/article/000842.htm)",
             "PubMed: British Journal of Dermatology Seborrheic Keratosis Review (https://academic.oup.com/bjd)"
         ],
     },

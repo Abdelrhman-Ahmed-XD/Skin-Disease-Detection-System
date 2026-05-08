@@ -1,4 +1,3 @@
-// ====================== 2. Camera.tsx (FIXED) ======================
 import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, Dimensions,
@@ -151,8 +150,7 @@ export default function CameraScreen() {
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             quality: 0.8,
-            allowsEditing: true,
-            aspect: [1, 1],
+            allowsEditing: false,
         });
         if (!result.canceled && result.assets.length > 0) {
             setCapturedPhoto(result.assets[0].uri);
@@ -185,7 +183,6 @@ export default function CameraScreen() {
             let firestoreId: string | null = null;
             const finalBodyView = hasPosition ? bodyView : 'N/A';
 
-            // ✅ FIX: Replaced all undefined variables with 'null' so Firebase accepts it!
             const resultPayload = predictionData ? {
                 status: predictionData.status ?? null,
                 disease: predictionData.disease ?? null,
@@ -194,6 +191,7 @@ export default function CameraScreen() {
                 description: predictionData.description ?? null,
                 tips: predictionData.tips || [],
                 precautions: predictionData.precautions || [],
+                sources: predictionData.sources || [], // 👈 THIS IS THE MISSING LINK!
                 message: predictionData.message ?? null,
             } : null;
 
@@ -240,7 +238,28 @@ export default function CameraScreen() {
                 await AsyncStorage.setItem(MOLES_STORAGE_KEY, JSON.stringify([...currentMoles, newMole]));
             }
 
-            if (predictionData) {
+     if (predictionData) {
+
+                // ── FIREBASE NOTIFICATION BLOCK ──
+                if (auth.currentUser) {
+                    try {
+                        const notifRef = collection(db, 'users', auth.currentUser.uid, 'notifications');
+                        await addDoc(notifRef, {
+                            type: 'scan_result',
+                            title: 'New Scan Analysis Ready',
+                            message: `Your AI scan results for ${predictionData.disease || 'your recent photo'} are ready to view.`,
+                            disease: predictionData.disease || 'Unknown',
+                            confidence: predictionData.confidence || 0,
+                            isRead: false,
+                            timestamp: serverTimestamp(),
+                            imageUri: permanentUri
+                        });
+                    } catch (e) {
+                        console.error("Failed to save notification:", e);
+                    }
+                }
+                // ─────────────────────────────────
+
                 router.push({
                     pathname: '/Screensbar/ResultsScreen',
                     params: {
@@ -462,7 +481,7 @@ const styles = StyleSheet.create({
     galleryBtn: { width: 72, height: 72, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', gap: 4 },
     galleryBtnText: { color: '#fff', fontSize: 11, fontWeight: '600' },
     previewContainer: { flex: 1, backgroundColor: '#000' },
-    previewImage: { flex: 1, width: '100%', resizeMode: 'cover' },
+    previewImage: { flex: 1, width: '100%', resizeMode: 'contain' },
     previewTopBar: { position: 'absolute', top: 52, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
     previewTopBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
     previewTitle: { color: '#fff', fontSize: 18, fontWeight: '600' },

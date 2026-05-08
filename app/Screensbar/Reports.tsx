@@ -667,9 +667,9 @@ export default function ReportsPage() {
                         styles.reportHeader,
                         { flexDirection: isArabic ? "row-reverse" : "row" },
                       ]}>
-                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.reportTitle, customText, { color: '#00E5FF' }]}>
-                          {t("reportNum")}{reportNumber}
-                        </Text>
+                          <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.reportTitle, customText, { color: isDark ? "#00A3A3" : "#004F7F", fontWeight: 'bold' }]}>
+                      {t("reportNum")} {reportNumber}
+                    </Text>
                         <Text style={[
                           styles.reportDate,
                           customText,
@@ -871,8 +871,8 @@ const styles = StyleSheet.create({
     reportImage:        { width: '100%', height: '100%' },
     imageBadgeRight:    { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,79,127,0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
     imageBadgeText:     { color: '#FFFFFF', fontSize: 12 },
-    imageBadgeLeft:     { position: 'absolute', top: 12, left: 12, width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-    platformIcon:       { width: 22, height: 22, tintColor: '#FFFFFF' },
+    imageBadgeLeft:     { position: 'absolute', top: 12, left: 12, width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    platformIcon:       { width: 16, height: 16, tintColor: '#FFFFFF' },
     expandIcon:         { position: 'absolute', bottom: 12, right: 12, backgroundColor: 'rgba(0,79,127,0.8)', width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
     reportContent:      { padding: 16 },
     reportHeader:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
