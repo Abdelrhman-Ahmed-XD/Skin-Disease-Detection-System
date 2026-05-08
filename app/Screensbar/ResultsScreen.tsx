@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, StatusBar, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -140,8 +140,69 @@ export default function ResultsScreen() {
                                 ))}
                             </View>
                         )}
+
+                        {/* ── CLICKABLE MEDICAL REFERENCES (SMART PARSING) ── */}
+                        {result?.sources && result.sources.length > 0 && (
+                            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                                <Text style={[styles.sectionTitle, { color: '#6B7280' }]}>Medical References</Text>
+
+                                {result.sources.map((source: string, idx: number) => {
+                                    // Safer Regex to catch the URL perfectly
+                                    const match = source.match(/(.*?)\s*\((https?:\/\/[^)]+)\)/);
+
+                                    let displayName = source;
+                                    let linkUrl = '';
+
+                                    if (match) {
+                                        // Trim removes any accidental invisible spaces!
+                                        displayName = match[1].trim();
+                                        linkUrl = match[2].trim();
+                                    } else if (source.startsWith('http')) {
+                                        displayName = "View Medical Reference";
+                                        linkUrl = source.trim();
+                                    } else {
+                                        displayName = source;
+                                        linkUrl = `https://www.google.com/search?q=${encodeURIComponent(source + ' skin condition')}`;
+                                    }
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={idx}
+                                            style={styles.bulletRow}
+                                            activeOpacity={0.7}
+                                            onPress={() => Linking.openURL(linkUrl)}
+                                        >
+                                            <Ionicons name="link-outline" size={18} color="#00A3A3" style={{ marginTop: 2 }} />
+                                            <Text style={[{ fontFamily: customText.fontFamily, fontStyle: 'italic', textDecorationLine: 'underline' }, styles.bulletText, { color: '#00A3A3' }]}>
+                                                {displayName}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        )}
                     </>
                 )}
+
+                {/* ── BOTTOM BUTTONS (Appears at the end of the scroll) ── */}
+                <View style={{ flexDirection: 'row', marginTop: 10, marginBottom: 20 }}>
+                    <TouchableOpacity
+                        style={[styles.actionButton, { backgroundColor: isDark ? '#004F7F' : '#E8F4F8', marginRight: 6 }]}
+                        onPress={() => router.push('/Screensbar/Reports')}
+                    >
+                        <Ionicons name="document-text-outline" size={20} color={isDark ? '#fff' : '#004F7F'} style={{ marginRight: 6 }} />
+                        <Text style={[styles.actionButtonText, { color: isDark ? '#fff' : '#004F7F', fontFamily: customText.fontFamily }]}>Go to Reports</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.actionButton, { backgroundColor: '#00A3A3', marginLeft: 6 }]}
+                        onPress={() => router.replace('/Screensbar/Camera')}
+                    >
+                        <Ionicons name="camera-outline" size={20} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={[styles.actionButtonText, { color: '#fff', fontFamily: customText.fontFamily }]}>Take Another Scan</Text>
+                    </TouchableOpacity>
+                </View>
+
             </ScrollView>
         </SafeAreaView>
     );
@@ -168,4 +229,23 @@ const styles = StyleSheet.create({
     descriptionText: { fontSize: 15, lineHeight: 24 },
     bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
     bulletText: { fontSize: 15, lineHeight: 22, flex: 1 },
+// ── BOTTOM BUTTON STYLES ──
+    fixedBottomContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderTopWidth: 1,
+    },
+    actionButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        borderRadius: 12,
+    },
+    actionButtonText: {
+        fontSize: 15,
+        fontWeight: '700',
+    },
 });
