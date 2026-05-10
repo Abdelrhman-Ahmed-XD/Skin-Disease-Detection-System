@@ -528,14 +528,36 @@ def predict():
 
 @app.route("/api/check-email", methods=["POST"])
 def check_email():
-    data  = request.get_json()
+    data = request.get_json()
     email = data.get("email", "").strip().lower()
-    if not email:
-        return jsonify({"error": "Email is required"}), 400
     try:
-        db = get_firebase()
-        users = db.collection("users").where("email", "==", email).limit(1).get()
-        return jsonify({"exists": len(users) > 0})
+        # ✅ Wakes up Firebase before checking!
+        get_firebase()
+        firebase_auth.get_user_by_email(email)
+        return jsonify({"exists": True})
+    except firebase_admin.auth.UserNotFoundError:
+        return jsonify({"exists": False})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/send-password-reset", methods=["POST"])
+def send_password_reset():
+    data = request.get_json()
+    email = data.get("email", "").strip().lower()
+    otp_code = data.get("otp_code", "")
+
+    try:
+        # ✅ Wakes up Firebase before checking!
+        get_firebase()
+        user = firebase_auth.get_user_by_email(email)
+        name = user.display_name.split(" ")[0] if user.display_name else "User"
+
+        html = get_password_reset_html(name, otp_code)
+        _send_email(email, "SkinSight – Password Reset Code", html)
+        return jsonify({"success": True})
+    except firebase_admin.auth.UserNotFoundError:
+        return jsonify({"error": "No account found with this email address."}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -574,28 +596,7 @@ def send_otp():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/send-password-reset", methods=["POST"])
-def send_password_reset():
-    data     = request.get_json()
-    email    = data.get("email", "").strip()
-    otp_code = data.get("otp_code", "")
-    source   = data.get("source", "mobile")
-    if not email or not otp_code:
-        return jsonify({"error": "email and otp_code are required"}), 400
-    # Fetch real first name from Firebase Auth
-    name = "User"
-    try:
-        user = firebase_auth.get_user_by_email(email)
-        if user.display_name:
-            name = user.display_name.strip().split(" ")[0]
-    except Exception:
-        pass
-    try:
-        html = get_password_reset_html(name, otp_code, source)
-        _send_email(email, "SkinSight – Password Reset Code", html)
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+
 
 
 @app.route("/api/send-email-change-otp", methods=["POST"])
