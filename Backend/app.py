@@ -567,13 +567,15 @@ def send_password_reset():
 # ==============================================================================
 
 def _send_email(to_email: str, subject: str, html_body: str):
-    gmail_user = os.getenv("GMAIL_EMAIL")
-    gmail_pass = os.getenv("GMAIL_PASSWORD")
+    gmail_user = os.getenv("GMAIL_EMAIL", "").strip()
+    gmail_pass = os.getenv("GMAIL_PASSWORD", "").strip().replace(" ", "")
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"]    = f"SkinSight <{gmail_user}>"
-    msg["To"]      = to_email
+    msg["From"] = f"SkinSight <{gmail_user}>"
+    msg["To"] = to_email
     msg.attach(MIMEText(html_body, "html"))
+
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(gmail_user, gmail_pass)
         server.sendmail(gmail_user, to_email, msg.as_string())
