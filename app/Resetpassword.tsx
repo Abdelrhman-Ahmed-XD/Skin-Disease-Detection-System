@@ -145,30 +145,32 @@ export default function Resetpassword() {
                     </View>
                     {!!passwordError && <Text style={styles.errorText}>{passwordError}</Text>}
 
-                    {/* Password strength indicators — always rendered to prevent layout shift */}
-                    <View style={[styles.strengthContainer, { opacity: password.length > 0 ? 1 : 0 }]}>
-                        {[
-                            { label: '8+ characters',                   pass: password.length >= 8 },
-                            { label: 'Uppercase letter (A-Z)',          pass: /[A-Z]/.test(password) },
-                            { label: 'Lowercase letter (a-z)',          pass: /[a-z]/.test(password) },
-                            { label: 'Number (0-9)',                    pass: /[0-9]/.test(password) },
-                            { label: 'Special character (@, #, !...)',  pass: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) },
-                        ].map((item) => (
-                            <View key={item.label} style={styles.strengthRow}>
-                                <Ionicons
-                                    name={item.pass ? 'checkmark-circle' : 'ellipse-outline'}
-                                    size={16}
-                                    color={item.pass ? '#22C55E' : '#9CA3AF'}
-                                />
-                                <Text style={[styles.strengthText, { color: item.pass ? '#22C55E' : '#9CA3AF' }]}>
-                                    {item.label}
-                                </Text>
-                            </View>
-                        ))}
-                    </View>
+                    {/* Password strength indicators — hidden via display:none to avoid layout space */}
+                    {password.length > 0 && (
+                        <View style={styles.strengthContainer}>
+                            {[
+                                { label: '8+ characters',                   pass: password.length >= 8 },
+                                { label: 'Uppercase letter (A-Z)',          pass: /[A-Z]/.test(password) },
+                                { label: 'Lowercase letter (a-z)',          pass: /[a-z]/.test(password) },
+                                { label: 'Number (0-9)',                    pass: /[0-9]/.test(password) },
+                                { label: 'Special character (@, #, !...)',  pass: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) },
+                            ].map((item) => (
+                                <View key={item.label} style={styles.strengthRow}>
+                                    <Ionicons
+                                        name={item.pass ? 'checkmark-circle' : 'ellipse-outline'}
+                                        size={16}
+                                        color={item.pass ? '#22C55E' : '#9CA3AF'}
+                                    />
+                                    <Text style={[styles.strengthText, { color: item.pass ? '#22C55E' : '#9CA3AF' }]}>
+                                        {item.label}
+                                    </Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
 
                     {/* Confirm Password Field */}
-                    <Text style={[styles.label, { marginTop: 24 }]}>Confirm Password</Text>
+                    <Text style={styles.label}>Confirm Password</Text>
                     <View style={styles.inputWrapper}>
                         <TextInput
                             placeholder="Re-enter your password"
@@ -242,7 +244,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 25,
-        marginTop: 16,
+        marginTop: 4,
         textAlign: 'center',
         fontWeight: 'bold',
         color: '#1F2937',
@@ -258,7 +260,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
         color: '#374151',
-        marginTop: 32,
+      marginTop: 24,
         marginBottom: 8,
     },
     inputWrapper: {

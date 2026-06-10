@@ -33,6 +33,7 @@ export type MoleResult = {
     disease?: string;
     confidence?: number;
     segmentedUrl?: string;
+    segmented_url?: string;
     description?: string;
     tips?: string[];
     precautions?: string[];
@@ -47,7 +48,7 @@ type Mole = {
     timestamp: number;
     photoUri?: string;
     bodyView: 'front' | 'back' | 'N/A' | string;
-    analysis?: string;        // legacy support
+    analysis?: string;
     source?: string;
     description?: string;
     result?: MoleResult;
@@ -90,7 +91,7 @@ const getImageBase64 = async (uri: string): Promise<string> => {
             try {
                 const downloadRes = await FileSystem.downloadAsync(
                     uri,
-                    FileSystem.cacheDirectory + 'tmp_report_img.jpg'
+                    FileSystem.cacheDirectory + 'tmp_img_' + Date.now() + '.jpg'
                 );
                 const base64 = await FileSystem.readAsStringAsync(downloadRes.uri, {
                     encoding: FileSystem.EncodingType.Base64,
@@ -118,172 +119,221 @@ const isWeb = (source?: string): boolean => {
 const getPlatform = (source?: string): string =>
     isWeb(source) ? 'Web' : 'Mobile App';
 
+const confColor = (c: number) =>
+    c >= 80 ? '#22C55E' : c >= 60 ? '#F59E0B' : '#EF4444';
+
 // ── Single Report HTML ────────────────────────────────────────
 const buildReportHTML = (params: {
-    reportIndex: number; date: string; bodyView: string;
-    moleId: string; analysis: string; imageBase64: string;
-    frontBody: string; backBody: string; platform: string; description: string;
-    patientName: string; age: string; gender: string;
-    hairColor: string; eyeColor: string; skinColor: string;
-    confidence: number;
+    reportIndex:        number;
+    date:               string;
+    bodyView:           string;
+    moleId:             string;
+    analysis:           string;
+    imageBase64:        string;
+    maskBase64:         string;
+    frontBody:          string;
+    backBody:           string;
+    platform:           string;
+    patientName:        string;
+    age:                string;
+    gender:             string;
+    hairColor:          string;
+    eyeColor:           string;
+    skinColor:          string;
+    confidence:         number;
     diseaseDescription: string;
-}) => `<!DOCTYPE html>
+    tips:               string[];
+    precautions:        string[];
+    sources:            string[];
+}) => {
+    const cc  = confColor(params.confidence);
+    const loc = params.bodyView === 'front'
+        ? params.frontBody
+        : params.bodyView === 'back'
+        ? params.backBody
+        : 'N/A';
+
+    const patCell = (label: string, value: string) => `
+      <td style="width:33.3%;padding:2px 3px;vertical-align:top">
+        <div style="background:#F4FBFF;border-radius:6px;padding:5px 8px;border:1px solid #C5E3ED">
+          <div style="font-size:7px;color:#9CA3AF;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.3px;margin-bottom:1px">${label}</div>
+          <div style="font-size:10px;font-weight:bold;color:#1F2937;font-family:system-ui,sans-serif">${value}</div>
+        </div>
+      </td>`;
+
+    const infoCell = (label: string, value: string) => `
+      <td style="width:33.3%;padding:2px 3px;vertical-align:top">
+        <div style="background:#F4FBFF;border-radius:7px;padding:6px 8px;border:1px solid #C5E3ED">
+          <div style="font-size:7px;color:#9CA3AF;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">${label}</div>
+          <div style="font-size:11px;font-weight:bold;color:#004F7F;font-family:system-ui,sans-serif">${value}</div>
+        </div>
+      </td>`;
+
+    const bullet = (text: string, dotColor: string, textColor: string) => `
+      <div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:4px">
+        <div style="width:6px;height:6px;border-radius:3px;background:${dotColor};flex-shrink:0;margin-top:4px"></div>
+        <div style="font-size:10px;color:${textColor};line-height:1.5;font-family:system-ui,sans-serif;flex:1">${text}</div>
+      </div>`;
+
+    const tipsHtml = params.tips.length > 0 ? `
+      <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:6px 18px">
+        <div style="font-size:10px;font-weight:700;color:#00A3A3;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;font-family:system-ui,sans-serif">✅ Tips &amp; Recommendations</div>
+        ${params.tips.map(t => bullet(t, '#00A3A3', '#374151')).join('')}
+      </div>` : '';
+
+    const precHtml = params.precautions.length > 0 ? `
+      <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:6px 18px">
+        <div style="background:#FEF2F2;border-left:3px solid #EF4444;border-radius:6px;padding:7px 10px">
+          <div style="font-size:10px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;font-family:system-ui,sans-serif">⚠️ When to See a Doctor</div>
+          ${params.precautions.map(p => bullet(p, '#EF4444', '#991B1B')).join('')}
+        </div>
+      </div>` : '';
+
+    const srcHtml = params.sources.length > 0 ? `
+      <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:6px 18px">
+        <div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;font-family:system-ui,sans-serif">🔗 Medical References</div>
+        ${params.sources.map(src => {
+            const m    = src.match(/(.*?)\s*\((https?:\/\/[^)]+)\)/);
+            const name = m ? m[1].trim() : src.startsWith('http') ? 'View Reference' : src;
+            return bullet(name, '#9CA3AF', '#00A3A3');
+        }).join('')}
+      </div>` : '';
+
+    return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:18px 14px}
-.page{max-width:700px;margin:0 auto;background:#D8E9F0;border-radius:14px;overflow:hidden}
-.header{background:#004F7F;padding:22px 22px 16px;text-align:center}
-.brand{font-size:38px;font-weight:bold;color:#fff;letter-spacing:2px}
-.brand-s{color:#00A3A3;font-size:46px}
-.tagline{color:#C5E3ED;font-size:11px;margin-top:3px;font-style:italic;letter-spacing:3px}
-.hdiv{width:46px;height:3px;background:#00A3A3;margin:8px auto 0;border-radius:10px}
-.banner{background:#00A3A3;padding:7px 18px;text-align:center}
-.banner p{color:#fff;font-size:11px;font-style:italic;letter-spacing:.5px}
-.title-bar{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:12px 22px;display:flex;justify-content:space-between;align-items:center}
-.rnum{font-size:19px;font-weight:bold;color:#004F7F}
-.rdate{font-size:11px;color:#6B7280;font-family:system-ui,sans-serif}
-.psec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:10px 22px;border-top:1px solid #E5F0F6}
-.ptitle{font-size:11px;font-weight:bold;color:#004F7F;margin-bottom:7px;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.5px}
-.pgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
-.pi{background:#F4FBFF;border-radius:7px;padding:7px 9px;border:1px solid #C5E3ED}
-.pl{font-size:8px;color:#9CA3AF;font-family:system-ui,sans-serif;margin-bottom:2px;text-transform:uppercase;letter-spacing:.4px}
-.pv{font-size:11px;font-weight:bold;color:#1F2937;font-family:system-ui,sans-serif}
-.imgsec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:0 22px 12px;text-align:center}
-.imgsec img{max-width:100%;max-height:200px;border-radius:10px;border:3px solid #C5E3ED;object-fit:cover}
-.infosec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:0 22px 12px}
-.igrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:4px}
-.ii{background:#F4FBFF;border-radius:9px;padding:9px;border:1px solid #C5E3ED}
-.il{font-size:9px;color:#9CA3AF;font-family:system-ui,sans-serif;margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px}
-.iv{font-size:12px;font-weight:bold;color:#004F7F;font-family:system-ui,sans-serif}
-.asec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:12px 22px}
-.shdr{margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid #E5E7EB}
-.stitle{font-size:14px;font-weight:bold;color:#004F7F}
-.abox{background:#D8E9F0;border-radius:9px;padding:12px 15px;border:1px solid #C5E3ED}
-.atxt{font-size:12px;color:#374151;line-height:1.65;font-family:system-ui,sans-serif}
-.wsec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:0 22px 12px}
-.wbox{background:#fff3cd;border-left:4px solid #ffc107;border-radius:7px;padding:9px 13px}
-.wtxt{font-size:10px;color:#856404;line-height:1.5;font-family:system-ui,sans-serif}
-.footer{background:#004F7F;padding:16px 18px;text-align:center}
-.fdiv{width:34px;height:2px;background:#00A3A3;margin:0 auto 10px;border-radius:10px}
-.fbrand{font-size:15px;font-weight:bold;color:#fff;margin-bottom:3px}
-.fbs{color:#00A3A3}
-.fcopy{color:#C5E3ED;font-size:9px;font-family:system-ui,sans-serif}
-.fnote{color:#8ab4c9;font-size:8px;margin-top:3px;font-family:system-ui,sans-serif}
+body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:10px}
+.page{max-width:700px;margin:0 auto;background:#D8E9F0;border-radius:12px;overflow:hidden}
 </style>
 </head>
 <body>
 <div class="page">
-  <div class="header">
-    <div class="brand"><span class="brand-s">S</span>kinsight</div>
-    <div class="tagline">Snap. Detect. Protect.</div>
-    <div class="hdiv"></div>
-  </div>
-  <div class="banner"><p>Skin Analysis Report</p></div>
-  <div class="title-bar">
-    <div class="rnum">Report #${params.reportIndex + 1}</div>
-    <div class="rdate">${params.date}</div>
-  </div>
-  <div class="psec">
-    <div class="ptitle">Patient Information</div>
-    <div class="pgrid">
-      <div class="pi"><div class="pl">Patient Name</div><div class="pv">${params.patientName}</div></div>
-      <div class="pi"><div class="pl">Age</div><div class="pv">${params.age}</div></div>
-      <div class="pi"><div class="pl">Gender</div><div class="pv">${params.gender}</div></div>
-      <div class="pi"><div class="pl">Hair Color</div><div class="pv">${params.hairColor}</div></div>
-      <div class="pi"><div class="pl">Eye Color</div><div class="pv">${params.eyeColor}</div></div>
-      <div class="pi"><div class="pl">Skin Tone</div><div class="pv">${params.skinColor}</div></div>
+
+  <div style="background:#004F7F;padding:12px 22px 9px;text-align:center">
+    <div style="font-size:28px;font-weight:bold;color:#fff;letter-spacing:2px">
+      <span style="color:#00A3A3;font-size:34px">S</span>kinsight
     </div>
-  </div>
-  <div class="imgsec">
-    ${params.imageBase64
-        ? `<img src="${params.imageBase64}" alt="Skin Analysis"/>`
-        : '<p style="color:#9CA3AF;padding:14px;">No image available</p>'}
-  </div>
-  <div class="infosec">
-    <div class="igrid">
-      <div class="ii"><div class="il">Location</div><div class="iv">${params.bodyView === 'front' ? params.frontBody : params.bodyView === 'back' ? params.backBody : 'N/A'}</div></div>
-      <div class="ii"><div class="il">Platform</div><div class="iv">${params.platform}</div></div>
-      <div class="ii"><div class="il">Description</div><div class="iv">${params.description || 'N/A'}</div></div>
-    </div>
+    <div style="color:#C5E3ED;font-size:9px;margin-top:2px;font-style:italic;letter-spacing:3px">Snap. Detect. Protect.</div>
+    <div style="width:36px;height:3px;background:#00A3A3;margin:5px auto 0;border-radius:10px"></div>
   </div>
 
-  <!-- ── Analysis Results (updated) ── -->
-  <div class="asec">
-    <div class="shdr"><div class="stitle">Analysis Results</div></div>
+  <div style="background:#00A3A3;padding:4px 18px;text-align:center">
+    <p style="color:#fff;font-size:9px;font-style:italic;letter-spacing:.5px">Skin Analysis Report</p>
+  </div>
 
-    <!-- Disease Name + Confidence Row -->
-    <div style="display:flex;justify-content:space-between;align-items:center;
-                background:#E8F4F8;border-radius:9px;padding:12px 15px;
-                border:1px solid #C5E3ED;margin-bottom:10px">
-      <div>
-        <div style="font-size:9px;color:#9CA3AF;font-family:system-ui,sans-serif;
-                    text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">
-          Detected Condition
+  <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:6px 18px;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-size:15px;font-weight:bold;color:#004F7F">Report #${params.reportIndex + 1}</div>
+    <div style="font-size:9px;color:#6B7280;font-family:system-ui,sans-serif">${params.date}</div>
+  </div>
+
+  <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:6px 18px;border-top:1px solid #E5F0F6">
+    <div style="font-size:9px;font-weight:bold;color:#004F7F;margin-bottom:4px;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.5px">Patient Information</div>
+    <table style="width:100%;border-collapse:collapse">
+      <tr>
+        ${patCell("Patient Name", params.patientName)}
+        ${patCell("Age", params.age)}
+        ${patCell("Gender", params.gender)}
+      </tr>
+      <tr>
+        ${patCell("Hair Color", params.hairColor)}
+        ${patCell("Eye Color", params.eyeColor)}
+        ${patCell("Skin Tone", params.skinColor)}
+      </tr>
+    </table>
+  </div>
+
+  <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:7px 18px">
+    <table style="width:100%;border-collapse:collapse">
+      <tr>
+        <td style="width:${params.maskBase64 ? '50%' : '100%'};padding:0 ${params.maskBase64 ? '6px' : '0'} 0 0;vertical-align:top;text-align:center">
+          <div style="font-size:9px;font-weight:700;color:#6B7280;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Original Image</div>
+          ${params.imageBase64
+            ? `<img src="${params.imageBase64}" style="width:100%;max-height:150px;border-radius:10px;border:3px solid #C5E3ED;object-fit:cover;display:block"/>`
+            : `<div style="width:100%;height:110px;border-radius:10px;border:2px dashed #C5E3ED;background:#F4FBFF;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:9px;font-family:system-ui,sans-serif">No Image</div>`}
+        </td>
+        ${params.maskBase64 ? `
+        <td style="width:50%;padding:0 0 0 6px;vertical-align:top;text-align:center">
+          <div style="font-size:9px;font-weight:700;color:#00E5FF;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">U-Net Mask</div>
+          <img src="${params.maskBase64}" style="width:100%;max-height:150px;border-radius:10px;border:3px solid #00E5FF;object-fit:contain;background:#000000;display:block"/>
+        </td>` : ''}
+      </tr>
+    </table>
+  </div>
+
+  <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:5px 18px">
+    <table style="width:100%;border-collapse:collapse">
+      <tr>
+        ${infoCell("Location", loc)}
+        ${infoCell("Platform", params.platform)}
+      </tr>
+    </table>
+  </div>
+
+  <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:8px 18px">
+    <div style="font-size:12px;font-weight:bold;color:#004F7F;padding-bottom:6px;border-bottom:1px solid #E5E7EB;margin-bottom:7px">Analysis Results</div>
+    <div style="background:#E8F4F8;border-radius:8px;padding:8px 11px;border:1px solid #C5E3ED;margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>
+          <div style="font-size:7px;color:#9CA3AF;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">Detected Condition</div>
+          <div style="font-size:14px;font-weight:bold;color:${cc};font-family:system-ui,sans-serif">${params.analysis}</div>
         </div>
-        <div style="font-size:15px;font-weight:bold;color:#004F7F;
-                    font-family:system-ui,sans-serif">
-          ${params.analysis}
-        </div>
+        ${params.confidence > 0 ? `
+        <div style="text-align:right;min-width:72px">
+          <div style="font-size:7px;color:#9CA3AF;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">AI Confidence</div>
+          <div style="font-size:16px;font-weight:bold;font-family:system-ui,sans-serif;color:${cc}">${params.confidence}%</div>
+        </div>` : ''}
       </div>
       ${params.confidence > 0 ? `
-      <div style="text-align:center;min-width:90px">
-        <div style="font-size:9px;color:#9CA3AF;font-family:system-ui,sans-serif;
-                    text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">
-          AI Confidence
-        </div>
-        <div style="font-size:18px;font-weight:bold;font-family:system-ui,sans-serif;
-                    color:${params.confidence >= 80 ? '#22C55E' : params.confidence >= 60 ? '#F59E0B' : '#EF4444'}">
-          ${params.confidence}%
-        </div>
-        <div style="width:80px;height:6px;background:#E5E7EB;border-radius:3px;
-                    overflow:hidden;margin-top:5px">
-          <div style="height:100%;width:${params.confidence}%;border-radius:3px;
-                      background:${params.confidence >= 80 ? '#22C55E' : params.confidence >= 60 ? '#F59E0B' : '#EF4444'}">
-          </div>
-        </div>
+      <div style="width:100%;height:5px;background:#E5E7EB;border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${params.confidence}%;border-radius:3px;background:${cc}"></div>
       </div>` : ''}
     </div>
-
-    <!-- About This Condition -->
     ${params.diseaseDescription ? `
-    <div>
-      <div style="font-size:9px;color:#9CA3AF;font-family:system-ui,sans-serif;
-                  text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">
-        About This Condition
-      </div>
-      <div class="abox">
-        <p class="atxt">${params.diseaseDescription}</p>
-      </div>
-    </div>` : `<div class="abox"><p class="atxt">${params.analysis}</p></div>`}
+    <div style="font-size:7px;color:#9CA3AF;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">About This Condition</div>
+    <div style="background:#D8E9F0;border-radius:7px;padding:8px 10px;border:1px solid #C5E3ED">
+      <p style="font-size:10px;color:#374151;line-height:1.55;font-family:system-ui,sans-serif">${params.diseaseDescription}</p>
+    </div>` : ''}
   </div>
 
-  <div class="wsec">
-    <div class="wbox">
-      <p class="wtxt">⚠️ <strong>Medical Disclaimer:</strong> This report is generated by an AI model and is intended for informational purposes only. Always consult a qualified dermatologist or healthcare provider for any skin concerns.</p>
-    </div>
+  ${tipsHtml}
+  ${precHtml}
+  ${srcHtml}
+
+  <div style="background:#004F7F;padding:10px 18px;text-align:center">
+    <div style="width:26px;height:2px;background:#00A3A3;margin:0 auto 6px;border-radius:10px"></div>
+    <div style="font-size:12px;font-weight:bold;color:#fff;margin-bottom:2px"><span style="color:#00A3A3">S</span>kinsight</div>
+    <div style="color:#C5E3ED;font-size:7px;font-family:system-ui,sans-serif">© 2026 SkinSight. All rights reserved.</div>
+    <div style="color:#8ab4c9;font-size:6px;margin-top:2px;font-family:system-ui,sans-serif">📧 skinsight.help.2025@gmail.com</div>
   </div>
-  <div class="footer">
-    <div class="fdiv"></div>
-    <div class="fbrand"><span class="fbs">S</span>kinsight</div>
-    <div class="fcopy">© 2026 SkinSight. All rights reserved.</div>
-    <div class="fnote">📧 skinsight.help.2025@gmail.com</div>
-  </div>
+
 </div>
 </body>
 </html>`;
+};
 
 // ── All Reports HTML ──────────────────────────────────────────
 const buildAllReportsHTML = (params: {
     rows: Array<{
-        index: number; date: string; bodyView: string; analysis: string;
-        imageBase64: string; frontBody: string; backBody: string;
-        description: string; platform: string;
+        index:       number;
+        date:        string;
+        bodyView:    string;
+        analysis:    string;
+        imageBase64: string;
+        maskBase64:  string;
+        frontBody:   string;
+        backBody:    string;
+        platform:    string;
+        confidence:  number;
     }>;
-    patientName: string; age: string; gender: string;
-    hairColor: string; eyeColor: string; skinColor: string;
+    patientName:   string;
+    age:           string;
+    gender:        string;
+    hairColor:     string;
+    eyeColor:      string;
+    skinColor:     string;
     generatedDate: string;
 }) => `<!DOCTYPE html>
 <html>
@@ -328,17 +378,14 @@ td{padding:8px 7px;vertical-align:middle}
 .tnum{font-size:12px;font-weight:bold;color:#004F7F;text-align:center}
 .timg{text-align:center}
 .timg img{width:50px;height:50px;border-radius:6px;border:2px solid #C5E3ED;object-fit:cover;display:block;margin:0 auto}
+.timg-mask img{width:50px;height:50px;border-radius:6px;border:2px solid #00E5FF;object-fit:contain;background:#000;display:block;margin:0 auto}
 .timg-ph{width:50px;height:50px;border-radius:6px;border:2px dashed #C5E3ED;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:8px;margin:0 auto;background:#F4FBFF;text-align:center;padding:3px;line-height:1.3}
 .tdate{font-size:10px;color:#374151;white-space:nowrap}
 .loc-badge{display:inline-block;background:#E8F4F8;color:#004F7F;border:1px solid #C5E3ED;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600}
 .plat-badge{display:inline-block;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600}
 .plat-app{background:#E8F4F8;color:#004F7F;border:1px solid #C5E3ED}
 .plat-web{background:#E6F4EA;color:#1A6B35;border:1px solid #A8D5B5}
-.tdesc{font-size:9px;color:#374151;max-width:110px}
-.tanal{font-size:9px;color:#374151;line-height:1.5;max-width:210px}
-.wsec{background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:0 18px 12px}
-.wbox{background:#fff3cd;border-left:4px solid #ffc107;border-radius:6px;padding:8px 12px}
-.wtxt{font-size:9px;color:#856404;line-height:1.5;font-family:system-ui,sans-serif}
+.tanal{font-size:9px;color:#374151;line-height:1.5;max-width:160px}
 .footer{background:#004F7F;padding:15px 18px;text-align:center}
 .fdiv{width:34px;height:2px;background:#00A3A3;margin:0 auto 10px;border-radius:10px}
 .fbrand{font-size:15px;font-weight:bold;color:#fff;margin-bottom:3px}
@@ -382,12 +429,13 @@ td{padding:8px 7px;vertical-align:middle}
     <table>
       <thead>
         <tr>
-          <th style="width:34px">#</th>
-          <th style="width:60px">Image</th>
-          <th style="width:78px">Date</th>
-          <th style="width:68px">Location</th>
-          <th style="width:70px">Platform</th>
-          <th style="width:105px">Description</th>
+          <th style="width:28px">#</th>
+          <th style="width:58px">Image</th>
+          <th style="width:58px">U-Net Mask</th>
+          <th style="width:72px">Date</th>
+          <th style="width:62px">Location</th>
+          <th style="width:62px">Platform</th>
+          <th style="width:80px">Confidence</th>
           <th>Analysis Result</th>
         </tr>
       </thead>
@@ -400,20 +448,28 @@ td{padding:8px 7px;vertical-align:middle}
               ? `<img src="${row.imageBase64}" alt="scan"/>`
               : `<div class="timg-ph">No Image</div>`}
           </td>
+          <td class="timg-mask">
+            ${row.maskBase64
+              ? `<img src="${row.maskBase64}" alt="mask"/>`
+              : `<div class="timg-ph">No Mask</div>`}
+          </td>
           <td class="tdate">${row.date}</td>
           <td><span class="loc-badge">${row.bodyView === 'front' ? row.frontBody : row.bodyView === 'back' ? row.backBody : 'N/A'}</span></td>
           <td><span class="plat-badge ${row.platform === 'Web' ? 'plat-web' : 'plat-app'}">${row.platform}</span></td>
-          <td class="tdesc">${row.description || 'N/A'}</td>
+          <td style="text-align:center;min-width:72px">
+            ${row.confidence > 0 ? `
+              <div style="font-size:11px;font-weight:bold;color:${confColor(row.confidence)};font-family:system-ui,sans-serif;margin-bottom:3px">${row.confidence}%</div>
+              <div style="width:100%;height:5px;background:#E5E7EB;border-radius:3px;overflow:hidden">
+                <div style="height:100%;width:${row.confidence}%;background:${confColor(row.confidence)};border-radius:3px"></div>
+              </div>
+            ` : '<span style="font-size:9px;color:#9CA3AF">N/A</span>'}
+          </td>
           <td class="tanal">${row.analysis || 'Analysis in progress...'}</td>
         </tr>`).join('')}
       </tbody>
     </table>
   </div>
-  <div class="wsec">
-    <div class="wbox">
-      <p class="wtxt">⚠️ <strong>Medical Disclaimer:</strong> This report is generated by an AI model and is intended for informational purposes only. Always consult a qualified dermatologist or healthcare provider for any skin concerns.</p>
-    </div>
-  </div>
+
   <div class="footer">
     <div class="fdiv"></div>
     <div class="fbrand"><span class="fbs">S</span>kinsight</div>
@@ -451,10 +507,8 @@ export default function ReportsPage() {
     const [eyeColor,    setEyeColor]    = useState('N/A');
     const [skinColor,   setSkinColor]   = useState('N/A');
 
-    // ── Load patient data from the most recent available AsyncStorage key ──
     useEffect(() => {
         const loadPatientData = async () => {
-            // Try keys in priority order — most complete/recent first
             const keys = ['userProfile', 'profileData', 'signupDraft'];
             let d: any = null;
 
@@ -473,19 +527,13 @@ export default function ReportsPage() {
 
             if (!d) return;
 
-            // Name
             const firstName = d.firstName || d.name?.split(' ')[0] || '';
             const lastName  = d.lastName  || d.name?.split(' ').slice(1).join(' ') || '';
             setPatientName(`${firstName} ${lastName}`.trim() || 'N/A');
-
-            // Gender
             setGender(d.gender ? d.gender.charAt(0).toUpperCase() + d.gender.slice(1) : 'N/A');
-
-            // Hair & Eye
             setHairColor(d.hairColor || 'N/A');
             setEyeColor(d.eyeColor   || 'N/A');
 
-            // Skin Color
             const skinMap: Record<string, string> = {
                 '#F5E0D3': 'Very Light', '#EACAA7': 'Light',      '#D1A67A': 'Medium',
                 '#B57D50': 'Tan',        '#A05C38': 'Brown',      '#8B4513': 'Dark Brown',
@@ -493,7 +541,6 @@ export default function ReportsPage() {
             };
             setSkinColor(d.skinColor ? (skinMap[d.skinColor] || d.skinColor) : 'N/A');
 
-            // Age — from DOB fields or direct age field
             if (d.birthYear && d.birthMonth && d.birthDay) {
                 const dob = new Date(d.birthYear, d.birthMonth - 1, d.birthDay);
                 setAge(`${Math.floor((Date.now() - dob.getTime()) / (1000 * 60 * 60 * 24 * 365.25))} years`);
@@ -531,26 +578,40 @@ export default function ReportsPage() {
         try {
             setDownloadingId(mole.id);
             if (!mole.photoUri) return;
-            const imageBase64 = await getImageBase64(mole.photoUri);
+
+            const maskUrl = mole.result?.segmentedUrl || mole.result?.segmented_url || '';
+            const [imageBase64, maskBase64] = await Promise.all([
+                getImageBase64(mole.photoUri),
+                maskUrl ? getImageBase64(maskUrl) : Promise.resolve(''),
+            ]);
+
             const html = buildReportHTML({
-                reportIndex: reportNumber - 1,
-                date: new Date(mole.timestamp).toLocaleDateString(
-                    isArabic ? 'ar-EG' : 'en-US',
-                    { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }
-                ),
-                bodyView:    mole.bodyView,
-                moleId:      mole.id,
-                analysis:    mole.result?.disease || mole.analysis || t('analysisInProgress'),
+                reportIndex:        reportNumber - 1,
+                date:               new Date(mole.timestamp).toLocaleDateString(
+                                        isArabic ? 'ar-EG' : 'en-US',
+                                        { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+                                    ),
+                bodyView:           mole.bodyView,
+                moleId:             mole.id,
+                analysis:           mole.result?.disease || mole.analysis || t('analysisInProgress'),
                 imageBase64,
-                frontBody:   t('frontBody'),
-                backBody:    t('backBody'),
-                patientName, age, gender, hairColor, eyeColor, skinColor,
-                platform:    getPlatform(mole.source),
-                description: mole.description || 'N/A',
-                // ── New fields ──
+                maskBase64,
+                frontBody:          t('frontBody'),
+                backBody:           t('backBody'),
+                patientName,
+                age,
+                gender,
+                hairColor,
+                eyeColor,
+                skinColor,
+                platform:           getPlatform(mole.source),
                 confidence:         mole.result?.confidence ?? 0,
                 diseaseDescription: mole.result?.description || '',
+                tips:               mole.result?.tips        || [],
+                precautions:        mole.result?.precautions || [],
+                sources:            mole.result?.sources     || [],
             });
+
             const { uri } = await Print.printToFileAsync({ html, base64: false });
             await savePDF(uri, `SkinSight_Report_${reportNumber}.pdf`);
         } catch (error: any) {
@@ -571,29 +632,44 @@ export default function ReportsPage() {
                 Alert.alert(t('noReportsYet'), t('noReportsToDownload'));
                 return;
             }
+
             const rows: Array<{
-                index: number; date: string; bodyView: string; analysis: string;
-                imageBase64: string; frontBody: string; backBody: string;
-                description: string; platform: string;
+                index:       number;
+                date:        string;
+                bodyView:    string;
+                analysis:    string;
+                imageBase64: string;
+                maskBase64:  string;
+                frontBody:   string;
+                backBody:    string;
+                platform:    string;
+                confidence:  number;
             }> = [];
+
             for (let i = 0; i < moles.length; i++) {
-                const mole = moles[i];
-                const imageBase64 = await getImageBase64(mole.photoUri || '');
+                const mole    = moles[i];
+                const maskUrl = mole.result?.segmentedUrl || mole.result?.segmented_url || '';
+                const [imageBase64, maskBase64] = await Promise.all([
+                    getImageBase64(mole.photoUri || ''),
+                    maskUrl ? getImageBase64(maskUrl) : Promise.resolve(''),
+                ]);
                 rows.push({
-                    index:       i,
-                    date:        new Date(mole.timestamp).toLocaleDateString(
-                                     isArabic ? 'ar-EG' : 'en-US',
-                                     { month: 'short', day: 'numeric', year: 'numeric' }
-                                 ),
-                    bodyView:    mole.bodyView,
-                    analysis:    mole.result?.disease || mole.analysis || t('analysisInProgress'),
+                    index:      i,
+                    date:       new Date(mole.timestamp).toLocaleDateString(
+                                    isArabic ? 'ar-EG' : 'en-US',
+                                    { month: 'short', day: 'numeric', year: 'numeric' }
+                                ),
+                    bodyView:   mole.bodyView,
+                    analysis:   mole.result?.disease || mole.analysis || t('analysisInProgress'),
                     imageBase64,
-                    frontBody:   t('frontBody'),
-                    backBody:    t('backBody'),
-                    description: mole.description || 'N/A',
-                    platform:    getPlatform(mole.source),
+                    maskBase64,
+                    frontBody:  t('frontBody'),
+                    backBody:   t('backBody'),
+                    platform:   getPlatform(mole.source),
+                    confidence: mole.result?.confidence ?? 0,
                 });
             }
+
             const generatedDate = new Date().toLocaleDateString(
                 isArabic ? 'ar-EG' : 'en-US',
                 { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }
@@ -750,9 +826,9 @@ export default function ReportsPage() {
                         styles.reportHeader,
                         { flexDirection: isArabic ? "row-reverse" : "row" },
                       ]}>
-                          <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.reportTitle, customText, { color: isDark ? "#00A3A3" : "#004F7F", fontWeight: 'bold' }]}>
-                      {t("reportNum")} {reportNumber}
-                    </Text>
+                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.reportTitle, customText, { color: isDark ? "#00A3A3" : "#004F7F", fontWeight: 'bold' }]}>
+                          {t("reportNum")} {reportNumber}
+                        </Text>
                         <Text style={[
                           styles.reportDate,
                           customText,

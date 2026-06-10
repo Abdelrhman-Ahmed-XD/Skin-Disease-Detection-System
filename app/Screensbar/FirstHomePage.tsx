@@ -591,4 +591,3 @@ const styles = StyleSheet.create({
         borderRadius: 1,
     },
 });
-1
