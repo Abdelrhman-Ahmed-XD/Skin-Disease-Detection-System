@@ -5,6 +5,7 @@ import {
   Animated,
   Dimensions,
   Image,
+  Modal,
   PanResponder,
   StatusBar,
   StyleSheet,
@@ -13,13 +14,15 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
-// ── Flag على مستوى الـ module ──────────────────────────────────
-// بيتحفظ في الـ memory طول الـ session
-// لما الـ app يتقفل ويتفتح تاني بيرجع false تلقائياً
+// ── Free scan flag key (shared with cameraguest.tsx) ────────────
+export const GUEST_FREE_SCAN_KEY = 'guestFreeScanUsed';
+
+// ── Session flag (onboarding) ─────────────────────────────────
 let guestOnboardingShownThisSession = false;
 
 const Icons = {
@@ -89,6 +92,14 @@ export default function Guest() {
   const [moles,     setMoles]     = useState<Mole[]>([]);
   const [activeTab, setActiveTab] = useState<string>('Home');
 
+  // ── Free scan state ─────────────────────────────────────────
+  // true  → scan already used → show "locked" modal asking to sign up
+  // false → scan not used yet → navigate to cameraguest
+  const [freeScanUsed, setFreeScanUsed] = useState<boolean>(false);
+
+  // ── Login modal (body map lock for guests) ──────────────────
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
   // ── Onboarding ─────────────────────────────────────────────
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -97,8 +108,11 @@ export default function Guest() {
   const pulseAnim    = useRef(new Animated.Value(1)).current;
   const pulseLoop    = useRef<Animated.CompositeAnimation | null>(null);
 
-  // ── Camera Modal ───────────────────────────────────────────
-  const [showCameraModal, setShowCameraModal] = useState(false);
+  // ── Camera Modal (two modes: free scan offer OR locked upgrade) ──
+  const [showCameraModal,  setShowCameraModal]  = useState(false);
+  // 'free'    → user hasn't scanned yet, offer 1 free scan + sign up
+  // 'locked'  → user has used their free scan, ask them to sign up
+  const [cameraModalMode, setCameraModalMode] = useState<'free' | 'locked'>('free');
   const cameraFade  = useRef(new Animated.Value(0)).current;
   const cameraScale = useRef(new Animated.Value(0.85)).current;
 
@@ -192,22 +206,25 @@ export default function Guest() {
           const relX = (touch.pageX - txVal.current - cx) / scaleVal.current + imgW / 2;
           const relY = (touch.pageY - tyVal.current - cy) / scaleVal.current + imgH / 2;
           if (checkBodyHit(relX / imgW, relY / imgH)) {
-            openCameraModalRef.current();
+            setShowLoginModal(true);
           }
         });
       }
     },
   })).current;
 
-  // ── الأونبوردينج: مرة واحدة في الـ session ────────────────
+  // ── Read free scan flag & onboarding on focus ─────────────
   useFocusEffect(
     React.useCallback(() => {
       setActiveTab('Home');
 
-      // لو اتشاف قبل كده في نفس الـ session → متظهرش
-      if (guestOnboardingShownThisSession) return;
+      // Re-read the free scan flag every time the screen is focused
+      // (covers the case where cameraguest sets it and user comes back)
+      AsyncStorage.getItem(GUEST_FREE_SCAN_KEY).then((val) => {
+        setFreeScanUsed(val === 'true');
+      });
 
-      // أول مرة → سجّل إنه هيتشاف وشغّله
+      if (guestOnboardingShownThisSession) return;
       guestOnboardingShownThisSession = true;
       setOnboardingStep(0);
       setShowOnboarding(false);
@@ -260,7 +277,10 @@ export default function Guest() {
 
   const handleSkipAll = () => { setShowOnboarding(false); };
 
+  // ── Open camera modal (decides mode based on freeScanUsed) ──
   const openCameraModal = () => {
+    // Re-read from state (already synced via useFocusEffect + live setFreeScanUsed)
+    setCameraModalMode(freeScanUsed ? 'locked' : 'free');
     setShowCameraModal(true);
     cameraFade.setValue(0);
     cameraScale.setValue(0.85);
@@ -272,6 +292,18 @@ export default function Guest() {
 
   useEffect(() => { openCameraModalRef.current = openCameraModal; });
   const closeCameraModal = () => setShowCameraModal(false);
+// 🛠 TEMPORARY DEV FUNCTION: REMOVE BEFORE PRODUCTION
+  const resetGuestMode = async () => {
+    await AsyncStorage.removeItem(GUEST_FREE_SCAN_KEY);
+    setFreeScanUsed(false);
+    alert('Guest mode reset! You have 1 free scan again.');
+  };
+
+  // ── Navigate to the guest camera for the 1 free scan ───────
+  const handleUseFreeScan = () => {
+    closeCameraModal();
+    router.push('/Guest/cameraguest' as any);
+  };
 
   const handleTabPress = (tabName: string) => {
     setActiveTab(tabName);
@@ -299,6 +331,7 @@ export default function Guest() {
     { name: 'Settings', iconImg: Icons.settings },
   ];
 
+  // ── Onboarding overlay ────────────────────────────────────
   const renderOnboarding = () => {
     if (!showOnboarding) return null;
     const step      = ONBOARDING_STEPS[onboardingStep];
@@ -351,8 +384,69 @@ export default function Guest() {
     );
   };
 
+  // ── Camera modal (two modes) ──────────────────────────────
   const renderCameraModal = () => {
     if (!showCameraModal) return null;
+
+    // ── MODE: LOCKED — free scan already used ───────────────
+    if (cameraModalMode === 'locked') {
+      return (
+        <View style={[StyleSheet.absoluteFill, ob.root]} pointerEvents="box-none">
+          <TouchableOpacity style={[StyleSheet.absoluteFill, ob.overlay]} activeOpacity={1} onPress={closeCameraModal} />
+          <Animated.View
+            pointerEvents="none"
+            style={[ob.spotlight, { left: width / 2 - 34, top: height - NAV_BAR_HEIGHT - 64, transform: [{ scale: pulseAnim }] }]}
+          />
+          <Animated.View style={[ob.cameraModalWrapper, { opacity: cameraFade, transform: [{ scale: cameraScale }] }]}>
+            <View style={ob.tooltip}>
+              {/* Header */}
+              <View style={ob.header}>
+                <View style={[ob.iconCircle, { backgroundColor: '#FFE8E8' }]}>
+                  <Ionicons name="lock-closed-outline" size={15} color="#EF4444" />
+                </View>
+                <Text style={ob.titleText}>Free Scan Used</Text>
+                <TouchableOpacity onPress={closeCameraModal} style={ob.closeBtn} activeOpacity={0.8}>
+                  <Ionicons name="close" size={14} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Lock badge */}
+              <View style={ob.lockedBadge}>
+                <Ionicons name="scan-circle-outline" size={28} color="#9CA3AF" />
+                <View style={ob.lockedBadgeTextCol}>
+                  <Text style={ob.lockedBadgeTitle}>1 / 1 Free Scans Used</Text>
+                  <Text style={ob.lockedBadgeSub}>Create an account for unlimited scans</Text>
+                </View>
+              </View>
+
+              {/* Progress bar (full) */}
+              <View style={ob.progressTrack}>
+                <View style={ob.progressFill} />
+              </View>
+
+              <Text style={ob.desc}>
+                You&#39;ve used your free scan. Sign up to unlock unlimited AI skin analyses, full reports, and scan history.
+              </Text>
+
+              <View style={ob.cameraActions}>
+                <TouchableOpacity style={ob.signUpBtn} activeOpacity={0.85}
+                  onPress={() => { closeCameraModal(); router.push('/SignUp'); }}>
+                  <Ionicons name="person-add-outline" size={14} color="#fff" />
+                  <Text style={ob.signUpBtnText}>Create Account</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={ob.loginBtn} activeOpacity={0.85}
+                  onPress={() => { closeCameraModal(); router.push('/Login1'); }}>
+                  <Ionicons name="log-in-outline" size={14} color="#004F7F" />
+                  <Text style={ob.loginBtnText}>Log In</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+      );
+    }
+
+    // ── MODE: FREE — first scan, offer it + encourage sign up ──
     return (
       <View style={[StyleSheet.absoluteFill, ob.root]} pointerEvents="box-none">
         <TouchableOpacity style={[StyleSheet.absoluteFill, ob.overlay]} activeOpacity={1} onPress={closeCameraModal} />
@@ -362,23 +456,47 @@ export default function Guest() {
         />
         <Animated.View style={[ob.cameraModalWrapper, { opacity: cameraFade, transform: [{ scale: cameraScale }] }]}>
           <View style={ob.tooltip}>
+            {/* Header */}
             <View style={ob.header}>
               <View style={ob.iconCircle}>
-                <Ionicons name="camera-outline" size={15} color="#004F7F" />
+                <Ionicons name="gift-outline" size={15} color="#004F7F" />
               </View>
-              <Text style={ob.titleText}>Camera Access</Text>
+              <Text style={ob.titleText}>1 Free Scan</Text>
               <TouchableOpacity onPress={closeCameraModal} style={ob.closeBtn} activeOpacity={0.8}>
                 <Ionicons name="close" size={14} color="#fff" />
               </TouchableOpacity>
             </View>
+
+            {/* Progress badge */}
+            <View style={ob.lockedBadge}>
+              <Ionicons name="scan-circle-outline" size={28} color="#00A3A3" />
+              <View style={ob.lockedBadgeTextCol}>
+                <Text style={ob.lockedBadgeTitle}>0 / 1 Free Scans Used</Text>
+                <Text style={ob.lockedBadgeSub}>Sign up for unlimited scans</Text>
+              </View>
+            </View>
+
+            {/* Progress bar (empty) */}
+            <View style={ob.progressTrack}>
+              <View style={[ob.progressFill, { width: '0%' }]} />
+            </View>
+
             <Text style={ob.desc}>
-              To take photos and analyze your skin, you need to create an account or log in first.
+              You have 1 free scan as a guest. Use it now, or create an account to get unlimited AI skin analyses.
             </Text>
+
+            {/* Primary: use free scan. Secondary: sign up / log in */}
+            <TouchableOpacity style={[ob.signUpBtn, { marginBottom: 8 }]} activeOpacity={0.85}
+              onPress={handleUseFreeScan}>
+              <Ionicons name="camera-outline" size={14} color="#fff" />
+              <Text style={ob.signUpBtnText}>Use Free Scan</Text>
+            </TouchableOpacity>
+
             <View style={ob.cameraActions}>
-              <TouchableOpacity style={ob.signUpBtn} activeOpacity={0.85}
+              <TouchableOpacity style={[ob.loginBtn, { backgroundColor: '#004F7F' }]} activeOpacity={0.85}
                 onPress={() => { closeCameraModal(); router.push('/SignUp'); }}>
                 <Ionicons name="person-add-outline" size={14} color="#fff" />
-                <Text style={ob.signUpBtnText}>Create Account</Text>
+                <Text style={[ob.loginBtnText, { color: '#fff' }]}>Sign Up Free</Text>
               </TouchableOpacity>
               <TouchableOpacity style={ob.loginBtn} activeOpacity={0.85}
                 onPress={() => { closeCameraModal(); router.push('/Login1'); }}>
@@ -391,6 +509,66 @@ export default function Guest() {
       </View>
     );
   };
+
+  // ── Login modal (body map locked for guests) ─────────────
+  const renderLoginModal = () => (
+    <Modal
+      visible={showLoginModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowLoginModal(false)}
+    >
+      <View style={loginModal.overlay}>
+        <View style={[loginModal.card, { backgroundColor: isDark ? '#1A2A35' : '#FFFFFF' }]}>
+          {/* Icon */}
+          <View style={loginModal.iconWrap}>
+            <Ionicons name="lock-closed" size={32} color="#004F7F" />
+          </View>
+
+          {/* Title */}
+          <Text style={[loginModal.title, { color: isDark ? '#FFFFFF' : '#111827' }]}>
+            Feature Locked
+          </Text>
+
+          {/* Message */}
+          <Text style={[loginModal.message, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>
+            Mole mapping is available only for registered users.
+          </Text>
+
+          {/* Create Free Account */}
+          <TouchableOpacity
+            style={loginModal.primaryBtn}
+            activeOpacity={0.85}
+            onPress={() => { setShowLoginModal(false); router.push('/SignUp'); }}
+          >
+            <Ionicons name="person-add-outline" size={16} color="#fff" />
+            <Text style={loginModal.primaryBtnText}>Create Free Account</Text>
+          </TouchableOpacity>
+
+          {/* Log In */}
+          <TouchableOpacity
+            style={loginModal.secondaryBtn}
+            activeOpacity={0.85}
+            onPress={() => { setShowLoginModal(false); router.push('/Login1'); }}
+          >
+            <Ionicons name="log-in-outline" size={16} color="#004F7F" />
+            <Text style={loginModal.secondaryBtnText}>Log In</Text>
+          </TouchableOpacity>
+
+          {/* Maybe Later */}
+          <TouchableOpacity
+            style={loginModal.ghostBtn}
+            activeOpacity={0.7}
+            onPress={() => setShowLoginModal(false)}
+          >
+            <Text style={[loginModal.ghostBtnText, { color: isDark ? '#6B7280' : '#9CA3AF' }]}>
+              Maybe Later
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
 
   return (
     <SafeAreaView
@@ -451,7 +629,7 @@ export default function Guest() {
 
       <View style={styles.titleContainer}>
         <Text style={[styles.title, { color: isDark ? "#fff" : "#000" }]}>
-          Let's Check your{" "}
+          Let&#39;s Check your{" "}
           <Text
             style={[
               styles.titleBold,
@@ -462,6 +640,30 @@ export default function Guest() {
           </Text>
         </Text>
       </View>
+<View style={styles.titleContainer}>
+        <Text style={[styles.title, { color: isDark ? "#fff" : "#000" }]}>
+          Let&#39;s Check your{" "}
+          <Text
+            style={[
+              styles.titleBold,
+              { color: isDark ? "#00A3A3" : "#004F7F" },
+            ]}
+          >
+            Skin
+          </Text>
+        </Text>
+      </View>
+
+      {/* 👇 TEMPORARY DEV BUTTON 👇 */}
+      <TouchableOpacity
+        onPress={resetGuestMode}
+        style={{ backgroundColor: '#EF4444', padding: 10, borderRadius: 12, marginHorizontal: 30, marginBottom: 10, zIndex: 99 }}
+      >
+        <Text style={{ color: 'white', fontWeight: 'bold', textAlign: 'center' }}>
+          🛠 DEV: Reset 1 Free Scan
+        </Text>
+      </TouchableOpacity>
+      {/* 👆 TEMPORARY DEV BUTTON 👆 */}
 
       <View style={styles.bodyMainContainer}>
         <View
@@ -507,7 +709,7 @@ export default function Guest() {
                       alignItems: "center",
                       gap: 4,
                     }}
-                    onPress={openCameraModal}
+                    onPress={() => setShowLoginModal(true)}
                   >
                     <View style={styles.moleInner}>
                       <Text style={styles.moleIcon}>+</Text>
@@ -667,12 +869,16 @@ export default function Guest() {
             );
           })}
         </View>
+
+        {/* ── Camera FAB — shows lock icon when scan used ── */}
         <TouchableOpacity
           style={[
             styles.cameraButton,
             {
               backgroundColor: colors.navBg,
-              borderColor: isDark ? "#374151" : "#C5E3ED",
+              borderColor: freeScanUsed
+                ? (isDark ? '#EF4444' : '#FCA5A5')
+                : (isDark ? '#374151' : '#C5E3ED'),
             },
             activeTab === "Camera" && {
               borderColor: "#004F7F",
@@ -683,14 +889,16 @@ export default function Guest() {
           activeOpacity={0.85}
         >
           <Ionicons
-            name="camera-outline"
+            name={freeScanUsed ? "lock-closed-outline" : "camera-outline"}
             size={30}
             color={
-              activeTab === "Camera"
-                ? "#004F7F"
-                : isDark
-                  ? "#FFFFFF"
-                  : "#6B7280"
+              freeScanUsed
+                ? '#EF4444'
+                : activeTab === "Camera"
+                  ? "#004F7F"
+                  : isDark
+                    ? "#FFFFFF"
+                    : "#6B7280"
             }
           />
         </TouchableOpacity>
@@ -698,10 +906,12 @@ export default function Guest() {
 
       {renderOnboarding()}
       {renderCameraModal()}
+      {renderLoginModal()}
     </SafeAreaView>
   );
 }
 
+// ── Styles ─────────────────────────────────────────────────────
 const ob = StyleSheet.create({
   root:    { zIndex: 9999, elevation: 9999 },
   overlay: { backgroundColor: 'rgba(0,10,20,0.60)', zIndex: 1 },
@@ -711,7 +921,7 @@ const ob = StyleSheet.create({
     shadowColor: '#00A3A3', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 12, elevation: 8,
   },
   tooltipWrapper:     { position: 'absolute', zIndex: 3 },
-  cameraModalWrapper: { position: 'absolute', zIndex: 3, width: 260, left: (width - 260) / 2, top: height * 0.28 },
+  cameraModalWrapper: { position: 'absolute', zIndex: 3, width: 270, left: (width - 270) / 2, top: height * 0.25 },
   tooltip: {
     backgroundColor: '#004F7F', borderRadius: 18, padding: 14,
     shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 14,
@@ -730,11 +940,18 @@ const ob = StyleSheet.create({
   dotDone:     { backgroundColor: 'rgba(255,255,255,0.55)' },
   skip:        { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600' },
   arrow:       { position: 'absolute', bottom: -10, width: 0, height: 0, borderLeftWidth: 12, borderRightWidth: 12, borderTopWidth: 11, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#004F7F' },
-  cameraActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  signUpBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#00A3A3', paddingVertical: 9, borderRadius: 14 },
-  signUpBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  loginBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#C5E3ED', paddingVertical: 9, borderRadius: 14 },
-  loginBtnText:  { color: '#004F7F', fontSize: 11, fontWeight: '700' },
+  cameraActions:      { flexDirection: 'row', gap: 8, marginTop: 4 },
+  signUpBtn:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#00A3A3', paddingVertical: 10, borderRadius: 14 },
+  signUpBtnText:      { color: '#fff', fontSize: 12, fontWeight: '700' },
+  loginBtn:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#C5E3ED', paddingVertical: 10, borderRadius: 14 },
+  loginBtnText:       { color: '#004F7F', fontSize: 12, fontWeight: '700' },
+  // Free-scan progress elements
+  lockedBadge:        { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 8, marginBottom: 8 },
+  lockedBadgeTextCol: { flex: 1 },
+  lockedBadgeTitle:   { color: '#fff', fontSize: 12, fontWeight: '700' },
+  lockedBadgeSub:     { color: '#93C5CE', fontSize: 10, marginTop: 2 },
+  progressTrack:      { height: 5, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3, marginBottom: 10, overflow: 'hidden' },
+  progressFill:       { height: '100%', width: '100%', backgroundColor: '#EF4444', borderRadius: 3 },
 });
 
 const styles = StyleSheet.create({
@@ -771,5 +988,90 @@ const styles = StyleSheet.create({
   profileIconContainer:{ width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#C5E3ED' },
   welcomeContainer:    { flex: 1, marginLeft: 12, flexDirection: 'row', alignItems: 'center' },
   welcomeLabel:        { fontSize: 18, fontStyle: 'italic' },
-  notificationButton:  { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' ,backgroundColor:"#fff"},
+  notificationButton:  { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+});
+
+// ── Login Modal Styles ──────────────────────────────────────────
+const loginModal = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  card: {
+    width: '100%',
+    borderRadius: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 16,
+  },
+  iconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#E8F4F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  message: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+    backgroundColor: '#004F7F',
+    paddingVertical: 13,
+    borderRadius: 14,
+    marginBottom: 10,
+  },
+  primaryBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  secondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+    backgroundColor: '#C5E3ED',
+    paddingVertical: 13,
+    borderRadius: 14,
+    marginBottom: 10,
+  },
+  secondaryBtnText: {
+    color: '#004F7F',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  ghostBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 2,
+  },
+  ghostBtnText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
 });

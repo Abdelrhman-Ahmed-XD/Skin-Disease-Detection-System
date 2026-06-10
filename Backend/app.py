@@ -35,6 +35,19 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+# ── AI Chatbot ────────────────────────────────────────────────────────────────
+try:
+    from groq import Groq as GroqClient
+    _groq_available = True
+except ImportError:
+    _groq_available = False
+
+try:
+    import google.generativeai as genai
+    _gemini_available = True
+except ImportError:
+    _gemini_available = False
+
 # ── Disease info ──────────────────────────────────────────────────────────────
 from disease_info import DISEASE_INFO
 from email_templates import get_otp_email_html, get_password_reset_html, get_email_change_html
@@ -360,62 +373,50 @@ def _run_pipeline(img_rgb: np.ndarray, photo_type: str = "phone"):
 
     # ── STAGE 4: Confidence thresholds ────────────────────────────────────────
     #
-    #  Tier              Condition                          Status
-    #  ──────────────────────────────────────────────────────────────
-    #  Healthy           confidence < 20%                  "healthy"
-    #  Unknown           20% ≤ confidence < 60%            "unknown"
-    #  Unknown           entropy > 1.8 (model confused)    "unknown"
-    #  Low confidence    60% ≤ confidence < 80%            "low_confidence"
-    #  Known             confidence ≥ 80%                  "known"
+    #  IMPORTANT: The UNet gate above is the ONLY source of "normal skin" detection.
+    #  If we reach this point, a real lesion WAS found. The classifier tiers below
+    #  only determine HOW WELL we can identify WHICH disease it is.
     #
+    #  The old "healthy" bucket (confidence < 20%) was semantically wrong:
+    #  low classifier confidence on a detected lesion means "unknown", not "healthy".
+    #
+    #  Tier              Condition                          Status
+    #  ──────────────────────────────────────────────────────────────────────
+    #  Unknown           confidence < 55%                  "unknown"
+    #  Unknown           entropy > 1.6 (model confused)    "unknown"
+    #  Low confidence    55% ≤ confidence < 75%            "low_confidence"
+    #  Known             confidence ≥ 75%                  "known"
+    #
+    #  Test results (40 ISIC images, thresholds 0.20-0.50, areas 500-2000):
+    #    threshold=0.25, min_area=500 → sensitivity=97.5% (39/40 detected)
+    #    BCC 10/10, BKL 10/10, MEL 10/10, NV 9/10
+    #    Conclusion: current UNet settings are already optimal.
 
-    if confidence < 20.0:
-        return {
-            "status":        "healthy",
-            "disease":       "No significant condition detected",
-            "disease_code":  None,
-            "confidence":    round(confidence, 1),
-            "entropy":       round(pred_entropy, 3),
-            "segmented_url": segmented_url,
-            "description":   None,
-            "tips":          [
-                "Continue performing monthly self skin examinations.",
-                "Apply SPF 30+ sunscreen daily to protect healthy skin.",
-                "Maintain a healthy lifestyle — diet, hydration, and stress management all affect skin health.",
-            ],
-            "precautions":   [
-                "Even healthy-looking skin should be checked annually by a dermatologist if you have risk factors.",
-                "If you notice any new or changing lesions in the future, seek professional evaluation promptly.",
-            ],
-            "sources":       ["WHO Skin Cancer Guidelines 2023", "American Academy of Dermatology"],
-            "message":       "The area appears healthy. No significant skin condition was detected.",
-        }
-
-    if confidence < 60.0 or pred_entropy > 1.8:
+    if confidence < 55.0 or pred_entropy > 1.6:
         return {
             "status":        "unknown",
-            "disease":       "Unknown / Uncertain",
+            "disease":       "Unable to Identify",
             "disease_code":  None,
             "confidence":    round(confidence, 1),
             "entropy":       round(pred_entropy, 3),
             "segmented_url": segmented_url,
-            "description":   "The AI model was unable to confidently classify this lesion. This can happen when the condition is not among the four trained categories, when image quality is low, or when the lesion has atypical features.",
+            "description":   "A skin lesion was detected, but the AI model could not confidently identify the condition. This may occur when the lesion has atypical features, image quality is limited, or the condition differs from the four trained categories.",
             "tips":          [
-                "Try retaking the photo with better lighting and a closer zoom.",
-                "Ensure the lesion is clean and in focus before scanning.",
-                "Use dermoscopy images for more accurate results if available.",
+                "Retake the photo with better lighting and zoom in so the lesion fills most of the frame.",
+                "Ensure the skin area is clean and the camera is held steady.",
+                "Dermoscopy images provide the most accurate results if available.",
             ],
             "precautions":   [
-                "Please consult a board-certified dermatologist for a professional evaluation.",
+                "Please consult a board-certified dermatologist for a professional in-person evaluation.",
                 "Do not ignore any skin lesion that concerns you, regardless of AI output.",
-                "Bring photos of the lesion taken at different times if possible.",
+                "Bring photos of the lesion taken at different times to your appointment.",
             ],
             "sources":       ["American Academy of Dermatology", "Mayo Clinic"],
-            "message":       f"Uncertain result (confidence: {round(confidence, 1)}%). The model could not reliably classify this lesion. Please consult a dermatologist.",
+            "message":       f"Unable to identify (confidence: {round(confidence, 1)}%). A lesion was detected but could not be reliably classified. Please consult a dermatologist.",
         }
 
-    # 60%–79%: low confidence — show disease but with a warning
-    if confidence < 80.0:
+    # 55%–74%: low confidence — show likely disease with warning
+    if confidence < 75.0:
         info = DISEASE_INFO.get(disease_code, {})
         return {
             "status":        "low_confidence",
@@ -431,7 +432,7 @@ def _run_pipeline(img_rgb: np.ndarray, photo_type: str = "phone"):
             "message":       f"Low confidence result ({round(confidence, 1)}%). This prediction should be verified by a qualified dermatologist.",
         }
 
-    # ≥ 80%: high confidence — full diagnosis
+    # ≥ 75%: high confidence — full diagnosis
     info = DISEASE_INFO.get(disease_code, {})
     return {
         "status":        "known",
@@ -446,6 +447,154 @@ def _run_pipeline(img_rgb: np.ndarray, photo_type: str = "phone"):
         "sources":       info.get("sources", []),
         "message":       None,
     }
+
+
+# ==============================================================================
+# AI CHATBOT CONFIG
+# ==============================================================================
+
+CHAT_SYSTEM_PROMPT = """You are SkinSight Assistant, an AI helper for the SkinSight skin disease detection web platform.
+
+## About SkinSight
+SkinSight is an AI-powered web and mobile application that analyzes skin lesion photos and detects four skin conditions:
+- **NV (Melanocytic Nevus)** — Common mole. Benign pigmented skin lesion, very common, almost always harmless. Appears as round/oval spots with uniform brown color.
+- **MEL (Melanoma)** — A serious and potentially life-threatening skin cancer. Can develop from an existing mole. Early detection is critical. Uses the ABCDE rule for identification.
+- **BKL (Benign Keratosis-like Lesion)** — Includes seborrheic keratosis and solar lentigo. Non-cancerous growths that appear waxy, scaly, or warty. Often appear in older adults.
+- **BCC (Basal Cell Carcinoma)** — The most common type of skin cancer. Rarely spreads but must be treated. Appears as a pearly or waxy bump, often with visible blood vessels.
+
+## How SkinSight Works
+1. User uploads a skin photo (or takes one with the camera)
+2. A U-Net++ segmentation model detects and crops the lesion area
+3. An ensemble of 4 CNN models (ConvNeXt-Base, ResNeXt50, DenseNet121, MaxViT-T) classifies the lesion
+4. A Meta-Boss stacking classifier combines all predictions for the final result
+5. Results show: disease name, confidence %, segmentation mask overlay, description, tips, precautions
+
+## Confidence Levels
+- **Known (≥75%)**: High confidence diagnosis shown
+- **Low Confidence (55–75%)**: Possible diagnosis shown with warning
+- **Unknown (<55% or high entropy)**: Unable to classify — consult a dermatologist
+- **No Lesion**: No skin lesion detected in the image
+
+## Features
+- Dashboard: Upload or capture photos for instant AI analysis
+- History: View all past scans with dates and results
+- Reports: Download PDF reports of individual scans or full history
+- Profile: Manage account, change email/password
+
+## Your Role
+- Answer questions about the website features, how to use it, and navigation
+- Explain the four skin conditions in detail (NV, MEL, BKL, BCC)
+- Provide medical information about skin diseases, symptoms, diagnosis, and treatment
+- Answer general dermatology questions related to skin health
+- Remind users that SkinSight is NOT a substitute for professional medical advice
+- Be empathetic, clear, and helpful
+- Keep responses concise but complete
+- Use markdown formatting where appropriate
+
+## Important Disclaimers
+Always include a reminder to consult a qualified dermatologist for any concerning skin changes. SkinSight is a screening tool, not a medical diagnosis."""
+
+_groq_client = None
+_gemini_model = None
+
+def _get_groq_client():
+    global _groq_client
+    if _groq_client is None and _groq_available:
+        key = os.getenv("GROQ_API_KEY", "")
+        if key:
+            _groq_client = GroqClient(api_key=key)
+    return _groq_client
+
+def _get_gemini_model():
+    global _gemini_model
+    if _gemini_model is None and _gemini_available:
+        key = os.getenv("GEMINI_API_KEY", "")
+        if key:
+            genai.configure(api_key=key)
+            _gemini_model = genai.GenerativeModel(
+                model_name="gemini-1.5-flash",
+                system_instruction=CHAT_SYSTEM_PROMPT,
+            )
+    return _gemini_model
+
+def _chat_via_groq(messages: list) -> str:
+    client = _get_groq_client()
+    if not client:
+        raise RuntimeError("Groq client not available")
+    full_messages = [{"role": "system", "content": CHAT_SYSTEM_PROMPT}] + messages
+    completion = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=full_messages,
+        max_tokens=1024,
+        temperature=0.7,
+    )
+    return completion.choices[0].message.content
+
+def _chat_via_gemini(messages: list) -> str:
+    model = _get_gemini_model()
+    if not model:
+        raise RuntimeError("Gemini client not available")
+    history = []
+    for msg in messages[:-1]:
+        role = "user" if msg["role"] == "user" else "model"
+        history.append({"role": role, "parts": [msg["content"]]})
+    chat = model.start_chat(history=history)
+    last_user = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+    response = chat.send_message(last_user)
+    return response.text
+
+
+# ==============================================================================
+# ROUTES — AI CHATBOT
+# ==============================================================================
+
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    """
+    POST { "messages": [{"role":"user","content":"..."},{"role":"assistant","content":"..."},...] }
+    Returns { "reply": "...", "provider": "groq"|"gemini" }
+    """
+    try:
+        data = request.get_json(force=True)
+        if not data:
+            return jsonify({"error": "Request body must be JSON"}), 400
+
+        messages = data.get("messages", [])
+        if not messages:
+            return jsonify({"error": "messages array is required"}), 400
+
+        # Keep last 10 messages to stay within token limits
+        messages = messages[-10:]
+
+        # ── Try Groq first ────────────────────────────────────────────────────
+        groq_key = os.getenv("GROQ_API_KEY", "")
+        if groq_key and _groq_available:
+            try:
+                reply = _chat_via_groq(messages)
+                return jsonify({"reply": reply, "provider": "groq"}), 200
+            except Exception as e:
+                err_str = str(e).lower()
+                # Rate limit or quota — fall through to Gemini
+                if "429" in err_str or "rate" in err_str or "quota" in err_str or "limit" in err_str:
+                    print(f"[Chat] Groq rate-limited, falling back to Gemini: {e}")
+                else:
+                    print(f"[Chat] Groq error (non-rate-limit), trying Gemini: {e}")
+
+        # ── Fallback to Gemini ────────────────────────────────────────────────
+        gemini_key = os.getenv("GEMINI_API_KEY", "")
+        if gemini_key and _gemini_available:
+            try:
+                reply = _chat_via_gemini(messages)
+                return jsonify({"reply": reply, "provider": "gemini"}), 200
+            except Exception as e:
+                print(f"[Chat] Gemini error: {e}")
+                return jsonify({"error": f"Both AI providers failed. Gemini: {str(e)}"}), 503
+
+        return jsonify({"error": "No AI provider configured. Check GROQ_API_KEY and GEMINI_API_KEY in .env"}), 503
+
+    except Exception as e:
+        print(f"[Chat] Unexpected error: {e}")
+        return jsonify({"error": "Unexpected error in chat endpoint"}), 500
 
 
 # ==============================================================================
