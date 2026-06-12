@@ -15,11 +15,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
-      if (user && !isLoggingIn) {
-        setTimeout(() => {
-          router.replace("/Screensbar/FirstHomePage");
-        }, 3000);
-      }
       setAuthChecked(true);
     });
     return unsub;
