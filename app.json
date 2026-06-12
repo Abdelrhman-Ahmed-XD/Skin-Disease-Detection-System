@@ -5,7 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "assets/images/logo.png",
-    "scheme": ["skindisease", "fb1602991657655981"],
+    "scheme": [
+      "skindisease",
+      "fb1602991657655981"
+    ],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "skipValidateProjectName": true,
@@ -13,7 +16,17 @@
       "supportsTablet": true,
       "plugins": [
         "expo-router"
-      ]
+      ],
+      "infoPlist": {
+        "SKAdNetworkItems": [
+          {
+            "SKAdNetworkIdentifier": "v9wttpbfk9.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "n38lu8286q.skadnetwork"
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +35,10 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.samuelmilad.skindisease"
+      "package": "com.samuelmilad.skindisease",
+      "permissions": [
+        "android.permission.INTERNET"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -58,6 +74,7 @@
       "eas": {
         "projectId": "21938bae-4442-487d-ad2e-648c1ef2f8a0"
       }
-    }
+    },
+    "owner": "samuel-milad"
   }
 }

@@ -18,7 +18,7 @@ export default function RootLayout() {
       if (user && !isLoggingIn) {
         setTimeout(() => {
           router.replace("/Screensbar/FirstHomePage");
-        }, 3000); // ← Wait for splash screen
+        }, 3000);
       }
       setAuthChecked(true);
     });
@@ -28,41 +28,168 @@ export default function RootLayout() {
   return (
     <CustomizeProvider>
       <ThemeProvider>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: "fade",
+            animationDuration: 200,
+            gestureEnabled: true,
+          }}
+        >
           <Stack.Screen name="index" />
+
           <Stack.Screen
             name="StartUp"
+            options={{ animation: "fade", animationDuration: 200 }}
             listeners={{
               focus: () => {
-                if (auth.currentUser && !auth.currentUser.isAnonymous && !isLoggingIn) {
-                  router.replace("/Screensbar/FirstHomePage");
-                }
-              },
-            }}
-          />
-          <Stack.Screen
-            name="Login1"
-            listeners={{
-              focus: () => {
-                if (auth.currentUser && !auth.currentUser.isAnonymous && !isLoggingIn) {
-                  router.replace("/Screensbar/FirstHomePage");
-                }
-              },
-            }}
-          />
-          <Stack.Screen
-            name="SignUp"
-            listeners={{
-              focus: () => {
-                if (auth.currentUser && !auth.currentUser.isAnonymous && !isLoggingIn) {
+                if (
+                  auth.currentUser &&
+                  !auth.currentUser.isAnonymous &&
+                  !isLoggingIn
+                ) {
                   router.replace("/Screensbar/FirstHomePage");
                 }
               },
             }}
           />
 
-          {/* Prevent iOS swipe-back to Login screen */}
-          <Stack.Screen name="Screensbar/FirstHomePage" options={{ gestureEnabled: false }} />
+          <Stack.Screen
+            name="Login1"
+            options={{ animation: "fade", animationDuration: 200 }}
+            listeners={{
+              focus: () => {
+                if (
+                  auth.currentUser &&
+                  !auth.currentUser.isAnonymous &&
+                  !isLoggingIn
+                ) {
+                  router.replace("/Screensbar/FirstHomePage");
+                }
+              },
+            }}
+          />
+
+          <Stack.Screen
+            name="SignUp"
+            options={{ animation: "fade", animationDuration: 200 }}
+            listeners={{
+              focus: () => {
+                if (
+                  auth.currentUser &&
+                  !auth.currentUser.isAnonymous &&
+                  !isLoggingIn
+                ) {
+                  router.replace("/Screensbar/FirstHomePage");
+                }
+              },
+            }}
+          />
+
+          <Stack.Screen
+            name="Screensbar/FirstHomePage"
+            options={{
+              gestureEnabled: false,
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="Screensbar/Camera"
+            options={{
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="Screensbar/ResultsScreen"
+            options={{
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="Screensbar/History"
+            options={{
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="Screensbar/Reports"
+            options={{
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="Screensbar/Setting"
+            options={{
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="Screensbar/Notifications"
+            options={{
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="Screensbar/Reportdetails"
+            options={{
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="Settingsoptions/Editprofile"
+            options={{
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="Settingsoptions/Customize"
+            options={{
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="Settingsoptions/About"
+            options={{
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="Settingsoptions/Help"
+            options={{
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
+
+          <Stack.Screen
+            name="Settingsoptions/Changepassword"
+            options={{
+              animation: "fade",
+              animationDuration: 200,
+            }}
+          />
         </Stack>
       </ThemeProvider>
     </CustomizeProvider>
