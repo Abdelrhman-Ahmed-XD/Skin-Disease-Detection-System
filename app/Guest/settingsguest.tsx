@@ -120,7 +120,10 @@ export default function GuestSettingsPage() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={["top"]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: pageBg }]}
+      edges={["top"]}
+    >
       <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
       {/* Header */}
@@ -129,28 +132,63 @@ export default function GuestSettingsPage() {
           style={[styles.backButton, { borderColor: colors.border }]}
           onPress={() => router.back()}
         >
-          <Ionicons name="chevron-back" size={24} style={{ color: isDark ? "#FFFFFF" : "#1F2937" }} />
+          <Ionicons
+            name="chevron-back"
+            size={24}
+            style={{ color: isDark ? "#FFFFFF" : "#1F2937" }}
+          />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: isDark ? "#fff" : "#000" }]}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: isDark ? "#fff" : "#000" }]}>
+          Settings
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Guest Profile */}
         <TouchableOpacity
-          style={[styles.profileCard, { backgroundColor: colors.card, flexDirection: "row" }]}
+          style={[
+            styles.profileCard,
+            { backgroundColor: colors.card, flexDirection: "row" },
+          ]}
           onPress={openLoginModal}
           activeOpacity={0.8}
         >
-          <View style={[styles.profileAvatar, { backgroundColor: isDark ? "#2A3F50" : "#fff", marginRight: 14, marginLeft: 0 }]}>
-            <Image source={Icons.person} style={styles.profileAvatarIconImg} resizeMode="contain" />
+          <View
+            style={[
+              styles.profileAvatar,
+              {
+                backgroundColor: isDark ? "#2A3F50" : "#fff",
+                marginRight: 14,
+                marginLeft: 0,
+              },
+            ]}
+          >
+            <Image
+              source={Icons.person}
+              style={styles.profileAvatarIconImg}
+              resizeMode="contain"
+            />
           </View>
           <View style={[styles.profileInfo, { alignItems: "flex-start" }]}>
-            <Text style={[styles.profileName, { fontWeight: "700", color: isDark ? "#fff" : "#000" }]}>
+            <Text
+              style={[
+                styles.profileName,
+                { fontWeight: "700", color: isDark ? "#fff" : "#000" },
+              ]}
+            >
               Guest
             </Text>
-            <Text style={[styles.profileEmail, { color: isDark ? "#AAAAAA" : colors.subText }]}>
+            <Text
+              style={[
+                styles.profileEmail,
+                { color: isDark ? "#AAAAAA" : colors.subText },
+              ]}
+            >
               Tap to sign in
             </Text>
           </View>
@@ -160,7 +198,12 @@ export default function GuestSettingsPage() {
         </TouchableOpacity>
 
         {/* Preferences — Dark Mode */}
-        <Text style={[styles.sectionTitle, { color: isDark ? "#AAAAAA" : colors.subText, textAlign: "left" }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: isDark ? "#AAAAAA" : colors.subText, textAlign: "left" },
+          ]}
+        >
           PREFERENCES
         </Text>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
@@ -183,7 +226,12 @@ export default function GuestSettingsPage() {
         </View>
 
         {/* App — About & Help */}
-        <Text style={[styles.sectionTitle, { color: isDark ? "#AAAAAA" : colors.subText, textAlign: "left" }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: isDark ? "#AAAAAA" : colors.subText, textAlign: "left" },
+          ]}
+        >
           APP
         </Text>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
@@ -209,19 +257,53 @@ export default function GuestSettingsPage() {
         </View>
 
         {/* CTA */}
-        <View style={[styles.ctaCard, { backgroundColor: isDark ? "#1E2A35" : "#E8F4F8", borderColor: "#C5E3ED" }]}>
-          <Ionicons name="lock-closed-outline" size={22} style={{ marginBottom: 8, color: isDark ? "#fff" : "#004F7F" }} />
-          <Text style={[styles.ctaText, { color: isDark ? "#FFFFFF" : "#374151" }]}>
-            Sign in to unlock all features including language, customization, notifications, and your personal data.
+        <View
+          style={[
+            styles.ctaCard,
+            {
+              backgroundColor: isDark ? "#1E2A35" : "#E8F4F8",
+              borderColor: "#C5E3ED",
+            },
+          ]}
+        >
+          <Ionicons
+            name="lock-closed-outline"
+            size={22}
+            style={{ marginBottom: 8, color: isDark ? "#fff" : "#004F7F" }}
+          />
+          <Text
+            style={[styles.ctaText, { color: isDark ? "#FFFFFF" : "#374151" }]}
+          >
+            Sign in to unlock all features including language, customization,
+            notifications, and your personal data.
           </Text>
           <View style={styles.ctaButtons}>
-            <TouchableOpacity style={[styles.ctaSignUp, { backgroundColor: "#004F7F" }]} onPress={() => router.push("/SignUp")} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={[styles.ctaSignUp, { backgroundColor: "#004F7F" }]}
+              onPress={() => router.push("/SignUp")}
+              activeOpacity={0.85}
+            >
               <Ionicons name="person-add-outline" size={15} color="#fff" />
               <Text style={styles.ctaSignUpText}>Sign Up</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.ctaLogin, { borderColor: "#004F7F" }]} onPress={() => router.push("/Login1")} activeOpacity={0.85}>
-              <Ionicons name="log-in-outline" size={28} style={{ color: isDark ? "#fff" : "#004F7F" }} />
-              <Text style={[styles.ctaLoginText, { color: isDark ? "#fff" : "#004F7F" }]}>Log In</Text>
+            <TouchableOpacity
+              style={[styles.ctaLogin, { borderColor: "#004F7F" }]}
+              onPress={() => router.push("/Login1")}
+              activeOpacity={0.85}
+            >
+              <Ionicons
+                name="log-in-outline"
+                size={28}
+                style={{ color: isDark ? "#fff" : "#004F7F" }}
+              />
+              <Text
+                style={[
+                  styles.ctaLoginText,
+                  { color: isDark ? "#fff" : "#004F7F" },
+                ]}
+              >
+                Log In
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -229,16 +311,45 @@ export default function GuestSettingsPage() {
 
       {/* Bottom Nav */}
       <View style={styles.bottomNavContainer}>
-        <View style={[styles.bottomNav, { backgroundColor: colors.navBg, borderTopColor: colors.border }]}>
+        <View style={[styles.bottomNav, { backgroundColor: colors.navBg }]}>
           {["Home", "Reports"].map((tabName) => {
             const tab = bottomTabs.find((t) => t.name === tabName)!;
             const isActive = activeTab === tab.name;
             return (
-              <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                <View style={[styles.navIcon, isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
-                  <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
+              <TouchableOpacity
+                key={tab.name}
+                style={styles.navItem}
+                onPress={() => handleTabPress(tab.name)}
+              >
+                <View
+                  style={[
+                    styles.navIcon,
+                    isActive && {
+                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                      borderWidth: 2,
+                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                    },
+                  ]}
+                >
+                  <Image
+                    source={tab.iconImg}
+                    style={styles.navIconImg}
+                    resizeMode="contain"
+                  />
                 </View>
-                <Text style={[styles.navText, { color: isActive ? colors.navActive : isDark ? "#FFFFFF" : "#6B7280" }, isActive && { fontWeight: "700" }]}>
+                <Text
+                  style={[
+                    styles.navText,
+                    {
+                      color: isActive
+                        ? colors.navActive
+                        : isDark
+                          ? "#FFFFFF"
+                          : "#6B7280",
+                    },
+                    isActive && { fontWeight: "700" },
+                  ]}
+                >
                   {tabName === "Home" ? "Home" : "Reports"}
                 </Text>
               </TouchableOpacity>
@@ -249,11 +360,40 @@ export default function GuestSettingsPage() {
             const tab = bottomTabs.find((t) => t.name === tabName)!;
             const isActive = activeTab === tab.name;
             return (
-              <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                <View style={[styles.navIcon, isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
-                  <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
+              <TouchableOpacity
+                key={tab.name}
+                style={styles.navItem}
+                onPress={() => handleTabPress(tab.name)}
+              >
+                <View
+                  style={[
+                    styles.navIcon,
+                    isActive && {
+                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                      borderWidth: 2,
+                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                    },
+                  ]}
+                >
+                  <Image
+                    source={tab.iconImg}
+                    style={styles.navIconImg}
+                    resizeMode="contain"
+                  />
                 </View>
-                <Text style={[styles.navText, { color: isActive ? colors.navActive : isDark ? "#FFFFFF" : "#6B7280" }, isActive && { fontWeight: "700" }]}>
+                <Text
+                  style={[
+                    styles.navText,
+                    {
+                      color: isActive
+                        ? colors.navActive
+                        : isDark
+                          ? "#FFFFFF"
+                          : "#6B7280",
+                    },
+                    isActive && { fontWeight: "700" },
+                  ]}
+                >
                   {tabName === "History" ? "History" : "Settings"}
                 </Text>
               </TouchableOpacity>
@@ -261,37 +401,82 @@ export default function GuestSettingsPage() {
           })}
         </View>
         <TouchableOpacity
-          style={[styles.cameraButton, { backgroundColor: colors.navBg, borderColor: isDark ? "#374151" : "#C5E3ED" }]}
+          style={[
+            styles.cameraButton,
+            {
+              backgroundColor: colors.navBg,
+              borderColor: isDark ? "#374151" : "#C5E3ED",
+            },
+          ]}
           onPress={openLoginModal}
           activeOpacity={0.85}
         >
-          <Ionicons name="camera-outline" size={30} color={isDark ? "#FFFFFF" : "#6B7280"} />
+          <Ionicons
+            name="camera-outline"
+            size={30}
+            color={isDark ? "#FFFFFF" : "#6B7280"}
+          />
         </TouchableOpacity>
       </View>
 
       {/* Login Modal */}
       {showLoginModal && (
         <View style={styles.modalOverlay} pointerEvents="box-none">
-          <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={closeLoginModal} />
-          <Animated.View style={[styles.modalBox, { backgroundColor: "#004F7F", opacity: modalFade, transform: [{ scale: modalScale }] }]}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={closeLoginModal}
+          />
+          <Animated.View
+            style={[
+              styles.modalBox,
+              {
+                backgroundColor: "#004F7F",
+                opacity: modalFade,
+                transform: [{ scale: modalScale }],
+              },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <View style={styles.modalIconCircle}>
-                <Ionicons name="lock-closed-outline" size={18} color="#004F7F" />
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={18}
+                  color="#004F7F"
+                />
               </View>
               <Text style={styles.modalTitle}>Login Required</Text>
-              <TouchableOpacity onPress={closeLoginModal} style={styles.modalClose}>
+              <TouchableOpacity
+                onPress={closeLoginModal}
+                style={styles.modalClose}
+              >
                 <Ionicons name="close" size={14} color="#fff" />
               </TouchableOpacity>
             </View>
             <Text style={styles.modalDesc}>
-              This feature is only available to registered users. Create an account or log in to continue.
+              This feature is only available to registered users. Create an
+              account or log in to continue.
             </Text>
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalSignUp} onPress={() => { closeLoginModal(); router.push("/SignUp"); }} activeOpacity={0.85}>
+              <TouchableOpacity
+                style={styles.modalSignUp}
+                onPress={() => {
+                  closeLoginModal();
+                  router.push("/SignUp");
+                }}
+                activeOpacity={0.85}
+              >
                 <Ionicons name="person-add-outline" size={14} color="#fff" />
                 <Text style={styles.modalSignUpText}>Create Account</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalLogin} onPress={() => { closeLoginModal(); router.push("/Login1"); }} activeOpacity={0.85}>
+              <TouchableOpacity
+                style={styles.modalLogin}
+                onPress={() => {
+                  closeLoginModal();
+                  router.push("/Login1");
+                }}
+                activeOpacity={0.85}
+              >
                 <Ionicons name="log-in-outline" size={14} color="#004F7F" />
                 <Text style={styles.modalLoginText}>Log In</Text>
               </TouchableOpacity>
@@ -330,8 +515,8 @@ const styles = StyleSheet.create({
   ctaSignUpText:       { color: '#fff', fontWeight: '700', fontSize: 14 },
   ctaLogin:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 12, borderWidth: 2 },
   ctaLoginText:        { fontWeight: '700', fontSize: 14 },
-  bottomNavContainer:  { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' },
-  bottomNav:           { flexDirection: 'row', paddingVertical: 10, borderTopWidth: 1, width: '100%', paddingBottom: 16, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  bottomNavContainer:  { position: 'absolute', bottom: 16, left: 16, right: 16, alignItems: 'center' },
+  bottomNav:           { flexDirection: 'row', paddingVertical: 10, paddingBottom: 14, borderRadius: 28, width: '100%', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 8 },
   navCenterSpacer:     { flex: 1 },
   navItem:             { flex: 1, alignItems: 'center', justifyContent: 'center' },
   navIcon:             { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },

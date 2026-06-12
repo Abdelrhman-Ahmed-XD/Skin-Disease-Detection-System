@@ -34,6 +34,10 @@ const Icons = {
   person:       require('../../assets/Icons/Account person.png'),
 };
 
+// ── body image dimensions (same as FirstHomePage) ──────────────
+const BODY_IMG_W = width * 0.85;
+const BODY_IMG_H = height * 0.55;
+
 function inRect(nx: number, ny: number, x1: number, y1: number, x2: number, y2: number) {
   return nx >= x1 && nx <= x2 && ny >= y1 && ny <= y2;
 }
@@ -75,9 +79,14 @@ const TAB_ROUTES: Record<string, string> = {
 const NAV_BAR_HEIGHT = 55;
 
 function getNavX(slot: number): number {
-  const s = width / 5;
-  if (slot === 2) return width / 2;
-  return s * slot + s / 2;
+  const navWidth = width - 32; // bottomNavContainer has left:16, right:16
+  const tabW = navWidth / 5;   // 4 nav items + 1 center spacer, all flex:1
+  if (slot === 0) return 16 + tabW * 0.5;  // Home
+  if (slot === 1) return 16 + tabW * 1.5;  // Reports
+  if (slot === 2) return width / 2;        // Camera FAB (center)
+  if (slot === 3) return 16 + tabW * 3.5;  // History
+  if (slot === 4) return 16 + tabW * 4.5;  // Settings
+  return width / 2;
 }
 
 type Mole     = { id: string; x: number; y: number; timestamp: number; photoUri?: string; bodyView: 'front' | 'back' };
@@ -99,6 +108,11 @@ export default function Guest() {
 
   // ── Login modal (body map lock for guests) ──────────────────
   const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // ── Free-scan-used toast (replaces the inline red warning) ───
+  const [showFreeScanToast, setShowFreeScanToast] = useState(false);
+  const toastAnim    = useRef(new Animated.Value(0)).current;
+  const toastTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Onboarding ─────────────────────────────────────────────
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -143,9 +157,10 @@ export default function Guest() {
   const panStartTx   = useRef(0);
   const panStartTy   = useRef(0);
 
+  // ── clamp translation within the scaled container (same as FirstHomePage) ──
   const clampTranslation = (tx: number, ty: number, sc: number) => {
-    const maxX = (width  * (sc - 1)) / 2;
-    const maxY = (height * (sc - 1)) / 2;
+    const maxX = (BODY_IMG_W * (sc - 1)) / 2;
+    const maxY = (BODY_IMG_H * (sc - 1)) / 2;
     return { x: Math.max(-maxX, Math.min(maxX, tx)), y: Math.max(-maxY, Math.min(maxY, ty)) };
   };
 
@@ -199,13 +214,13 @@ export default function Guest() {
       const movedY  = Math.abs(touch.pageY - tapStartPos.current.y);
       if (elapsed < 300 && movedX < 10 && movedY < 10) {
         bodyWrapperRef.current?.measure((_fx: number, _fy: number, fw: number, fh: number, px: number, py: number) => {
-          const imgW = width * 0.85;
-          const imgH = height * 0.55;
-          const cx   = px + (fw - imgW) / 2 + imgW / 2;
-          const cy   = py + (fh - imgH) / 2 + imgH / 2;
-          const relX = (touch.pageX - txVal.current - cx) / scaleVal.current + imgW / 2;
-          const relY = (touch.pageY - tyVal.current - cy) / scaleVal.current + imgH / 2;
-          if (checkBodyHit(relX / imgW, relY / imgH)) {
+          const imgL = px + (fw - BODY_IMG_W) / 2;
+          const imgT = py + (fh - BODY_IMG_H) / 2;
+          const cx   = imgL + BODY_IMG_W / 2;
+          const cy   = imgT + BODY_IMG_H / 2;
+          const relX = (touch.pageX - txVal.current - cx) / scaleVal.current + BODY_IMG_W / 2;
+          const relY = (touch.pageY - tyVal.current - cy) / scaleVal.current + BODY_IMG_H / 2;
+          if (checkBodyHit(relX / BODY_IMG_W, relY / BODY_IMG_H)) {
             setShowLoginModal(true);
           }
         });
@@ -277,10 +292,35 @@ export default function Guest() {
 
   const handleSkipAll = () => { setShowOnboarding(false); };
 
+  // ── Free-scan-used toast: show for 20s then auto-hide ────────
+  const triggerFreeScanToast = () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setShowFreeScanToast(true);
+    toastAnim.setValue(0);
+    Animated.spring(toastAnim, { toValue: 1, tension: 120, friction: 9, useNativeDriver: true }).start();
+    toastTimer.current = setTimeout(() => {
+      Animated.timing(toastAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start(() => {
+        setShowFreeScanToast(false);
+      });
+    }, 20000);
+  };
+
+  const dismissFreeScanToast = () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    Animated.timing(toastAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+      setShowFreeScanToast(false);
+    });
+  };
+
+  useEffect(() => {
+    return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
+  }, []);
+
   // ── Open camera modal (decides mode based on freeScanUsed) ──
   const openCameraModal = () => {
     // Re-read from state (already synced via useFocusEffect + live setFreeScanUsed)
-    setCameraModalMode(freeScanUsed ? 'locked' : 'free');
+    const mode = freeScanUsed ? 'locked' : 'free';
+    setCameraModalMode(mode);
     setShowCameraModal(true);
     cameraFade.setValue(0);
     cameraScale.setValue(0.85);
@@ -288,16 +328,16 @@ export default function Guest() {
       Animated.timing(cameraFade,  { toValue: 1, duration: 260, useNativeDriver: true }),
       Animated.spring(cameraScale, { toValue: 1, tension: 130, friction: 8, useNativeDriver: true }),
     ]).start();
+
+    // Show the "free scan used" warning as a temporary toast instead of
+    // an inline red banner, so it doesn't block the modal content.
+    if (mode === 'locked') {
+      triggerFreeScanToast();
+    }
   };
 
   useEffect(() => { openCameraModalRef.current = openCameraModal; });
   const closeCameraModal = () => setShowCameraModal(false);
-// 🛠 TEMPORARY DEV FUNCTION: REMOVE BEFORE PRODUCTION
-  const resetGuestMode = async () => {
-    await AsyncStorage.removeItem(GUEST_FREE_SCAN_KEY);
-    setFreeScanUsed(false);
-    alert('Guest mode reset! You have 1 free scan again.');
-  };
 
   // ── Navigate to the guest camera for the 1 free scan ───────
   const handleUseFreeScan = () => {
@@ -337,7 +377,7 @@ export default function Guest() {
     const step      = ONBOARDING_STEPS[onboardingStep];
     const isLast    = onboardingStep === ONBOARDING_STEPS.length - 1;
     const navX      = getNavX(step.navSlot);
-    const spotY     = height - NAV_BAR_HEIGHT + (step.navSlot === 2 ? -30 : 6);
+    const spotY     = height - 34 + (step.navSlot === 2 ? -30 : 0);
     const TW        = 210;
     let   tLeft     = navX - TW / 2;
     tLeft           = Math.max(12, Math.min(width - TW - 12, tLeft));
@@ -349,7 +389,11 @@ export default function Guest() {
         <View style={[StyleSheet.absoluteFill, ob.overlay]} pointerEvents="none" />
         <Animated.View
           pointerEvents="none"
-          style={[ob.spotlight, { left: navX - 34, top: spotY - 34, transform: [{ scale: pulseAnim }] }]}
+          style={[ob.spotlight, {
+            left: navX - 34,
+            top:  spotY - 58,
+            transform: [{ scale: pulseAnim }],
+          }]}
         />
         <Animated.View style={[ob.tooltipWrapper, {
           bottom: tBottom, left: tLeft, width: TW,
@@ -381,6 +425,42 @@ export default function Guest() {
           <View style={[ob.arrow, { left: arrowLeft }]} />
         </Animated.View>
       </View>
+    );
+  };
+
+  // ── Free-scan-used toast (appears below header, auto-hides after 20s) ──
+  const renderFreeScanToast = () => {
+    if (!showFreeScanToast) return null;
+    return (
+      <Animated.View
+        pointerEvents="box-none"
+        style={[
+          toastStyles.wrapper,
+          {
+            opacity: toastAnim,
+            transform: [{
+              translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, 0] }),
+            }],
+          },
+        ]}
+      >
+        <View style={[toastStyles.card, { backgroundColor: isDark ? '#2A1414' : '#FEF2F2', borderColor: '#EF4444' }]}>
+          <View style={toastStyles.iconCircle}>
+            <Ionicons name="lock-closed-outline" size={16} color="#EF4444" />
+          </View>
+          <View style={toastStyles.textCol}>
+            <Text style={[toastStyles.title, { color: isDark ? '#FFFFFF' : '#7F1D1D' }]}>
+              Free Scan Used
+            </Text>
+            <Text style={[toastStyles.subtitle, { color: isDark ? '#FCA5A5' : '#B91C1C' }]}>
+              Sign up to unlock unlimited scans
+            </Text>
+          </View>
+          <TouchableOpacity onPress={dismissFreeScanToast} activeOpacity={0.7} style={toastStyles.closeBtn}>
+            <Ionicons name="close" size={16} color={isDark ? '#FCA5A5' : '#B91C1C'} />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
     );
   };
 
@@ -640,34 +720,11 @@ export default function Guest() {
           </Text>
         </Text>
       </View>
-<View style={styles.titleContainer}>
-        <Text style={[styles.title, { color: isDark ? "#fff" : "#000" }]}>
-          Let&#39;s Check your{" "}
-          <Text
-            style={[
-              styles.titleBold,
-              { color: isDark ? "#00A3A3" : "#004F7F" },
-            ]}
-          >
-            Skin
-          </Text>
-        </Text>
-      </View>
 
-      {/* 👇 TEMPORARY DEV BUTTON 👇 */}
-      <TouchableOpacity
-        onPress={resetGuestMode}
-        style={{ backgroundColor: '#EF4444', padding: 10, borderRadius: 12, marginHorizontal: 30, marginBottom: 10, zIndex: 99 }}
-      >
-        <Text style={{ color: 'white', fontWeight: 'bold', textAlign: 'center' }}>
-          🛠 DEV: Reset 1 Free Scan
-        </Text>
-      </TouchableOpacity>
-      {/* 👆 TEMPORARY DEV BUTTON 👆 */}
-
-      <View style={styles.bodyMainContainer}>
+      {/* ── body map — clipped wrapper like FirstHomePage ── */}
+      <View style={[styles.bodyMainContainer, { backgroundColor: colors.background }]}>
         <View
-          style={styles.bodyTouchable}
+          style={[styles.bodyClipWrapper, { backgroundColor: colors.background }]}
           {...panResponder.panHandlers}
           ref={(r) => {
             bodyWrapperRef.current = r;
@@ -772,11 +829,15 @@ export default function Guest() {
         </View>
       </View>
 
+      {/* ── floating bottom nav (same style as FirstHomePage) ── */}
       <View style={styles.bottomNavContainer}>
         <View
           style={[
             styles.bottomNav,
-            { backgroundColor: colors.navBg, borderTopColor: colors.border },
+            {
+              backgroundColor: colors.navBg,
+              borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+            },
           ]}
         >
           {["Home", "Reports"].map((tabName) => {
@@ -791,7 +852,7 @@ export default function Guest() {
                 <View
                   style={[
                     styles.navIcon,
-                    { backgroundColor: isDark ? "#1E2A35" : "#F9FAFB" },
+                    { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
                     isActive && {
                       backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
                       borderWidth: 2,
@@ -836,7 +897,7 @@ export default function Guest() {
                 <View
                   style={[
                     styles.navIcon,
-                    { backgroundColor: isDark ? "#1E2A35" : "#F9FAFB" },
+                    { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
                     isActive && {
                       backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
                       borderWidth: 2,
@@ -904,6 +965,7 @@ export default function Guest() {
         </TouchableOpacity>
       </View>
 
+      {renderFreeScanToast()}
       {renderOnboarding()}
       {renderCameraModal()}
       {renderLoginModal()}
@@ -911,12 +973,50 @@ export default function Guest() {
   );
 }
 
+// ── Toast styles (free scan used warning) ───────────────────────
+const toastStyles = StyleSheet.create({
+  wrapper: {
+    position: 'absolute',
+    top: 100,
+    left: 16,
+    right: 16,
+    zIndex: 10000,
+    elevation: 10000,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(239,68,68,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textCol: { flex: 1 },
+  title:    { fontSize: 13, fontWeight: '700' },
+  subtitle: { fontSize: 11.5, marginTop: 2 },
+  closeBtn: { padding: 4 },
+});
+
 // ── Styles ─────────────────────────────────────────────────────
 const ob = StyleSheet.create({
   root:    { zIndex: 9999, elevation: 9999 },
   overlay: { backgroundColor: 'rgba(0,10,20,0.60)', zIndex: 1 },
   spotlight: {
-    position: 'absolute', width: 68, height: 68, borderRadius: 34,
+    position: 'absolute', width: 80, height: 80, borderRadius: 38,
     backgroundColor: 'rgba(0,163,163,0.15)', borderWidth: 2.5, borderColor: '#00A3A3', zIndex: 2,
     shadowColor: '#00A3A3', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 12, elevation: 8,
   },
@@ -956,33 +1056,83 @@ const ob = StyleSheet.create({
 
 const styles = StyleSheet.create({
   container:           { flex: 1 },
-  titleContainer:      { padding: 20, marginTop: 16 },
+  titleContainer:      { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
   title:               { fontSize: 20, textAlign: 'center' },
   titleBold:           { fontWeight: '700' },
-  bodyMainContainer:   { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, marginBottom: 200 },
-  bodyTouchable:       { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
-  bodyImageWrapper:    { position: 'relative', width: width * 0.85, height: height * 0.55, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
+
+  // ── body area clips overflow so zoom stays inside (FirstHomePage style) ──
+  bodyMainContainer:   { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, marginBottom: 160 },
+  bodyClipWrapper: {
+    width: BODY_IMG_W,
+    height: BODY_IMG_H,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  bodyImageWrapper: {
+    width: BODY_IMG_W,
+    height: BODY_IMG_H,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   bodyImage:           { width: '100%', height: '100%' },
   moleContainer:       { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 4 },
   moleInner:           { width: 28, height: 28, borderRadius: 14, backgroundColor: '#004F7F', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   moleIcon:            { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 22 },
   moleThumbnail:       { width: 38, height: 38, borderRadius: 8, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: '#ccc' },
-  bottomControls:      { position: 'absolute', bottom: 100, left: 0, right: 0, alignItems: 'center', marginBottom: 35 },
+
+  bottomControls:      { position: 'absolute', bottom: 140, left: 0, right: 0, alignItems: 'center' },
   toggleWrapper:       { flexDirection: 'row', borderRadius: 25, padding: 4, width: width * 0.45 },
   toggleButton:        { flex: 1, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
   toggleButtonActive:  { backgroundColor: '#004F7F' },
   toggleText:          { fontSize: 14, fontWeight: '600' },
   toggleTextActive:    { color: '#FFFFFF', fontWeight: '700' },
-  bottomNavContainer:  { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' },
-  bottomNav:           { flexDirection: 'row', paddingVertical: 10, borderTopWidth: 1, width: '100%', paddingBottom: 16, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+
+  // ── floating bottom nav (FirstHomePage style) ──
+  bottomNavContainer: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    alignItems: 'center',
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingBottom: 14,
+    borderRadius: 28,
+    borderWidth: 1,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+  },
   navCenterSpacer:     { flex: 1 },
   navItem:             { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  navIcon:             { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  navIconImg:          { width: 44, height: 44 },
-  headerIconImg:       { width: 52, height: 52 },
-  notifIconImg:        { width: 55, height: 55 },
+  navIcon:             { width: 42, height: 42, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  navIconImg:          { width: 42, height: 42 },
+  headerIconImg:       { width: 55, height: 55 },
+  notifIconImg:        { width: 56, height: 56 },
   navText:             { fontSize: 11, fontWeight: '500' },
-  cameraButton:        { position: 'absolute', top: -26, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', borderWidth: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 6 },
+  cameraButton: {
+    position: 'absolute',
+    top: -26,
+    alignSelf: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
   headerCard:          { marginHorizontal: 16, marginTop: 12, marginBottom: 8, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
   headerContent:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   profileIconContainer:{ width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#C5E3ED' },

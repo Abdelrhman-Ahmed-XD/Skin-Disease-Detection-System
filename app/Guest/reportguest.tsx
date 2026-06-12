@@ -19,8 +19,6 @@ export default function GuestReportsPage() {
   const router = useRouter();
   const { isDark, colors } = useTheme();
 
-
-
   const pageBg = isDark ? colors.background : "#D8E9F0";
   const [activeTab, setActiveTab] = useState('Reports');
 
@@ -61,10 +59,7 @@ export default function GuestReportsPage() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: pageBg }]}
-      edges={["top"]}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={["top"]}>
       <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
       <View style={[styles.header, { backgroundColor: colors.card }]}>
@@ -72,45 +67,21 @@ export default function GuestReportsPage() {
           style={[styles.backButton, { borderColor: colors.border }]}
           onPress={() => router.back()}
         >
-          <Ionicons
-            name="chevron-back"
-            size={24}
-            style={{ color: isDark ? "#FFFFFF" : "#1F2937" }}
-          />
+          <Ionicons name="chevron-back" size={24} style={{ color: isDark ? "#FFFFFF" : "#1F2937" }} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: isDark ? "#fff" : "#000" }]}>
-          {"Reports"}
-        </Text>
+        <Text style={[styles.headerTitle, { color: isDark ? "#fff" : "#000" }]}>Reports</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.lockContainer}>
-        <View
-          style={[
-            styles.iconWrap,
-            { backgroundColor: isDark ? "#fff" : "#004F7F" },
-          ]}
-        >
-          <Ionicons
-            name="document-lock-outline"
-            size={48}
-            style={{ color: isDark ? "#004F7F" : "#fff" }}
-          />
+        <View style={[styles.iconWrap, { backgroundColor: isDark ? "#fff" : "#004F7F" }]}>
+          <Ionicons name="document-lock-outline" size={48} style={{ color: isDark ? "#004F7F" : "#fff" }} />
         </View>
-
         <Text style={[styles.lockTitle, { color: isDark ? "#fff" : "#000" }]}>
           Reports Unavailable
         </Text>
-        <Text
-          style={[
-            styles.lockSubtitle,
-            {
-              color: isDark ? "#AAAAAA" : colors.subText,
-            },
-          ]}
-        >
-          You need to log in or create an account to view your skin analysis
-          reports.
+        <Text style={[styles.lockSubtitle, { color: isDark ? "#AAAAAA" : colors.subText }]}>
+          You need to log in or create an account to view your skin analysis reports.
         </Text>
         <TouchableOpacity
           style={[styles.signUpBtn, { backgroundColor: "#004F7F" }]}
@@ -118,77 +89,35 @@ export default function GuestReportsPage() {
           activeOpacity={0.85}
         >
           <Ionicons name="person-add-outline" size={18} color="#fff" />
-          <Text style={[styles.signUpBtnText]}>Sign Up</Text>
+          <Text style={styles.signUpBtnText}>Sign Up</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.loginBtn, { borderColor: "#004F7F" }]}
           onPress={() => router.push("/Login1")}
           activeOpacity={0.85}
         >
-          <Ionicons
-            name="log-in-outline"
-            size={28}
-            style={{ color: isDark ? "#fff" : "#004F7F" }}
-          />
-          <Text
-            style={[
-              styles.loginBtnText,
-              {
-                color: isDark ? "#fff" : "#004F7F",
-              },
-            ]}
-          >
-            Log In
-          </Text>
+          <Ionicons name="log-in-outline" size={28} style={{ color: isDark ? "#fff" : "#004F7F" }} />
+          <Text style={[styles.loginBtnText, { color: isDark ? "#fff" : "#004F7F" }]}>Log In</Text>
         </TouchableOpacity>
       </View>
 
+      {/* ── Floating pill nav ── */}
       <View style={styles.bottomNavContainer}>
-        <View
-          style={[
-            styles.bottomNav,
-            { backgroundColor: colors.navBg, borderTopColor: colors.border },
-          ]}
-        >
+        <View style={[styles.bottomNav, { backgroundColor: colors.navBg }]}>
           {["Home", "Reports"].map((tabName) => {
             const tab = bottomTabs.find((t) => t.name === tabName)!;
             const isActive = activeTab === tab.name;
             return (
-              <TouchableOpacity
-                key={tab.name}
-                style={styles.navItem}
-                onPress={() => handleTabPress(tab.name)}
-              >
-                <View
-                  style={[
-                    styles.navIcon,
-                    isActive && {
-                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-                      borderWidth: 2,
-                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
-                    },
-                  ]}
-                >
-                  <Image
-                    source={tab.iconImg}
-                    style={styles.navIconImg}
-                    resizeMode="contain"
-                  />
+              <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
+                <View style={[
+                  styles.navIcon,
+                  { backgroundColor: isDark ? "#1E2A35" : "#F9FAFB" },
+                  isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" },
+                ]}>
+                  <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                 </View>
-                <Text
-                  style={[
-                    styles.navText,
-                    {
-                      color: isActive
-                        ? colors.navActive
-                        : isDark
-                          ? "#FFFFFF"
-                          : "#6B7280",
-                    },
-                    isActive && { fontWeight: "700" },
-                  ]}
-                >
-                  {tabName === "Home" ? "home" : "reportsTab"}
+                <Text style={[styles.navText, { color: isActive ? colors.navActive : isDark ? "#FFFFFF" : "#6B7280" }, isActive && { fontWeight: "700" }]}>
+                  {tab.name}
                 </Text>
               </TouchableOpacity>
             );
@@ -198,82 +127,34 @@ export default function GuestReportsPage() {
             const tab = bottomTabs.find((t) => t.name === tabName)!;
             const isActive = activeTab === tab.name;
             return (
-              <TouchableOpacity
-                key={tab.name}
-                style={styles.navItem}
-                onPress={() => handleTabPress(tab.name)}
-              >
-                <View
-                  style={[
-                    styles.navIcon,
-                    isActive && {
-                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-                      borderWidth: 2,
-                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
-                    },
-                  ]}
-                >
-                  <Image
-                    source={tab.iconImg}
-                    style={styles.navIconImg}
-                    resizeMode="contain"
-                  />
+              <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
+                <View style={[
+                  styles.navIcon,
+                  { backgroundColor: isDark ? "#1E2A35" : "#F9FAFB" },
+                  isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" },
+                ]}>
+                  <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                 </View>
-                <Text
-                  style={[
-                    styles.navText,
-                    {
-                      color: isActive
-                        ? colors.navActive
-                        : isDark
-                          ? "#FFFFFF"
-                          : "#6B7280",
-                    },
-                    isActive && { fontWeight: "700" },
-                  ]}
-                >
-                  {tabName === "History" ? "historyTab" : "settingsTab"}
+                <Text style={[styles.navText, { color: isActive ? colors.navActive : isDark ? "#FFFFFF" : "#6B7280" }, isActive && { fontWeight: "700" }]}>
+                  {tab.name}
                 </Text>
               </TouchableOpacity>
             );
           })}
         </View>
         <TouchableOpacity
-          style={[
-            styles.cameraButton,
-            {
-              backgroundColor: colors.navBg,
-              borderColor: isDark ? "#374151" : "#C5E3ED",
-            },
-          ]}
+          style={[styles.cameraButton, { backgroundColor: colors.navBg, borderColor: isDark ? "#374151" : "#C5E3ED" }]}
           onPress={openModal}
           activeOpacity={0.85}
         >
-          <Ionicons
-            name="camera-outline"
-            size={30}
-            color={isDark ? "#FFFFFF" : "#6B7280"}
-          />
+          <Ionicons name="camera-outline" size={30} color={isDark ? "#FFFFFF" : "#6B7280"} />
         </TouchableOpacity>
       </View>
 
       {showModal && (
         <View style={styles.modalOverlay} pointerEvents="box-none">
-          <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
-            activeOpacity={1}
-            onPress={closeModal}
-          />
-          <Animated.View
-            style={[
-              styles.modalBox,
-              {
-                backgroundColor: "#004F7F",
-                opacity: modalFade,
-                transform: [{ scale: modalScale }],
-              },
-            ]}
-          >
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={closeModal} />
+          <Animated.View style={[styles.modalBox, { backgroundColor: "#004F7F", opacity: modalFade, transform: [{ scale: modalScale }] }]}>
             <View style={styles.modalHeader}>
               <View style={styles.modalIconCircle}>
                 <Ionicons name="camera-outline" size={15} color="#004F7F" />
@@ -284,29 +165,14 @@ export default function GuestReportsPage() {
               </TouchableOpacity>
             </View>
             <Text style={styles.modalDesc}>
-              You need to create an account or log in to use the camera and
-              analyze your skin.
+              You need to create an account or log in to use the camera and analyze your skin.
             </Text>
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalSignUp}
-                onPress={() => {
-                  closeModal();
-                  router.push("/SignUp");
-                }}
-                activeOpacity={0.85}
-              >
+              <TouchableOpacity style={styles.modalSignUp} onPress={() => { closeModal(); router.push("/SignUp"); }} activeOpacity={0.85}>
                 <Ionicons name="person-add-outline" size={14} color="#fff" />
                 <Text style={styles.modalSignUpText}>Create Account</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalLogin}
-                onPress={() => {
-                  closeModal();
-                  router.push("/Login1");
-                }}
-                activeOpacity={0.85}
-              >
+              <TouchableOpacity style={styles.modalLogin} onPress={() => { closeModal(); router.push("/Login1"); }} activeOpacity={0.85}>
                 <Ionicons name="log-in-outline" size={14} color="#004F7F" />
                 <Text style={styles.modalLoginText}>Log In</Text>
               </TouchableOpacity>
@@ -323,7 +189,7 @@ const styles = StyleSheet.create({
   header:             { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
   backButton:         { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   headerTitle:        { fontSize: 22, fontWeight: 'bold' },
-  lockContainer:      { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36, paddingBottom: 80 },
+  lockContainer:      { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36, paddingBottom: 100 },
   iconWrap:           { width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
   lockTitle:          { fontSize: 22, fontWeight: '700', marginBottom: 12, textAlign: 'center' },
   lockSubtitle:       { fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
@@ -331,8 +197,14 @@ const styles = StyleSheet.create({
   signUpBtnText:      { color: '#fff', fontSize: 16, fontWeight: '700' },
   loginBtn:           { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 40, borderWidth: 2, width: '100%', justifyContent: 'center' },
   loginBtnText:       { fontSize: 16, fontWeight: '700' },
-  bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' },
-  bottomNav:          { flexDirection: 'row', paddingVertical: 10, borderTopWidth: 1, width: '100%', paddingBottom: 16, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  // Floating pill nav
+  bottomNavContainer: { position: 'absolute', bottom: 16, left: 16, right: 16, alignItems: 'center' },
+  bottomNav: {
+    flexDirection: 'row', paddingVertical: 10, paddingBottom: 14,
+    borderRadius: 28, width: '100%',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12, shadowRadius: 12, elevation: 8,
+  },
   navCenterSpacer:    { flex: 1 },
   navItem:            { flex: 1, alignItems: 'center', justifyContent: 'center' },
   navIcon:            { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
@@ -350,5 +222,5 @@ const styles = StyleSheet.create({
   modalSignUp:        { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#00A3A3', paddingVertical: 10, borderRadius: 12 },
   modalSignUpText:    { color: '#fff', fontSize: 12, fontWeight: '700' },
   modalLogin:         { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#C5E3ED', paddingVertical: 10, borderRadius: 12 },
-  modalLoginText:     { fontSize: 12, fontWeight: '700' },
+  modalLoginText:     { fontSize: 12, fontWeight: '700', color: '#004F7F' },
 });

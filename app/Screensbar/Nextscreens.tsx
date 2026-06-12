@@ -63,15 +63,15 @@ const ONBOARDING_STEPS = [
 ];
 
 function getNavX(slot: number): number {
-    const s = width / 5;
-    if (slot === 0) return s * 0 + s / 2;
-    if (slot === 1) return s * 1 + s / 2;
-    if (slot === 2) return width / 2;
-    if (slot === 3) return s * 3 + s / 2;
-    if (slot === 4) return s * 4 + s / 2;
+    const navWidth = width - 32;
+    const tabW = navWidth / 5; // 4 tabs + spacer بيأخد مكان tab
+    if (slot === 0) return 16 + tabW * 0.5;           // Home
+    if (slot === 1) return 16 + tabW * 1.5;           // Reports
+    if (slot === 2) return width / 2;                  // Camera FAB
+    if (slot === 3) return 16 + tabW * 3.5;           // History
+    if (slot === 4) return 16 + tabW * 4.5;           // Settings
     return width / 2;
 }
-
 const NAV_BAR_HEIGHT = 55;
 
 type Mole     = { id: string; x: number; y: number; timestamp: number; photoUri?: string; bodyView: 'front' | 'back'; };
@@ -314,8 +314,7 @@ export default function Nextscreens() {
         const step   = ONBOARDING_STEPS[onboardingStep];
         const isLast = onboardingStep === ONBOARDING_STEPS.length - 1;
         const navX   = getNavX(step.navSlot);
-        const spotY = height - NAV_BAR_HEIGHT + (step.navSlot === 2 ? -30 : 6);
-
+const spotY = height - 34 + (step.navSlot === 2 ? -30 : 0);
         const TW     = 210;
         let   tLeft  = navX - TW / 2;
         tLeft = Math.max(12, Math.min(width - TW - 12, tLeft));
@@ -328,8 +327,8 @@ export default function Nextscreens() {
                 <Animated.View
                     pointerEvents="none"
                     style={[ob.spotlight, {
-                        left: navX - 34,
-                        top:  spotY - 34,
+                        left: navX - 32,
+                        top:  spotY - 28,
                         transform: [{ scale: pulseAnim }],
                     }]}
                 />
@@ -554,14 +553,19 @@ const styles = StyleSheet.create({
     toggleButtonActive:   { backgroundColor: '#004F7F' },
     toggleText:           { fontSize: 14, fontWeight: '600', color: '#6B7280' },
     toggleTextActive:     { color: '#FFFFFF', fontWeight: '700' },
-    bottomNavContainer:   { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' },
-    bottomNav:            { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#E5E7EB', width: '100%', paddingBottom: 16 },
-    navCenterSpacer:      { flex: 1 },
+    bottomNavContainer: { position: 'absolute', bottom: 16, left: 16, right: 16, alignItems: 'center' },
+bottomNav: {
+  flexDirection: 'row', backgroundColor: '#FFFFFF', paddingVertical: 10,
+  paddingBottom: 14, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)',
+  width: '100%', shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.12, shadowRadius: 12, elevation: 8,
+  },
+  navCenterSpacer: { flex: 1 },
     navItem:              { flex: 1, alignItems: 'center', justifyContent: 'center' },
     navIcon:              { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F9FAFB', justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
     navIconActive:        { backgroundColor: '#E8F4F8', borderWidth: 2, borderColor: '#C5E3ED' },
     navIconImg:           { width: 44, height: 44 },
-    headerIconImg:        { width: 40, height: 40 },
+    headerIconImg:        { width: 50, height: 50 },
     notifIconImg:         { width: 36, height: 36 },
     navText:              { fontSize: 11, color: '#6B7280', fontWeight: '500' },
     navTextActive:        { fontSize: 11, color: '#004F7F', fontWeight: '700' },
@@ -581,8 +585,8 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
     },
     headerContent:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    profileIconContainer: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#E8F4F8', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#C5E3ED' },
-    welcomeContainer:     { flex: 1, marginLeft: 12, flexDirection: 'row', alignItems: 'center' },
+  profileIconContainer: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#E8F4F8', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#C5E3ED', overflow: 'hidden' },
+  welcomeContainer: { flex: 1, marginLeft: 12, flexDirection: 'row', alignItems: 'center' },
     welcomeLabel:         { fontSize: 18, color: '#00A3A3', fontStyle: 'italic' },
     userName:             { fontSize: 18, fontWeight: '700', color: '#1F2937', marginTop: 2 },
     notificationButton:   { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F9FAFB', justifyContent: 'center', alignItems: 'center' },
