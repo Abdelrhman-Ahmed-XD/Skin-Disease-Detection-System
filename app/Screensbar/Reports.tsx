@@ -15,7 +15,6 @@ import { useTranslation } from '../Customize/translations';
 import { useTheme } from '../ThemeContext';
 import { loadAllScansFromFirestore } from '../../Firebase/firestoreService';
 
-// ── Custom Icon Images ─────────────────────────────────────────
 const Icons = {
   home:       require('../../assets/Icons/home.png'),
   reports:    require('../../assets/Icons/Reports.png'),
@@ -27,7 +26,6 @@ const Icons = {
 
 const { width } = Dimensions.get('window');
 
-// ── Updated Types for Nested Result Architecture ───────────────
 export type MoleResult = {
     status?: string;
     disease?: string;
@@ -54,7 +52,6 @@ type Mole = {
     result?: MoleResult;
 };
 
-// ── Save PDF ──────────────────────────────────────────────────
 const savePDF = async (uri: string, filename: string) => {
     if (Platform.OS === 'android') {
         try {
@@ -122,7 +119,6 @@ const getPlatform = (source?: string): string =>
 const confColor = (c: number) =>
     c >= 80 ? '#22C55E' : c >= 60 ? '#F59E0B' : '#EF4444';
 
-// ── Single Report HTML ────────────────────────────────────────
 const buildReportHTML = (params: {
     reportIndex:        number;
     date:               string;
@@ -211,7 +207,6 @@ body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:10px
 </head>
 <body>
 <div class="page">
-
   <div style="background:#004F7F;padding:12px 22px 9px;text-align:center">
     <div style="font-size:28px;font-weight:bold;color:#fff;letter-spacing:2px">
       <span style="color:#00A3A3;font-size:34px">S</span>kinsight
@@ -219,16 +214,13 @@ body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:10px
     <div style="color:#C5E3ED;font-size:9px;margin-top:2px;font-style:italic;letter-spacing:3px">Snap. Detect. Protect.</div>
     <div style="width:36px;height:3px;background:#00A3A3;margin:5px auto 0;border-radius:10px"></div>
   </div>
-
   <div style="background:#00A3A3;padding:4px 18px;text-align:center">
     <p style="color:#fff;font-size:9px;font-style:italic;letter-spacing:.5px">Skin Analysis Report</p>
   </div>
-
   <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:6px 18px;display:flex;justify-content:space-between;align-items:center">
     <div style="font-size:15px;font-weight:bold;color:#004F7F">Report #${params.reportIndex + 1}</div>
     <div style="font-size:9px;color:#6B7280;font-family:system-ui,sans-serif">${params.date}</div>
   </div>
-
   <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:6px 18px;border-top:1px solid #E5F0F6">
     <div style="font-size:9px;font-weight:bold;color:#004F7F;margin-bottom:4px;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.5px">Patient Information</div>
     <table style="width:100%;border-collapse:collapse">
@@ -244,7 +236,6 @@ body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:10px
       </tr>
     </table>
   </div>
-
   <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:7px 18px">
     <table style="width:100%;border-collapse:collapse">
       <tr>
@@ -262,7 +253,6 @@ body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:10px
       </tr>
     </table>
   </div>
-
   <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:5px 18px">
     <table style="width:100%;border-collapse:collapse">
       <tr>
@@ -271,7 +261,6 @@ body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:10px
       </tr>
     </table>
   </div>
-
   <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:8px 18px">
     <div style="font-size:12px;font-weight:bold;color:#004F7F;padding-bottom:6px;border-bottom:1px solid #E5E7EB;margin-bottom:7px">Analysis Results</div>
     <div style="background:#E8F4F8;border-radius:8px;padding:8px 11px;border:1px solid #C5E3ED;margin-bottom:7px">
@@ -297,24 +286,20 @@ body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:10px
       <p style="font-size:10px;color:#374151;line-height:1.55;font-family:system-ui,sans-serif">${params.diseaseDescription}</p>
     </div>` : ''}
   </div>
-
   ${tipsHtml}
   ${precHtml}
   ${srcHtml}
-
   <div style="background:#004F7F;padding:10px 18px;text-align:center">
     <div style="width:26px;height:2px;background:#00A3A3;margin:0 auto 6px;border-radius:10px"></div>
     <div style="font-size:12px;font-weight:bold;color:#fff;margin-bottom:2px"><span style="color:#00A3A3">S</span>kinsight</div>
     <div style="color:#C5E3ED;font-size:7px;font-family:system-ui,sans-serif">© 2026 SkinSight. All rights reserved.</div>
     <div style="color:#8ab4c9;font-size:6px;margin-top:2px;font-family:system-ui,sans-serif">📧 skinsight.help.2025@gmail.com</div>
   </div>
-
 </div>
 </body>
 </html>`;
 };
 
-// ── All Reports HTML ──────────────────────────────────────────
 const buildAllReportsHTML = (params: {
     rows: Array<{
         index:       number;
@@ -368,15 +353,12 @@ body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:18px
 table{width:100%;border-collapse:collapse;font-family:system-ui,sans-serif}
 thead tr{background:#004F7F}
 thead th{color:#fff;font-size:10px;font-weight:600;padding:9px 7px;text-align:left;letter-spacing:.3px}
-thead th:first-child{border-radius:5px 0 0 0}
-thead th:last-child{border-radius:0 5px 0 0}
 tbody tr:nth-child(even){background:#F4FBFF}
 tbody tr:nth-child(odd){background:#fff}
 tbody tr{border-bottom:1px solid #E5F0F6}
 tbody tr:last-child{border-bottom:none}
 td{padding:8px 7px;vertical-align:middle}
 .tnum{font-size:12px;font-weight:bold;color:#004F7F;text-align:center}
-.timg{text-align:center}
 .timg img{width:50px;height:50px;border-radius:6px;border:2px solid #C5E3ED;object-fit:cover;display:block;margin:0 auto}
 .timg-mask img{width:50px;height:50px;border-radius:6px;border:2px solid #00E5FF;object-fit:contain;background:#000;display:block;margin:0 auto}
 .timg-ph{width:50px;height:50px;border-radius:6px;border:2px dashed #C5E3ED;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:8px;margin:0 auto;background:#F4FBFF;text-align:center;padding:3px;line-height:1.3}
@@ -469,7 +451,6 @@ td{padding:8px 7px;vertical-align:middle}
       </tbody>
     </table>
   </div>
-
   <div class="footer">
     <div class="fdiv"></div>
     <div class="fbrand"><span class="fbs">S</span>kinsight</div>
@@ -511,7 +492,6 @@ export default function ReportsPage() {
         const loadPatientData = async () => {
             const keys = ['userProfile', 'profileData', 'signupDraft'];
             let d: any = null;
-
             for (const key of keys) {
                 try {
                     const saved = await AsyncStorage.getItem(key);
@@ -524,23 +504,19 @@ export default function ReportsPage() {
                     }
                 } catch (_) {}
             }
-
             if (!d) return;
-
             const firstName = d.firstName || d.name?.split(' ')[0] || '';
             const lastName  = d.lastName  || d.name?.split(' ').slice(1).join(' ') || '';
             setPatientName(`${firstName} ${lastName}`.trim() || 'N/A');
             setGender(d.gender ? d.gender.charAt(0).toUpperCase() + d.gender.slice(1) : 'N/A');
             setHairColor(d.hairColor || 'N/A');
             setEyeColor(d.eyeColor   || 'N/A');
-
             const skinMap: Record<string, string> = {
                 '#F5E0D3': 'Very Light', '#EACAA7': 'Light',      '#D1A67A': 'Medium',
                 '#B57D50': 'Tan',        '#A05C38': 'Brown',      '#8B4513': 'Dark Brown',
                 '#7A3E11': 'Deep',       '#603311': 'Ebony',
             };
             setSkinColor(d.skinColor ? (skinMap[d.skinColor] || d.skinColor) : 'N/A');
-
             if (d.birthYear && d.birthMonth && d.birthDay) {
                 const dob = new Date(d.birthYear, d.birthMonth - 1, d.birthDay);
                 setAge(`${Math.floor((Date.now() - dob.getTime()) / (1000 * 60 * 60 * 24 * 365.25))} years`);
@@ -548,7 +524,6 @@ export default function ReportsPage() {
                 setAge(typeof d.age === 'number' ? `${d.age} years` : d.age);
             }
         };
-
         loadPatientData().catch(() => {});
     }, []);
 
@@ -572,19 +547,16 @@ export default function ReportsPage() {
         }
     };
 
-    // ── Download Single PDF ──────────────────────────────────
     const downloadSingleReport = async (mole: Mole, reportNumber: number) => {
         if (downloadingId || downloadingAll) return;
         try {
             setDownloadingId(mole.id);
             if (!mole.photoUri) return;
-
             const maskUrl = mole.result?.segmentedUrl || mole.result?.segmented_url || '';
             const [imageBase64, maskBase64] = await Promise.all([
                 getImageBase64(mole.photoUri),
                 maskUrl ? getImageBase64(maskUrl) : Promise.resolve(''),
             ]);
-
             const html = buildReportHTML({
                 reportIndex:        reportNumber - 1,
                 date:               new Date(mole.timestamp).toLocaleDateString(
@@ -611,7 +583,6 @@ export default function ReportsPage() {
                 precautions:        mole.result?.precautions || [],
                 sources:            mole.result?.sources     || [],
             });
-
             const { uri } = await Print.printToFileAsync({ html, base64: false });
             await savePDF(uri, `SkinSight_Report_${reportNumber}.pdf`);
         } catch (error: any) {
@@ -623,7 +594,6 @@ export default function ReportsPage() {
         }
     };
 
-    // ── Download All PDF ─────────────────────────────────────
     const downloadAllReports = async () => {
         if (downloadingId || downloadingAll) return;
         try {
@@ -632,20 +602,11 @@ export default function ReportsPage() {
                 Alert.alert(t('noReportsYet'), t('noReportsToDownload'));
                 return;
             }
-
             const rows: Array<{
-                index:       number;
-                date:        string;
-                bodyView:    string;
-                analysis:    string;
-                imageBase64: string;
-                maskBase64:  string;
-                frontBody:   string;
-                backBody:    string;
-                platform:    string;
-                confidence:  number;
+                index: number; date: string; bodyView: string; analysis: string;
+                imageBase64: string; maskBase64: string; frontBody: string;
+                backBody: string; platform: string; confidence: number;
             }> = [];
-
             for (let i = 0; i < moles.length; i++) {
                 const mole    = moles[i];
                 const maskUrl = mole.result?.segmentedUrl || mole.result?.segmented_url || '';
@@ -669,7 +630,6 @@ export default function ReportsPage() {
                     confidence: mole.result?.confidence ?? 0,
                 });
             }
-
             const generatedDate = new Date().toLocaleDateString(
                 isArabic ? 'ar-EG' : 'en-US',
                 { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }
@@ -722,7 +682,6 @@ export default function ReportsPage() {
       <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={["top"]}>
         <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
-        {/* ── Header ── */}
         <View style={[styles.header, { backgroundColor: colors.card }]}>
           <TouchableOpacity
             style={[styles.backButton, { borderColor: colors.border }]}
@@ -766,7 +725,6 @@ export default function ReportsPage() {
 
                 return (
                   <View key={mole.id} style={[styles.reportCard, { backgroundColor: colors.card }]}>
-
                     <TouchableOpacity
                       style={styles.imageContainer}
                       onPress={() => router.push({
@@ -790,63 +748,31 @@ export default function ReportsPage() {
                         style={styles.reportImage}
                         resizeMode="cover"
                       />
-
                       <View style={styles.imageBadgeRight}>
                         <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.imageBadgeText]}>
-                          {mole.bodyView === "front"
-                            ? t("frontBody")
-                            : mole.bodyView === "back"
-                            ? t("backBody")
-                            : "N/A"}
+                          {mole.bodyView === "front" ? t("frontBody") : mole.bodyView === "back" ? t("backBody") : "N/A"}
                         </Text>
                       </View>
-
-                      <View style={[
-                        styles.imageBadgeLeft,
-                        {
-                          backgroundColor: webScan
-                            ? 'rgba(0,163,163,0.88)'
-                            : 'rgba(0,79,127,0.88)',
-                        },
-                      ]}>
-                        <Image
-                          source={webScan ? Icons.monitor : Icons.smartphone}
-                          style={styles.platformIcon}
-                          resizeMode="contain"
-                        />
+                      <View style={[styles.imageBadgeLeft, { backgroundColor: webScan ? 'rgba(0,163,163,0.88)' : 'rgba(0,79,127,0.88)' }]}>
+                        <Image source={webScan ? Icons.monitor : Icons.smartphone} style={styles.platformIcon} resizeMode="contain" />
                       </View>
-
                       <View style={styles.expandIcon}>
                         <Ionicons name="expand-outline" size={20} color="#FFFFFF" />
                       </View>
                     </TouchableOpacity>
 
                     <View style={styles.reportContent}>
-                      <View style={[
-                        styles.reportHeader,
-                        { flexDirection: isArabic ? "row-reverse" : "row" },
-                      ]}>
+                      <View style={[styles.reportHeader, { flexDirection: isArabic ? "row-reverse" : "row" }]}>
                         <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.reportTitle, customText, { color: isDark ? "#00A3A3" : "#004F7F", fontWeight: 'bold' }]}>
                           {t("reportNum")} {reportNumber}
                         </Text>
-                        <Text style={[
-                          styles.reportDate,
-                          customText,
-                          { color: colors.subText, fontSize: Math.max(11, settings.fontSize - 3) },
-                        ]}>
+                        <Text style={[styles.reportDate, customText, { color: colors.subText, fontSize: Math.max(11, settings.fontSize - 3) }]}>
                           {formatDate(mole.timestamp)}
                         </Text>
                       </View>
-
-                      <Text style={[
-                        { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                        styles.reportText,
-                        customText,
-                        { color: colors.subText, textAlign: isArabic ? "right" : "left" },
-                      ]}>
+                      <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.reportText, customText, { color: colors.subText, textAlign: isArabic ? "right" : "left" }]}>
                         {diseaseName}
                       </Text>
-
                       {confidence > 0 && (
                         <View style={{ marginVertical: 8 }}>
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -854,15 +780,10 @@ export default function ReportsPage() {
                             <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>{confidence}%</Text>
                           </View>
                           <View style={{ height: 6, backgroundColor: isDark ? '#374151' : '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
-                            <View style={{
-                              height: '100%',
-                              width: `${confidence}%`,
-                              backgroundColor: confidence >= 80 ? '#22C55E' : confidence >= 60 ? '#F59E0B' : '#EF4444'
-                            }} />
+                            <View style={{ height: '100%', width: `${confidence}%`, backgroundColor: confidence >= 80 ? '#22C55E' : confidence >= 60 ? '#F59E0B' : '#EF4444' }} />
                           </View>
                         </View>
                       )}
-
                       <TouchableOpacity
                         style={[styles.downloadButton, {
                           backgroundColor: isDark ? "#004F7F" : "#E8F4F8",
@@ -879,16 +800,8 @@ export default function ReportsPage() {
                           <ActivityIndicator size="small" color={colors.primary} />
                         ) : (
                           <>
-                            <Ionicons
-                              name="download-outline"
-                              size={18}
-                              color={isDark ? "#E8F4F8" : "#374151"}
-                            />
-                            <Text style={[
-                              { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                              styles.downloadButtonText,
-                              { color: isDark ? "#E8F4F8" : "#374151" },
-                            ]}>
+                            <Ionicons name="download-outline" size={18} color={isDark ? "#E8F4F8" : "#374151"} />
+                            <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.downloadButtonText, { color: isDark ? "#E8F4F8" : "#374151" }]}>
                               {t("downloadPDF")}
                             </Text>
                           </>
@@ -900,10 +813,7 @@ export default function ReportsPage() {
               })}
 
               <TouchableOpacity
-                style={[styles.downloadAllButton, {
-                  backgroundColor: colors.primary,
-                  flexDirection:   isArabic ? "row-reverse" : "row",
-                }]}
+                style={[styles.downloadAllButton, { backgroundColor: colors.primary, flexDirection: isArabic ? "row-reverse" : "row" }]}
                 onPress={downloadAllReports}
                 disabled={downloadingAll}
                 activeOpacity={0.8}
@@ -921,35 +831,25 @@ export default function ReportsPage() {
           )}
         </ScrollView>
 
-        {/* ── Bottom Nav ── */}
-        <View style={[styles.bottomNavContainer]}>
-          <View style={[styles.bottomNav, { backgroundColor: colors.navBg, borderTopColor: colors.border }]}>
+        {/* ── Floating Bottom Nav ── */}
+        <View style={styles.bottomNavContainer}>
+          <View style={[styles.bottomNav, {
+            backgroundColor: colors.navBg,
+            borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+          }]}>
             {["Home", "Reports"].map((tabName) => {
               const tab      = bottomTabs.find((t) => t.name === tabName)!;
               const isActive = activeTab === tab.name;
               return (
-                <TouchableOpacity
-                  key={tab.name}
-                  style={styles.navItem}
-                  onPress={() => handleTabPress(tab.name)}
-                >
+                <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
                   <View style={[
                     styles.navIcon,
                     { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
-                    isActive && {
-                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-                      borderWidth: 2,
-                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
-                    },
+                    isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" },
                   ]}>
                     <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
-                  <Text style={[
-                    { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                    styles.navText,
-                    { color: isActive ? colors.navActive : colors.navText },
-                    isActive && { fontWeight: "700" },
-                  ]}>
+                  <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: "700" }]}>
                     {tabLabels[tabName]}
                   </Text>
                 </TouchableOpacity>
@@ -960,52 +860,31 @@ export default function ReportsPage() {
               const tab      = bottomTabs.find((t) => t.name === tabName)!;
               const isActive = activeTab === tab.name;
               return (
-                <TouchableOpacity
-                  key={tab.name}
-                  style={styles.navItem}
-                  onPress={() => handleTabPress(tab.name)}
-                >
+                <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
                   <View style={[
                     styles.navIcon,
                     { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
-                    isActive && {
-                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-                      borderWidth: 2,
-                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
-                    },
+                    isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" },
                   ]}>
                     <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
-                  <Text style={[
-                    { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                    styles.navText,
-                    { color: isActive ? colors.navActive : colors.navText },
-                    isActive && { fontWeight: "700" },
-                  ]}>
+                  <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.navText, { color: isActive ? colors.navActive : colors.navText }, isActive && { fontWeight: "700" }]}>
                     {tabLabels[tabName]}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-
           <TouchableOpacity
             style={[
               styles.cameraButton,
               { backgroundColor: colors.navBg, borderColor: isDark ? "#374151" : "#C5E3ED" },
-              activeTab === "Camera" && {
-                borderColor:     colors.navActive,
-                backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-              },
+              activeTab === "Camera" && { borderColor: colors.navActive, backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8" },
             ]}
             onPress={() => handleTabPress("Camera")}
             activeOpacity={0.85}
           >
-            <Ionicons
-              name="camera-outline"
-              size={30}
-              color={activeTab === "Camera" ? colors.navActive : colors.navText}
-            />
+            <Ionicons name="camera-outline" size={30} color={activeTab === "Camera" ? colors.navActive : colors.navText} />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -1018,7 +897,7 @@ const styles = StyleSheet.create({
     backButton:         { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     headerTitle:        { fontSize: 22 },
     scrollView:         { flex: 1 },
-    scrollContent:      { padding: 16, paddingBottom: 100 },
+    scrollContent:      { padding: 16, paddingBottom: 130 },
     loadingContainer:   { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 100 },
     loadingText:        { marginTop: 12, fontSize: 16 },
     emptyContainer:     { alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
@@ -1042,12 +921,46 @@ const styles = StyleSheet.create({
     downloadButtonText: { fontSize: 14, marginLeft: 6 },
     downloadAllButton:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 16, marginTop: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4, marginBottom: 25 },
     downloadAllText:    { fontSize: 16, color: '#FFFFFF', marginLeft: 8 },
-    bottomNavContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' },
-    bottomNav:          { flexDirection: 'row', paddingVertical: 10, borderTopWidth: 1, width: '100%', paddingBottom: 16, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+    // ── Floating Nav ──
+    bottomNavContainer: {
+        position: 'absolute',
+        bottom: 16,
+        left: 16,
+        right: 16,
+        alignItems: 'center',
+    },
+    bottomNav: {
+        flexDirection: 'row',
+        paddingVertical: 10,
+        paddingBottom: 14,
+        borderRadius: 28,
+        borderWidth: 1,
+        width: '100%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 8,
+    },
     navCenterSpacer:    { flex: 1 },
     navItem:            { flex: 1, alignItems: 'center', justifyContent: 'center' },
     navIcon:            { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
     navIconImg:         { width: 44, height: 44 },
     navText:            { fontSize: 11 },
-    cameraButton:       { position: 'absolute', top: -26, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', borderWidth: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 6 },
+    cameraButton: {
+        position: 'absolute',
+        top: -26,
+        alignSelf: 'center',
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.12,
+        shadowRadius: 6,
+        elevation: 6,
+    },
 });

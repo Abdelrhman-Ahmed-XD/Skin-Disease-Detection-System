@@ -330,12 +330,12 @@ export default function FirstHomePage() {
         scaleVal.current = 1; txVal.current = 0; tyVal.current = 0;
     };
 
-    const bottomTabs = [
-        { name: 'Home',     iconImg: Icons.home     },
-        { name: 'Reports',  iconImg: Icons.reports  },
-        { name: 'History',  iconImg: Icons.history  },
-        { name: 'Settings', iconImg: Icons.settings },
-    ];
+const bottomTabs = [
+  { name: 'Home',     labelEn: 'Home',     labelAr: 'الرئيسية',  iconImg: Icons.home     },
+  { name: 'Reports',  labelEn: 'Reports',  labelAr: 'التقارير',  iconImg: Icons.reports  },
+  { name: 'History',  labelEn: 'History',  labelAr: 'السجل',     iconImg: Icons.history  },
+  { name: 'Settings', labelEn: 'Settings', labelAr: 'الإعدادات', iconImg: Icons.settings },
+];
 
     const handleTabPress = (tabName: string) => {
         setActiveTab(tabName);
@@ -534,20 +534,36 @@ export default function FirstHomePage() {
               const tab = bottomTabs.find((t) => t.name === tabName)!;
               const isActive = activeTab === tab.name;
               return (
-                <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                  <View style={[
-                    styles.navIcon,
-                    { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
-                    isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" },
-                  ]}>
-                    <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
+                <TouchableOpacity
+                  key={tab.name}
+                  style={styles.navItem}
+                  onPress={() => handleTabPress(tab.name)}
+                >
+                  <View
+                    style={[
+                      styles.navIcon,
+                      { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                      isActive && {
+                        backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                        borderWidth: 2,
+                        borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={tab.iconImg}
+                      style={styles.navIconImg}
+                      resizeMode="contain"
+                    />
                   </View>
-                  <Text style={[
-                    styles.navText,
-                    { color: isActive ? colors.navActive : colors.navText },
-                    isActive && { fontWeight: "700" },
-                  ]}>
-                    {tab.name}
+                  <Text
+                    style={[
+                      styles.navText,
+                      { color: isActive ? colors.navActive : colors.navText },
+                      isActive && { fontWeight: "700" },
+                    ]}
+                  >
+                    {isArabic ? tab.labelAr : tab.labelEn}
                   </Text>
                 </TouchableOpacity>
               );
@@ -557,20 +573,36 @@ export default function FirstHomePage() {
               const tab = bottomTabs.find((t) => t.name === tabName)!;
               const isActive = activeTab === tab.name;
               return (
-                <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                  <View style={[
-                    styles.navIcon,
-                    { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
-                    isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" },
-                  ]}>
-                    <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
+                <TouchableOpacity
+                  key={tab.name}
+                  style={styles.navItem}
+                  onPress={() => handleTabPress(tab.name)}
+                >
+                  <View
+                    style={[
+                      styles.navIcon,
+                      { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                      isActive && {
+                        backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                        borderWidth: 2,
+                        borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={tab.iconImg}
+                      style={styles.navIconImg}
+                      resizeMode="contain"
+                    />
                   </View>
-                  <Text style={[
-                    styles.navText,
-                    { color: isActive ? colors.navActive : colors.navText },
-                    isActive && { fontWeight: "700" },
-                  ]}>
-                    {tab.name}
+                  <Text
+                    style={[
+                      styles.navText,
+                      { color: isActive ? colors.navActive : colors.navText },
+                      isActive && { fontWeight: "700" },
+                    ]}
+                  >
+                    {isArabic ? tab.labelAr : tab.labelEn}
                   </Text>
                 </TouchableOpacity>
               );
@@ -626,7 +658,7 @@ const styles = StyleSheet.create({
     titleBold:            { fontWeight: '700' },
 
     // ── FIXED: body area clips overflow so zoom stays inside ──
-    bodyMainContainer:    { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, marginBottom: 110 },
+    bodyMainContainer:    { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, marginBottom: 160 },
     bodyClipWrapper: {
         width: BODY_IMG_W,
         height: BODY_IMG_H,
@@ -650,7 +682,7 @@ const styles = StyleSheet.create({
     moleIcon:             { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 22 },
     moleThumbnail:        { width: 38, height: 38, borderRadius: 8, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: '#ccc' },
 
-    bottomControls:       { position: 'absolute', bottom: 110, left: 0, right: 0, alignItems: 'center' },
+    bottomControls:       { position: 'absolute', bottom: 140, left: 0, right: 0, alignItems: 'center' },
     toggleWrapper:        { flexDirection: 'row', borderRadius: 25, padding: 4, width: width * 0.45 },
     toggleButton:         { flex: 1, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
     toggleButtonActive:   { backgroundColor: '#004F7F' },

@@ -11,7 +11,6 @@ import { useTranslation } from '../Customize/translations';
 import { useTheme } from '../ThemeContext';
 import { loadAllScansFromFirestore, deleteMole as deleteMoleService } from '../../Firebase/firestoreService';
 
-// ── Custom Icon Images ─────────────────────────────────────────
 const Icons = {
   home:     require('../../assets/Icons/home.png'),
   reports:  require('../../assets/Icons/Reports.png'),
@@ -21,7 +20,6 @@ const Icons = {
 
 const { width } = Dimensions.get('window');
 
-// ── Updated Types for Nested Result Structure ─────────────────────
 type MoleResult = {
     status?: string;
     disease?: string;
@@ -41,7 +39,7 @@ type Mole = {
     photoUri?: string;
     bodyView: 'front' | 'back' | 'N/A' | string;
     firestoreId?: string;
-    analysis?: string;        // legacy support
+    analysis?: string;
     source?: string;
     result?: MoleResult;
 };
@@ -123,7 +121,6 @@ export default function HistoryPage() {
         History: t('historyTab'), Settings: t('settingsTab'),
     };
 
-    // Sort: newest first (top)
     const sortedMoles = [...moles].sort((a, b) => b.timestamp - a.timestamp);
 
     return (
@@ -192,7 +189,7 @@ export default function HistoryPage() {
               </Text>
 
               {sortedMoles.map((mole, index) => {
-                const reportNumber = moles.length - index; // Report #N logic
+                const reportNumber = moles.length - index;
                 const result = mole.result || {};
                 const displayDisease = result.disease || mole.analysis || 'Analysis in progress';
 
@@ -248,7 +245,7 @@ export default function HistoryPage() {
                         </View>
                       )}
 
-                     <View
+                      <View
                         style={[
                           styles.cardInfo,
                           { alignItems: isArabic ? "flex-end" : "flex-start" },
@@ -360,7 +357,6 @@ export default function HistoryPage() {
                         <Text
                           style={[
                             styles.analysisText,
-                            { color: isDark ? "#fff" : "#004f7f" },
                             {
                               color: colors.subText,
                               textAlign: isArabic ? "right" : "left",
@@ -380,11 +376,15 @@ export default function HistoryPage() {
           )}
         </ScrollView>
 
+        {/* ── Floating Bottom Nav ── */}
         <View style={styles.bottomNavContainer}>
           <View
             style={[
               styles.bottomNav,
-              { backgroundColor: colors.navBg, borderTopColor: colors.border },
+              {
+                backgroundColor: colors.navBg,
+                borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+              },
             ]}
           >
             {["Home", "Reports"].map((tabName) => {
@@ -500,8 +500,8 @@ const styles = StyleSheet.create({
     headerTitleRow:      { flexDirection: 'row', alignItems: 'center' },
     headerTitle:         { fontSize: 22 },
     scrollView:          { flex: 1 },
-    scrollContent:       { padding: 16, paddingBottom: 110 },
-    countLabel:          { fontSize: 13,  marginBottom: 12, marginLeft: 4 },
+    scrollContent:       { padding: 16, paddingBottom: 130 },
+    countLabel:          { fontSize: 13, marginBottom: 12, marginLeft: 4 },
     emptyContainer:      { alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
     emptyIcon:           { width: 90, height: 90 },
     emptyTitle:          { fontSize: 20, fontWeight: '700', marginTop: 16 },
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     thumbnail:           { width: 72, height: 72, borderRadius: 12 },
     thumbnailPlaceholder:{ width: 72, height: 72, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     cardInfo:            { flex: 1 },
-    cardTitle:           {  marginBottom: 4 },
+    cardTitle:           { marginBottom: 4 },
     cardDate:            { marginBottom: 6 },
     badgeRow:            { flexDirection: 'row', gap: 6 },
     badge:               { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
@@ -519,12 +519,46 @@ const styles = StyleSheet.create({
     deleteButton:        { padding: 8 },
     analysisBox:         { paddingHorizontal: 12, paddingBottom: 12 },
     analysisText:        { lineHeight: 20 },
-    bottomNavContainer:  { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' },
-    bottomNav:           { flexDirection: 'row', paddingVertical: 10, borderTopWidth: 1, width: '100%', paddingBottom: 16, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+    // ── Floating Nav ──
+    bottomNavContainer: {
+        position: 'absolute',
+        bottom: 16,
+        left: 16,
+        right: 16,
+        alignItems: 'center',
+    },
+    bottomNav: {
+        flexDirection: 'row',
+        paddingVertical: 10,
+        paddingBottom: 14,
+        borderRadius: 28,
+        borderWidth: 1,
+        width: '100%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 8,
+    },
     navCenterSpacer:     { flex: 1 },
     navItem:             { flex: 1, alignItems: 'center', justifyContent: 'center' },
     navIcon:             { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-    navIconImg:           { width: 44, height: 44 },
+    navIconImg:          { width: 44, height: 44 },
     navText:             { fontSize: 11, fontWeight: '500' },
-    cameraButton:        { position: 'absolute', top: -26, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', borderWidth: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 6 },
+    cameraButton: {
+        position: 'absolute',
+        top: -26,
+        alignSelf: 'center',
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.12,
+        shadowRadius: 6,
+        elevation: 6,
+    },
 });
