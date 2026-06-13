@@ -123,6 +123,30 @@ export default function HistoryPage() {
 
     const sortedMoles = [...moles].sort((a, b) => b.timestamp - a.timestamp);
 
+    const getDateGroup = (timestamp: number): string => {
+        const now   = new Date();
+        const date  = new Date(timestamp);
+        const diff  = (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
+        if (diff < 1 && now.getDate() === date.getDate()) return isArabic ? 'اليوم' : 'Today';
+        if (diff < 2 && (now.getDate() - date.getDate() === 1 || (now.getDate() === 1 && date.getDate() >= 28))) return isArabic ? 'أمس' : 'Yesterday';
+        if (diff < 7)  return isArabic ? 'هذا الأسبوع' : 'This Week';
+        if (diff < 30) return isArabic ? 'هذا الشهر'   : 'This Month';
+        return isArabic ? 'أقدم' : 'Earlier';
+    };
+
+    const groupOrder = isArabic
+        ? ['اليوم','أمس','هذا الأسبوع','هذا الشهر','أقدم']
+        : ['Today','Yesterday','This Week','This Month','Earlier'];
+
+    const grouped = sortedMoles.reduce<Record<string, typeof sortedMoles>>((acc, m) => {
+        const g = getDateGroup(m.timestamp);
+        if (!acc[g]) acc[g] = [];
+        acc[g].push(m);
+        return acc;
+    }, {});
+
+    const analyzedCount = moles.filter(m => m.result?.disease || m.analysis).length;
+
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: pageBg }]}
@@ -150,228 +174,153 @@ export default function HistoryPage() {
         >
           {loading ? (
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyTitle, customText]}>
-                {t("loading")}
-              </Text>
+              <Text style={[styles.emptyTitle, customText]}>{t("loading")}</Text>
             </View>
           ) : moles.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Image
-                source={Icons.history}
-                style={styles.emptyIcon}
-                resizeMode="contain"
-              />
-              <Text style={[styles.emptyTitle, customText]}>
-                {t("noHistoryYet")}
-              </Text>
-              <Text
-                style={[
-                  styles.emptyText,
-                  customText,
-                  { color: colors.subText },
-                ]}
-              >
-                {t("noHistorySubtitle")}
-              </Text>
+              <View style={[styles.emptyIconWrap, { backgroundColor: isDark ? '#1E2A35' : '#E8F4F8' }]}>
+                <Image source={Icons.history} style={styles.emptyIcon} resizeMode="contain" />
+              </View>
+              <Text style={[styles.emptyTitle, customText]}>{t("noHistoryYet")}</Text>
+              <Text style={[styles.emptyText, customText, { color: colors.subText }]}>{t("noHistorySubtitle")}</Text>
             </View>
           ) : (
             <>
-              <Text
-                style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.countLabel, customText,
-                  {
-                    color: colors.subText,
-                    textAlign: isArabic ? "right" : "left",
-                  },
-                ]}
-              >
-                {moles.length}{" "}
-                {moles.length === 1 ? t("entry") : t("entriesFound")}
-              </Text>
+              {/* ── Summary bar ── */}
+              <View style={[styles.summaryBar, { backgroundColor: isDark ? '#0D2030' : '#004F7F' }]}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>{moles.length}</Text>
+                  <Text style={styles.summaryLabel}>{isArabic ? 'إجمالي' : 'Total'}</Text>
+                </View>
+                <View style={styles.summaryDivider} />
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>{analyzedCount}</Text>
+                  <Text style={styles.summaryLabel}>{isArabic ? 'محللة' : 'Analyzed'}</Text>
+                </View>
+                <View style={styles.summaryDivider} />
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>{moles.length - analyzedCount}</Text>
+                  <Text style={styles.summaryLabel}>{isArabic ? 'معلقة' : 'Pending'}</Text>
+                </View>
+              </View>
 
-              {sortedMoles.map((mole, index) => {
-                const reportNumber = moles.length - index;
-                const result = mole.result || {};
-                const displayDisease = result.disease || mole.analysis || 'Analysis in progress';
+              {/* ── Grouped cards ── */}
+              {groupOrder.filter(g => grouped[g]?.length > 0).map(groupLabel => (
+                <View key={groupLabel}>
+                  <View style={[styles.groupHeader, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+                    <View style={[styles.groupLine, { backgroundColor: isDark ? '#2A3F50' : '#C5E3ED' }]} />
+                    <Text style={[styles.groupLabel, { color: isDark ? '#9CA3AF' : '#6B7280', fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }]}>
+                      {groupLabel}
+                    </Text>
+                    <View style={[styles.groupLine, { backgroundColor: isDark ? '#2A3F50' : '#C5E3ED' }]} />
+                  </View>
 
-                return (
-                  <View
-                    key={mole.id}
-                    style={[styles.card, { backgroundColor: colors.card }]}
-                  >
-                    <View
-                      style={[
-                        styles.cardRow,
-                        { flexDirection: isArabic ? "row-reverse" : "row" },
-                      ]}
-                    >
-                      {mole.photoUri ? (
-                        <TouchableOpacity
-                          onPress={() =>
-                            router.push({
-                              pathname: "/Screensbar/Reportdetails",
-                              params: {
-                                moleId: mole.id,
-                                photoUri: mole.photoUri || "",
-                                timestamp: mole.timestamp.toString(),
-                                bodyView: mole.bodyView,
-                                x: mole.x.toString(),
-                                y: mole.y.toString(),
-                                analysis: displayDisease,
-                                reportIndex: (reportNumber - 1).toString(),
-                                result: JSON.stringify(result),
-                              },
-                            })
-                          }
-                          activeOpacity={0.85}
-                        >
-                          <Image
-                            source={{ uri: mole.photoUri }}
-                            style={styles.thumbnail}
-                            resizeMode="cover"
-                          />
-                        </TouchableOpacity>
-                      ) : (
-                        <View
-                          style={[
-                            styles.thumbnailPlaceholder,
-                            { backgroundColor: isDark ? "#2A3F50" : "#E8F4F8" },
-                          ]}
-                        >
-                          <Ionicons
-                            name="scan-outline"
-                            size={28}
-                            color={colors.primary}
-                          />
-                        </View>
-                      )}
+                  {grouped[groupLabel].map((mole, idx) => {
+                    const globalIdx = sortedMoles.findIndex(m => m.id === mole.id);
+                    const reportNumber = moles.length - globalIdx;
+                    const result       = mole.result || {};
+                    const displayDisease = result.disease || mole.analysis || '';
+                    const isAnalyzed   = !!(result.disease || mole.analysis);
+                    const conf         = result.confidence ?? 0;
+                    const confColor    = conf >= 80 ? '#22C55E' : conf >= 60 ? '#F59E0B' : '#EF4444';
 
-                      <View
-                        style={[
-                          styles.cardInfo,
-                          { alignItems: isArabic ? "flex-end" : "flex-start" },
-                        ]}
+                    return (
+                      <TouchableOpacity
+                        key={mole.id}
+                        activeOpacity={0.92}
+                        onPress={() => mole.photoUri && router.push({
+                          pathname: '/Screensbar/Reportdetails',
+                          params: {
+                            moleId:      mole.id,
+                            photoUri:    mole.photoUri || '',
+                            timestamp:   mole.timestamp.toString(),
+                            bodyView:    mole.bodyView,
+                            x:           mole.x.toString(),
+                            y:           mole.y.toString(),
+                            analysis:    displayDisease,
+                            reportIndex: (reportNumber - 1).toString(),
+                            result:      JSON.stringify(result),
+                          },
+                        })}
                       >
-                        <Text style={[styles.cardTitle, customText]}>
-                          {t("reportNum")} {reportNumber}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.cardDate,
-                            customText,
-                            {
-                              color: colors.subText,
-                              fontSize: Math.max(11, settings.fontSize - 4),
-                            },
-                          ]}
-                        >
-                          {formatDate(mole.timestamp)}
-                        </Text>
-                        <View
-                          style={[
-                            styles.badgeRow,
-                            { flexDirection: isArabic ? "row-reverse" : "row" },
-                          ]}
-                        >
-                          <View
-                            style={[
-                              styles.badge,
-                              {
-                                backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-                                flexDirection: isArabic ? "row-reverse" : "row",
-                              },
-                            ]}
-                          >
-                            <Ionicons
-                              name="body-outline"
-                              size={12}
-                              color={isDark ? "#fff" : "#004f7f"}
-                            />
-                            <Text
-                              style={[
-                                styles.badgeText,
-                                {
-                                  color: isDark ? "#fff" : "#004f7f",
-                                  fontSize: Math.max(11, settings.fontSize - 4),
-                                },
-                              ]}
-                            >
-                              {mole.bodyView === "front"
-                                ? t("frontBody")
-                                : mole.bodyView === "back"
-                                ? t("backBody")
-                                : "N/A"}
-                            </Text>
+                        <View style={[styles.card, { backgroundColor: colors.card, flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+                          {/* Accent bar */}
+                          <View style={[styles.accentBar, { backgroundColor: isAnalyzed ? (conf >= 70 ? '#22C55E' : '#F59E0B') : '#9CA3AF' }]} />
+
+                          {/* Thumbnail */}
+                          <View style={styles.thumbWrap}>
+                            {mole.photoUri ? (
+                              <Image source={{ uri: mole.photoUri }} style={styles.thumbnail} resizeMode="cover" />
+                            ) : (
+                              <View style={[styles.thumbPlaceholder, { backgroundColor: isDark ? '#2A3F50' : '#E8F4F8' }]}>
+                                <Ionicons name="scan-outline" size={26} color={colors.primary} />
+                              </View>
+                            )}
+                            {isAnalyzed && (
+                              <View style={[styles.thumbBadge, { backgroundColor: isAnalyzed ? (conf >= 70 ? '#22C55E' : '#F59E0B') : '#9CA3AF' }]}>
+                                <Ionicons name="checkmark" size={10} color="#fff" />
+                              </View>
+                            )}
                           </View>
-                          {(result.disease || mole.analysis) && (
-                            <View
-                              style={[
-                                styles.badge,
-                                {
-                                  backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-                                  flexDirection: isArabic ? "row-reverse" : "row",
-                                },
-                              ]}
-                            >
-                              <Ionicons
-                                name="checkmark-circle-outline"
-                                size={12}
-                                color="#10B981"
-                              />
-                              <Text
-                                style={[
-                                  { fontFamily: FONT_FAMILY_MAP[settings.fontFamily] },
-                                  styles.badgeText,
-                                  {
-                                    color: "#10B981",
-                                    fontSize: Math.max(11, settings.fontSize - 4),
-                                  },
-                                ]}
-                              >
-                                {t("analyzed")}
+
+                          {/* Main info */}
+                          <View style={[styles.cardBody, { alignItems: isArabic ? 'flex-end' : 'flex-start' }]}>
+                            <View style={[styles.cardTopRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+                              <Text style={[styles.cardTitle, customText, { fontWeight: '700' }]}>
+                                {t('reportNum')} {reportNumber}
+                              </Text>
+                              <Text style={[styles.cardDate, { color: colors.subText, fontSize: Math.max(10, settings.fontSize - 4) }]}>
+                                {formatDate(mole.timestamp)}
                               </Text>
                             </View>
-                          )}
+
+                            {displayDisease ? (
+                              <Text style={[styles.diseaseText, { color: isDark ? '#00C8C8' : '#004F7F', fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }]} numberOfLines={2}>
+                                {displayDisease}
+                              </Text>
+                            ) : (
+                              <Text style={[styles.pendingText, { color: colors.subText }]}>
+                                {isArabic ? 'في انتظار التحليل' : 'Awaiting analysis'}
+                              </Text>
+                            )}
+
+                            <View style={[styles.badgeRow, { flexDirection: isArabic ? 'row-reverse' : 'row', marginTop: 6 }]}>
+                              <View style={[styles.chip, { backgroundColor: isDark ? '#1E3A4A' : '#EBF5FB' }]}>
+                                <Ionicons name="body-outline" size={11} color={isDark ? '#C5E3ED' : '#004F7F'} />
+                                <Text style={[styles.chipText, { color: isDark ? '#C5E3ED' : '#004F7F' }]}>
+                                  {mole.bodyView === 'front' ? t('frontBody') : mole.bodyView === 'back' ? t('backBody') : 'N/A'}
+                                </Text>
+                              </View>
+                              {conf > 0 && (
+                                <View style={[styles.chip, { backgroundColor: isDark ? '#1E3A4A' : '#EBF5FB' }]}>
+                                  <Text style={[styles.chipText, { color: confColor, fontWeight: '700' }]}>{conf}%</Text>
+                                </View>
+                              )}
+                            </View>
+
+                            {conf > 0 && (
+                              <View style={styles.confBarWrap}>
+                                <View style={[styles.confBarBg, { backgroundColor: isDark ? '#2A3F50' : '#E5E7EB' }]}>
+                                  <View style={[styles.confBarFill, { width: `${conf}%` as any, backgroundColor: confColor }]} />
+                                </View>
+                              </View>
+                            )}
+                          </View>
+
+                          {/* Delete */}
+                          <TouchableOpacity
+                            style={styles.deleteBtn}
+                            onPress={() => deleteMole(mole.id)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                          </TouchableOpacity>
                         </View>
-                      </View>
-
-                      <TouchableOpacity
-                        style={styles.deleteButton}
-                        onPress={() => deleteMole(mole.id)}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons
-                          name="trash-outline"
-                          size={20}
-                          color="#EF4444"
-                        />
                       </TouchableOpacity>
-                    </View>
-
-                    {(result.disease || mole.analysis) && (
-                      <View
-                        style={[
-                          styles.analysisBox,
-                          { backgroundColor: isDark ? "#1A2F3F" : "#F4FBFF" },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.analysisText,
-                            {
-                              color: colors.subText,
-                              textAlign: isArabic ? "right" : "left",
-                              fontFamily: FONT_FAMILY_MAP[settings.fontFamily]
-                            },
-                          ]}
-                          numberOfLines={3}
-                        >
-                          {displayDisease}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
+                    );
+                  })}
+                </View>
+              ))}
             </>
           )}
         </ScrollView>
@@ -399,11 +348,11 @@ export default function HistoryPage() {
                   <View
                     style={[
                       styles.navIcon,
-                      { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                      { backgroundColor: colors.navBg },
                       isActive && {
-                        backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                        backgroundColor: isDark ? "#1E3A4A" : pageBg,
                         borderWidth: 2,
-                        borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                        borderColor: isDark ? "#00A3A3" : "#2A7DA0",
                       },
                     ]}
                   >
@@ -439,11 +388,11 @@ export default function HistoryPage() {
                   <View
                     style={[
                       styles.navIcon,
-                      { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                      { backgroundColor: colors.navBg },
                       isActive && {
-                        backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                        backgroundColor: isDark ? "#1E3A4A" : pageBg,
                         borderWidth: 2,
-                        borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                        borderColor: isDark ? "#00A3A3" : "#2A7DA0",
                       },
                     ]}
                   >
@@ -494,31 +443,49 @@ export default function HistoryPage() {
 }
 
 const styles = StyleSheet.create({
-    container:           { flex: 1 },
-    header:              { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
-    backButton:          { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    headerTitleRow:      { flexDirection: 'row', alignItems: 'center' },
-    headerTitle:         { fontSize: 22 },
-    scrollView:          { flex: 1 },
-    scrollContent:       { padding: 16, paddingBottom: 130 },
-    countLabel:          { fontSize: 13, marginBottom: 12, marginLeft: 4 },
-    emptyContainer:      { alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
-    emptyIcon:           { width: 90, height: 90 },
-    emptyTitle:          { fontSize: 20, fontWeight: '700', marginTop: 16 },
-    emptyText:           { fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 },
-    card:                { borderRadius: 16, marginBottom: 12, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
-    cardRow:             { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12 },
-    thumbnail:           { width: 72, height: 72, borderRadius: 12 },
-    thumbnailPlaceholder:{ width: 72, height: 72, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    cardInfo:            { flex: 1 },
-    cardTitle:           { marginBottom: 4 },
-    cardDate:            { marginBottom: 6 },
-    badgeRow:            { flexDirection: 'row', gap: 6 },
-    badge:               { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-    badgeText:           { fontWeight: '600' },
-    deleteButton:        { padding: 8 },
-    analysisBox:         { paddingHorizontal: 12, paddingBottom: 12 },
-    analysisText:        { lineHeight: 20 },
+    container:       { flex: 1 },
+    header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
+    backButton:      { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    headerTitleRow:  { flexDirection: 'row', alignItems: 'center' },
+    headerTitle:     { fontSize: 22 },
+    scrollView:      { flex: 1 },
+    scrollContent:   { padding: 16, paddingBottom: 130 },
+    // ── Empty state ──
+    emptyContainer:  { alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
+    emptyIconWrap:   { width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+    emptyIcon:       { width: 56, height: 56 },
+    emptyTitle:      { fontSize: 20, fontWeight: '700', marginTop: 16 },
+    emptyText:       { fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 },
+    // ── Summary bar ──
+    summaryBar:      { flexDirection: 'row', borderRadius: 14, marginBottom: 16, paddingVertical: 14, paddingHorizontal: 8 },
+    summaryItem:     { flex: 1, alignItems: 'center' },
+    summaryValue:    { fontSize: 22, fontWeight: '800', color: '#fff' },
+    summaryLabel:    { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2, fontWeight: '600' },
+    summaryDivider:  { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginVertical: 4 },
+    // ── Group headers ──
+    groupHeader:     { flexDirection: 'row', alignItems: 'center', marginBottom: 10, marginTop: 4 },
+    groupLine:       { flex: 1, height: 1 },
+    groupLabel:      { fontSize: 12, fontWeight: '700', marginHorizontal: 10, textTransform: 'uppercase', letterSpacing: 0.8 },
+    // ── Cards ──
+    card:            { borderRadius: 14, marginBottom: 10, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 3, alignItems: 'stretch' },
+    accentBar:       { width: 4, alignSelf: 'stretch' },
+    thumbWrap:       { position: 'relative', margin: 12, marginRight: 0 },
+    thumbnail:       { width: 76, height: 80, borderRadius: 10 },
+    thumbPlaceholder:{ width: 76, height: 80, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    thumbBadge:      { position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+    cardBody:        { flex: 1, padding: 12, paddingLeft: 10 },
+    cardTopRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+    cardTitle:       { fontSize: 14 },
+    cardDate:        { fontSize: 11 },
+    diseaseText:     { fontSize: 13, fontWeight: '600', marginBottom: 4 },
+    pendingText:     { fontSize: 12, fontStyle: 'italic', marginBottom: 4 },
+    badgeRow:        { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+    chip:            { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
+    chipText:        { fontSize: 11, fontWeight: '600' },
+    confBarWrap:     { marginTop: 6 },
+    confBarBg:       { height: 4, borderRadius: 2, overflow: 'hidden' },
+    confBarFill:     { height: '100%', borderRadius: 2 },
+    deleteBtn:       { paddingRight: 12, paddingLeft: 4, justifyContent: 'center' },
     // ── Floating Nav ──
     bottomNavContainer: {
         position: 'absolute',
@@ -543,7 +510,7 @@ const styles = StyleSheet.create({
     navCenterSpacer:     { flex: 1 },
     navItem:             { flex: 1, alignItems: 'center', justifyContent: 'center' },
     navIcon:             { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-    navIconImg:          { width: 44, height: 44 },
+    navIconImg:          { width: 32, height: 32 },
     navText:             { fontSize: 11, fontWeight: '500' },
     cameraButton: {
         position: 'absolute',

@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, Dimensions,
-    Image, StatusBar, Alert,
+    Image, StatusBar, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { scheduleScanNotification } from '../services/notificationService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
@@ -260,6 +261,11 @@ export default function CameraScreen() {
                 }
                 // ─────────────────────────────────
 
+                scheduleScanNotification(
+                    predictionData.disease || 'Unknown condition',
+                    predictionData.confidence || 0,
+                ).catch(() => {});
+
                 router.push({
                     pathname: '/Screensbar/ResultsScreen',
                     params: {
@@ -304,9 +310,8 @@ export default function CameraScreen() {
 
     if (screenMode === 'existing_preview' && existingPhotoUri) {
         return (
-            <View style={styles.previewContainer}>
-                <StatusBar barStyle="light-content" backgroundColor="#000" />
-                <Image source={{ uri: existingPhotoUri }} style={styles.previewImage} />
+            <SafeAreaView style={styles.previewContainer} edges={['top', 'bottom']}>
+                <StatusBar barStyle="light-content" backgroundColor="#111" />
 
                 <View style={styles.previewTopBar}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.previewTopBtn}>
@@ -316,9 +321,20 @@ export default function CameraScreen() {
                     <View style={{ width: 44 }} />
                 </View>
 
-                <View style={styles.previewBadge}>
-                    <Ionicons name="eye-outline" size={14} color="#fff" />
-                    <Text style={styles.previewBadgeText}>Choose an action below</Text>
+                <View style={styles.previewImageArea}>
+                    <Image source={{ uri: existingPhotoUri }} style={styles.previewImage} />
+                </View>
+
+                <View style={styles.previewInfoPanel}>
+                    <View style={styles.previewInfoRow}>
+                        <View style={styles.previewInfoIconWrap}>
+                            <Ionicons name="eye-outline" size={20} color="#00A3A3" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.previewInfoLabel}>Current saved photo</Text>
+                            <Text style={styles.previewInfoSub}>Keep it, pick a new one from your gallery, or retake</Text>
+                        </View>
+                    </View>
                 </View>
 
                 <View style={styles.existingActions}>
@@ -326,26 +342,23 @@ export default function CameraScreen() {
                         <Ionicons name="checkmark-circle-outline" size={22} color="#004F7F" />
                         <Text style={styles.keepBtnText}>Keep</Text>
                     </TouchableOpacity>
-
                     <TouchableOpacity style={styles.galleryActionBtn} onPress={pickFromGallery} activeOpacity={0.8}>
                         <Ionicons name="images-outline" size={22} color="#fff" />
                         <Text style={styles.galleryActionBtnText}>Gallery</Text>
                     </TouchableOpacity>
-
                     <TouchableOpacity style={styles.cameraActionBtn} onPress={() => setScreenMode('camera')} activeOpacity={0.8}>
                         <Ionicons name="camera-outline" size={22} color="#fff" />
                         <Text style={styles.cameraActionBtnText}>Camera</Text>
                     </TouchableOpacity>
                 </View>
-            </View>
+            </SafeAreaView>
         );
     }
 
     if (screenMode === 'new_preview' && capturedPhoto) {
         return (
-            <View style={styles.previewContainer}>
-                <StatusBar barStyle="light-content" backgroundColor="#000" />
-                <Image source={{ uri: capturedPhoto }} style={styles.previewImage} />
+            <SafeAreaView style={styles.previewContainer} edges={['top', 'bottom']}>
+                <StatusBar barStyle="light-content" backgroundColor="#111" />
 
                 <View style={styles.previewTopBar}>
                     <TouchableOpacity
@@ -358,19 +371,34 @@ export default function CameraScreen() {
                     <View style={{ width: 44 }} />
                 </View>
 
-                <View style={styles.previewBadge}>
-                    <Ionicons name={isEditing ? 'pencil-outline' : 'location-outline'} size={14} color="#fff" />
-                    <Text style={styles.previewBadgeText}>
-                        {isEditing ? 'This will replace the existing photo' : (hasPosition ? 'Will be saved on body map' : 'Will be saved to History')}
-                    </Text>
+                <View style={styles.previewImageArea}>
+                    <Image source={{ uri: capturedPhoto }} style={styles.previewImage} />
                 </View>
 
-                {isSaving && (
-                    <View style={styles.savingBadge}>
-                        <Ionicons name="cloud-upload-outline" size={14} color="#fff" />
-                        <Text style={styles.savingBadgeText}>Saving to cloud...</Text>
+                <View style={styles.previewInfoPanel}>
+                    <View style={styles.previewInfoRow}>
+                        <View style={styles.previewInfoIconWrap}>
+                            <Ionicons
+                                name={isSaving ? 'cloud-upload-outline' : isEditing ? 'pencil-outline' : 'sparkles-outline'}
+                                size={20}
+                                color="#00A3A3"
+                            />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.previewInfoLabel}>
+                                {isSaving ? 'Analyzing your scan...' : 'Ready for AI Analysis'}
+                            </Text>
+                            <Text style={styles.previewInfoSub}>
+                                {isEditing
+                                    ? 'This will replace the existing photo'
+                                    : hasPosition
+                                        ? 'Will be saved on body map'
+                                        : 'Will be saved to History'}
+                            </Text>
+                        </View>
+                        {isSaving && <ActivityIndicator size="small" color="#00A3A3" />}
                     </View>
-                )}
+                </View>
 
                 <View style={styles.previewActions}>
                     <TouchableOpacity
@@ -392,7 +420,7 @@ export default function CameraScreen() {
                         </Text>
                     </TouchableOpacity>
                 </View>
-            </View>
+            </SafeAreaView>
         );
     }
 
@@ -480,25 +508,27 @@ const styles = StyleSheet.create({
     captureBtnInner: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#fff' },
     galleryBtn: { width: 72, height: 72, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', gap: 4 },
     galleryBtnText: { color: '#fff', fontSize: 11, fontWeight: '600' },
-    previewContainer: { flex: 1, backgroundColor: '#000' },
-    previewImage: { flex: 1, width: '100%', resizeMode: 'contain' },
-    previewTopBar: { position: 'absolute', top: 52, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
-    previewTopBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-    previewTitle: { color: '#fff', fontSize: 18, fontWeight: '600' },
-    previewBadge: { position: 'absolute', top: 110, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,79,127,0.85)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-    previewBadgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-    savingBadge: { position: 'absolute', top: 150, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,163,163,0.9)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-    savingBadgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-    existingActions: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 10, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 20, paddingHorizontal: 20 },
-    keepBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
-    keepBtnText: { color: '#004F7F', fontWeight: '700', fontSize: 14 },
-    galleryActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#00A3A3', paddingVertical: 14, borderRadius: 14 },
+    previewContainer:     { flex: 1, backgroundColor: '#111' },
+    previewTopBar:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: 'rgba(0,0,0,0.7)' },
+    previewTopBtn:        { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
+    previewTitle:         { color: '#fff', fontSize: 18, fontWeight: '600' },
+    previewImageArea:     { flex: 1 },
+    previewImage:         { flex: 1, width: '100%', resizeMode: 'contain' },
+    previewInfoPanel:     { backgroundColor: 'rgba(0,0,0,0.85)', paddingHorizontal: 20, paddingVertical: 14 },
+    previewInfoRow:       { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    previewInfoIconWrap:  { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(0,163,163,0.15)', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+    previewInfoLabel:     { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 3 },
+    previewInfoSub:       { color: 'rgba(255,255,255,0.55)', fontSize: 12, lineHeight: 18 },
+    existingActions:      { flexDirection: 'row', gap: 10, backgroundColor: 'rgba(0,0,0,0.85)', paddingVertical: 16, paddingHorizontal: 20 },
+    keepBtn:              { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
+    keepBtnText:          { color: '#004F7F', fontWeight: '700', fontSize: 14 },
+    galleryActionBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#00A3A3', paddingVertical: 14, borderRadius: 14 },
     galleryActionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-    cameraActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#004F7F', paddingVertical: 14, borderRadius: 14 },
-    cameraActionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-    previewActions: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 20, paddingHorizontal: 30, gap: 16 },
-    retakeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
-    retakeBtnText: { color: '#004F7F', fontWeight: '700', fontSize: 15 },
-    confirmBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#004F7F', paddingVertical: 14, borderRadius: 14 },
-    confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    cameraActionBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#004F7F', paddingVertical: 14, borderRadius: 14 },
+    cameraActionBtnText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
+    previewActions:       { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.85)', paddingVertical: 16, paddingHorizontal: 20, gap: 16 },
+    retakeBtn:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
+    retakeBtnText:        { color: '#004F7F', fontWeight: '700', fontSize: 15 },
+    confirmBtn:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#004F7F', paddingVertical: 14, borderRadius: 14 },
+    confirmBtnText:       { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

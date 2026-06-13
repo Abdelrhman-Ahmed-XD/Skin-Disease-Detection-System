@@ -6,7 +6,8 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../Firebase/firebaseConfig';
 
-const MOLES_STORAGE_KEY = 'savedMoles';
+const MOLES_STORAGE_KEY    = 'savedMoles';
+const ALL_SCANS_CACHE_KEY  = 'savedAllScans';
 
 export type MoleResult = {
     status?: string;
@@ -115,18 +116,31 @@ export const loadMolesFromFirestore = async (): Promise<Mole[]> => {
     }
 };
 
+const loadAllScansFromCache = async (): Promise<Mole[]> => {
+    try {
+        const saved = await AsyncStorage.getItem(ALL_SCANS_CACHE_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch {
+        return [];
+    }
+};
+
 export const loadAllScansFromFirestore = async (): Promise<Mole[]> => {
     try {
         const userId = auth.currentUser?.uid;
         if (!userId) return [];
 
         const allScans = await fetchAllScansFromFirestore(userId);
-        if (allScans.length === 0) return loadMolesFromLocal();
+        // Cache for offline access
+        if (allScans.length > 0) {
+            await AsyncStorage.setItem(ALL_SCANS_CACHE_KEY, JSON.stringify(allScans));
+        }
+        if (allScans.length === 0) return loadAllScansFromCache();
 
         return allScans;
     } catch (error) {
-        console.log('❌ Error loading all scans:', error);
-        return loadMolesFromLocal();
+        console.log('❌ Error loading all scans, using cache:', error);
+        return loadAllScansFromCache();
     }
 };
 

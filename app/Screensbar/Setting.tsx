@@ -406,10 +406,11 @@ export default function SettingsPage() {
                 <View
                   style={[
                     styles.navIcon,
+                    { backgroundColor: colors.navBg },
                     isActive && {
-                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                      backgroundColor: isDark ? "#1E3A4A" : pageBg,
                       borderWidth: 2,
-                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                      borderColor: isDark ? "#00A3A3" : "#2A7DA0",
                     },
                   ]}
                 >
@@ -446,10 +447,11 @@ export default function SettingsPage() {
                 <View
                   style={[
                     styles.navIcon,
+                    { backgroundColor: colors.navBg },
                     isActive && {
-                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                      backgroundColor: isDark ? "#1E3A4A" : pageBg,
                       borderWidth: 2,
-                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                      borderColor: isDark ? "#00A3A3" : "#2A7DA0",
                     },
                   ]}
                 >
@@ -663,7 +665,7 @@ bottomNav: {
     alignItems: "center",
     marginBottom: 4,
   },
-  navIconImg: { width: 44, height: 44 },
+  navIconImg: { width: 32, height: 32 },
   navText: { fontSize: 11, fontWeight: "500" },
   cameraButton: {
     position: "absolute",

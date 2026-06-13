@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "../Firebase/firebaseConfig";
 import { setIsLoggingIn } from "./_layout";
 import { loadMolesFromFirestore } from "../Firebase/firestoreService";
+import { registerForPushNotifications, notifyLoginSuccess } from "./services/notificationService";
 
 // Required for expo-auth-session to close the browser popup after redirect
 WebBrowser.maybeCompleteAuthSession();
@@ -288,10 +289,14 @@ export default function Login1() {
             }
 
             setFailCount(0);
-            setIsLoggingIn(false); // allow _layout auth listener again
+            setIsLoggingIn(false);
 
-            // FIXED: Normal email/password logins mean they ALREADY have an account.
-            // Mark onboarding as seen and skip straight to the Home screen!
+            const profileSnapshot = await AsyncStorage.getItem(STORAGE_KEY);
+            const profileInfo = profileSnapshot ? JSON.parse(profileSnapshot) : {};
+            const displayName = profileInfo.firstName || auth.currentUser?.displayName?.split(' ')[0] || 'there';
+            registerForPushNotifications().catch(() => {});
+            notifyLoginSuccess(displayName).catch(() => {});
+
             await AsyncStorage.setItem("hasSeenOnboarding", "true");
             Router.replace("/Screensbar/FirstHomePage");
 
@@ -379,7 +384,12 @@ export default function Login1() {
                 </View>
             </Modal>
 
-            <KeyboardAvoidingView
+            {/* Back button fixed outside scroll so it doesn't shift form content */}
+                <Pressable onPress={() => router.back()} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={28} color="black" />
+                </Pressable>
+
+                <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
@@ -389,10 +399,6 @@ export default function Login1() {
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={28} color="black" />
-                    </Pressable>
-
                     <Image source={require("../assets/images/Splashscreen1 .png")} style={styles.logo} resizeMode="contain" />
                     <Text style={styles.title}>Log in</Text>
 
@@ -437,7 +443,7 @@ export default function Login1() {
                         <Text style={styles.forgetText}>Forget Password?</Text>
                     </Pressable>
 
-                    <Animated.View style={{ transform: [{ scale: scaleAnim }], marginTop: 25 }}>
+                    <Animated.View style={{ transform: [{ scale: scaleAnim }], marginTop: 20 }}>
                         <TouchableOpacity
                             onPress={handleLogin}
                             onPressIn={handlePressIn}
@@ -491,13 +497,14 @@ export default function Login1() {
     );
 }
 
+
 const styles = StyleSheet.create({
     container:        { flex: 1, backgroundColor: "#D8E9F0" },
-    scrollContent:    { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40, flexGrow: 1 },
-    backBtn:          { width: 42, height: 42, backgroundColor: "#D8E9F0", borderRadius: 15, borderColor: "#000", borderWidth: 0.5, justifyContent: "center", alignItems: "center", elevation: 3, alignSelf: "flex-start" },
-    logo:             { width: 250, height: 50, alignSelf: "center", marginTop: 20 },
-    title:            { fontSize: 32, fontWeight: "bold", textAlign: "center", marginTop: 25 },
-    label:            { fontSize: 20, marginTop: 30, alignSelf: "flex-start", textAlign: "left" },
+    scrollContent:    { paddingHorizontal: 24, paddingTop: 70, paddingBottom: 40, flexGrow: 1 },
+    backBtn:          { position: 'absolute', top: 16, left: 16, zIndex: 10, width: 42, height: 42, backgroundColor: "#D8E9F0", borderRadius: 15, borderColor: "#000", borderWidth: 0.5, justifyContent: "center", alignItems: "center", elevation: 3 },
+    logo:             { width: 220, height: 48, alignSelf: "center", marginBottom: 8 },
+    title:            { fontSize: 30, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
+    label:            { fontSize: 16, marginTop: 16, alignSelf: "flex-start", textAlign: "left", fontWeight: '600' },
     input:            { borderWidth: 1, borderColor: "#000", backgroundColor: "#fff", borderRadius: 8, padding: 12, marginTop: 10, textAlign: "left" },
     inputError:       { borderColor: "#D9534F", shadowColor: "#D9534F", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 6, elevation: 4 },
     passwordWrapper:  { position: "relative", marginTop: 10 },

@@ -21,8 +21,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "../Firebase/firebaseConfig";
 
-// Import the safeguard from your layout!
 import { setIsLoggingIn } from "./_layout";
+import { registerForPushNotifications, notifyAccountCreated } from "./services/notificationService";
 
 const STORAGE_KEY = "signupDraft";
 
@@ -175,6 +175,8 @@ export default function SignUp() {
                 JSON.stringify({ ...data, uid: user.uid })
             );
 
+            registerForPushNotifications().catch(() => {});
+            notifyAccountCreated(firstName).catch(() => {});
             Router.push("/Gender");
         } catch (error: any) {
             setIsLoggingIn(false); // Only reset it if sign up fails

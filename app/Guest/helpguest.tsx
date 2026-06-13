@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   LayoutAnimation, Platform, SafeAreaView, ScrollView,
-  StatusBar, StyleSheet, Text, TouchableOpacity, UIManager, View,
+  StyleSheet, Text, TouchableOpacity, UIManager, View,
 } from 'react-native';
 import { useTheme } from '../ThemeContext';
 
@@ -12,27 +12,25 @@ if (Platform.OS === 'android') {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const faqsEn = [
-  { question: "I can't log in or \"Sign In\" fails — what to do?", answers: ['Double-check your email and password.', 'Ensure you have Internet access.', 'If you forgot your password, use the reset option.', 'If it still fails, contact support.'] },
-  { question: 'How do I create an account?', answers: ['Download the app and open it.', 'Tap "Sign Up" on the welcome screen.', 'Enter your name, email, and a strong password.', 'Verify your email address via the link sent to you.', 'Complete your profile and start using the app.'] },
+const faqs = [
+  { question: "I can't log in or Sign In fails. What to do?", answers: ['Check your email and password carefully.', 'Ensure you have Internet access.', 'If you forgot your password, use the reset option on the login screen.', 'If it still fails, try reinstalling the app.'] },
+  { question: 'How do I create an account?', answers: ['Open the app and tap "Sign Up" on the welcome screen.', 'Enter your name, email, and a strong password.', 'Verify your email via the OTP code sent to you.', 'Complete your profile (age, gender, skin type) and start using the app.'] },
   { question: 'I forgot my password. How can I reset it?', answers: ['Tap "Forgot Password?" on the login screen.', 'Enter your registered email address.', 'Check your inbox for a password reset link.', 'Follow the link and set a new password.', "If the email doesn't arrive, check your spam folder."] },
-  { question: 'Why do I need to allow permissions (camera / storage / notifications)?', answers: ['Camera permission is required to capture skin images for diagnosis.', 'Storage permission lets you upload images from your gallery.', 'Notification permission sends you appointment and follow-up reminders.', 'All permissions are used solely within the app and not shared.'] },
-  { question: 'I want to delete my account / data. How do I do that?', answers: ['Go to Settings from the main menu.', 'Scroll down and tap "Delete Account".', 'Confirm your identity by entering your password.', 'Your account and all associated data will be permanently deleted.', 'This action cannot be undone.'] },
-  { question: "I didn't receive the verification email / SMS?", answers: ['Check your spam or junk mail folder.', 'Make sure you entered the correct email/phone number.', 'Tap "Resend Verification" on the confirmation screen.', 'Wait a few minutes and try again.', 'If the issue persists, contact our support team.'] },
-  { question: 'The app crashes / freezes at login screen?', answers: ['Close the app fully and reopen it.', 'Make sure your app is updated to the latest version.', 'Restart your device.', 'Check that your internet connection is stable.', 'Reinstall the app if the problem continues.'] },
-  { question: 'How accurate is the AI skin diagnosis?', answers: ['The AI model is trained on millions of classified skin images.', 'It provides results with a confidence percentage for each diagnosis.', 'Accuracy can be affected by image quality and lighting.', 'Always consult a dermatologist for a final diagnosis.', 'The app is a supportive tool, not a medical replacement.'] },
-  { question: 'Is my medical data safe and private?', answers: ['All data is encrypted and stored on secure servers.', 'Your images and results are never sold or shared without consent.', 'The app complies with HIPAA and international health data laws.', 'You can request full data deletion at any time.'] },
-  { question: 'How do I consult a doctor through the app?', answers: ['Complete a skin scan to get your initial diagnosis.', 'Tap "Consult a Doctor" on the results screen.', 'Choose an available dermatologist from the list.', 'Share your diagnosis report and describe your symptoms.', 'Receive guidance directly through the in-app chat.'] },
+  { question: 'How does the AI skin analysis work?', answers: ['Take or upload a clear photo of the affected skin area.', 'The app sends it to an ensemble of five AI models for analysis.', 'Each model votes on the most likely condition.', 'You receive a result with a confidence percentage and condition details.', 'The AI is a screening tool. Always follow up with a dermatologist.'] },
+  { question: 'How accurate is the AI diagnosis?', answers: ['SkinSight uses five specialized models: ConvNeXt-Base, DenseNet121, MaxViT-T, ResNeXt50, and U-Net++ with EfficientNet-B4.', 'Results include a confidence score. Higher means more certainty.', 'Accuracy is affected by photo quality and lighting.', 'Always consult a licensed dermatologist for a definitive diagnosis.'] },
+  { question: 'What is the body map?', answers: ['The body map (available to signed-in users) lets you pin skin areas you want to monitor.', 'Each pin can have a photo attached via a scan.', 'Pins are saved to your account so you can track changes over time.', 'Create a free account to access the body map.'] },
+  { question: 'What is the confidence score?', answers: ['The confidence score shows how certain the AI is about its prediction.', 'A high score (e.g. 90%+) means the models strongly agree.', 'A lower score means results are less definitive. Seek professional advice.', 'Confidence is affected by image quality, lighting, and visibility of the condition.'] },
+  { question: 'Is my data safe and private?', answers: ['All account data is stored securely in Firebase.', 'Images and results are never sold or shared with third parties.', 'You can delete your account and all associated data at any time.'] },
+  { question: 'Why do I only get one free guest scan?', answers: ['The free guest scan lets you try the AI analysis without creating an account.', 'Creating a free account gives you unlimited scans, full history, and the body map.', 'Sign up is free and takes under two minutes.'] },
+  { question: 'The app crashes or freezes. What do I do?', answers: ['Close the app fully and reopen it.', 'Make sure your app is updated to the latest version.', 'Restart your device.', 'Reinstall the app if the problem continues.'] },
 ];
-export default function HelpPage() {
+
+export default function HelpGuestPage() {
   const { colors, isDark } = useTheme();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-  // ── أبيض في الدارك مود، أسود في الليت مود ─────────────────
-
-  const pageBg = isDark ? colors.background : "#D8E9F0";
-  const accentColor = "#4BA3C7";
-  const faqs        = faqsEn;
+  const pageBg     = isDark ? colors.background : '#D8E9F0';
+  const accentColor = '#4BA3C7';
 
   const toggle = (index: number) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -41,38 +39,17 @@ export default function HelpPage() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]}>
-      <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
-
       <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <TouchableOpacity
-          style={[styles.backButton, { borderColor: colors.border }]}
-          onPress={() => router.back()}
-        >
-          <Ionicons
-            name="chevron-back"
-            size={24}
-            color={isDark ? "#FFFFFF" : "#1F2937"}
-          />
+        <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color={isDark ? '#FFFFFF' : '#1F2937'} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: isDark ? "#fff" : "#000" }]}>
-          {"Help"}
-        </Text>
+        <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Help</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text
-          style={[
-            styles.subtitle,
-            { textAlign: "left" },
-            { color: isDark ? "#fff" : "#000" },
-          ]}
-        >
-          {"faqSubtitle"}
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={[styles.subtitle, { color: isDark ? '#fff' : '#374151' }]}>
+          Frequently asked questions about SkinSight
         </Text>
 
         {faqs.map((faq, index) => {
@@ -80,67 +57,32 @@ export default function HelpPage() {
           return (
             <View
               key={index}
-              style={[
-                styles.card,
-                { backgroundColor: colors.card },
-                isOpen && { borderColor: accentColor },
-              ]}
+              style={[styles.card, { backgroundColor: colors.card }, isOpen && { borderColor: accentColor }]}
             >
               <TouchableOpacity
-                style={[styles.questionRow, { flexDirection: "row" }]}
+                style={styles.questionRow}
                 onPress={() => toggle(index)}
                 activeOpacity={0.7}
               >
-                <Text
-                  style={[
-                    styles.questionText,
-                    {
-                      // السؤال المفتوح يأخذ لون accent، غيره يأخذ textColor
-                      color: isDark ? "#FFFFFF" : "#1F2937",
-                      textAlign: "left",
-                    },
-                  ]}
-                >
+                <Text style={[styles.questionText, { color: isOpen ? accentColor : isDark ? '#FFFFFF' : '#1F2937' }]}>
                   {faq.question}
                 </Text>
-                <View
-                  style={[
-                    styles.arrowWrapper,
-                    { borderColor: accentColor },
-                    isOpen && { backgroundColor: accentColor },
-                  ]}
-                >
+                <View style={[styles.arrowWrapper, { borderColor: accentColor }, isOpen && { backgroundColor: accentColor }]}>
                   <Ionicons
-                    name={isOpen ? "chevron-down" : "chevron-forward"}
+                    name={isOpen ? 'chevron-down' : 'chevron-forward'}
                     size={16}
-                    color={isOpen ? "#FFFFFF" : accentColor}
+                    color={isOpen ? '#FFFFFF' : accentColor}
                   />
                 </View>
               </TouchableOpacity>
 
               {isOpen && (
                 <View style={styles.answersContainer}>
-                  <View
-                    style={[
-                      styles.divider,
-                      { backgroundColor: isDark ? "#2A3F50" : "#E5F0F6" },
-                    ]}
-                  />
+                  <View style={[styles.divider, { backgroundColor: isDark ? '#2A3F50' : '#E5F0F6' }]} />
                   {faq.answers.map((answer, i) => (
-                    <View
-                      key={i}
-                      style={[styles.answerRow, { flexDirection: "row" }]}
-                    >
-                      <Text style={[styles.bullet, { color: accentColor }]}>
-                        →
-                      </Text>
-                      <Text
-                        style={[
-                          styles.answerText,
-                          { textAlign: "left" },
-                          { color: isDark ? "#FFFFFF" : "#000" },
-                        ]}
-                      >
+                    <View key={i} style={styles.answerRow}>
+                      <Text style={[styles.bullet, { color: accentColor }]}>→</Text>
+                      <Text style={[styles.answerText, { color: isDark ? '#FFFFFF' : '#1F2937' }]}>
                         {answer}
                       </Text>
                     </View>

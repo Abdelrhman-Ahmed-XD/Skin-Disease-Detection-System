@@ -16,6 +16,8 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCustomize } from '../Customize/Customizecontext';
+import { useTheme } from '../ThemeContext';
 
 // ── Custom Icon Images ─────────────────────────────────────────
 const Icons = {
@@ -79,6 +81,10 @@ type BodyView = 'front' | 'back';
 
 export default function Nextscreens() {
     const router = useRouter();
+    const { colors, isDark } = useTheme();
+    const { settings } = useCustomize();
+    const pageBg = isDark ? colors.background : settings.backgroundColor;
+
     const [userName,   setUserName]   = useState('');
     const [bodyView,   setBodyView]   = useState<BodyView>('front');
     const [moles,      setMoles]      = useState<Mole[]>([]);
@@ -373,8 +379,8 @@ const spotY = height - 34 + (step.navSlot === 2 ? -30 : 0);
     };
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
-            <StatusBar barStyle="dark-content" backgroundColor="#D8E9F0" />
+        <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
+            <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
             {/* Header */}
             <View style={styles.headerCard}>
@@ -454,14 +460,22 @@ const spotY = height - 34 + (step.navSlot === 2 ? -30 : 0);
                         const isActive = activeTab === tab.name;
                         return (
                             <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                                <View style={[styles.navIcon, isActive && styles.navIconActive]}>
+                                <View style={[
+                                    styles.navIcon,
+                                    { backgroundColor: colors.navBg },
+                                    isActive && {
+                                        backgroundColor: isDark ? '#1E3A4A' : pageBg,
+                                        borderWidth: 2,
+                                        borderColor: isDark ? '#00A3A3' : '#2A7DA0',
+                                    },
+                                ]}>
                                     <Image
                                         source={tab.iconImg}
                                         style={styles.navIconImg}
                                         resizeMode="contain"
                                     />
                                 </View>
-                                <Text style={[styles.navText, isActive && styles.navTextActive]}>{tab.name}</Text>
+                                <Text style={[styles.navText, { color: isActive ? (isDark ? colors.navActive : '#004F7F') : (isDark ? '#FFFFFF' : '#6B7280') }, isActive && { fontWeight: '700' }]}>{tab.name}</Text>
                             </TouchableOpacity>
                         );
                     })}
@@ -471,14 +485,22 @@ const spotY = height - 34 + (step.navSlot === 2 ? -30 : 0);
                         const isActive = activeTab === tab.name;
                         return (
                             <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                                <View style={[styles.navIcon, isActive && styles.navIconActive]}>
+                                <View style={[
+                                    styles.navIcon,
+                                    { backgroundColor: colors.navBg },
+                                    isActive && {
+                                        backgroundColor: isDark ? '#1E3A4A' : pageBg,
+                                        borderWidth: 2,
+                                        borderColor: isDark ? '#00A3A3' : '#2A7DA0',
+                                    },
+                                ]}>
                                     <Image
                                         source={tab.iconImg}
                                         style={styles.navIconImg}
                                         resizeMode="contain"
                                     />
                                 </View>
-                                <Text style={[styles.navText, isActive && styles.navTextActive]}>{tab.name}</Text>
+                                <Text style={[styles.navText, { color: isActive ? (isDark ? colors.navActive : '#004F7F') : (isDark ? '#FFFFFF' : '#6B7280') }, isActive && { fontWeight: '700' }]}>{tab.name}</Text>
                             </TouchableOpacity>
                         );
                     })}
@@ -562,9 +584,9 @@ bottomNav: {
   },
   navCenterSpacer: { flex: 1 },
     navItem:              { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    navIcon:              { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F9FAFB', justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-    navIconActive:        { backgroundColor: '#E8F4F8', borderWidth: 2, borderColor: '#C5E3ED' },
-    navIconImg:           { width: 44, height: 44 },
+    navIcon:              { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+    navIconActive:        {},
+    navIconImg:           { width: 32, height: 32 },
     headerIconImg:        { width: 50, height: 50 },
     notifIconImg:         { width: 36, height: 36 },
     navText:              { fontSize: 11, color: '#6B7280', fontWeight: '500' },

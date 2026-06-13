@@ -14,6 +14,7 @@ import { FONT_FAMILY_MAP, useCustomize } from "../Customize/Customizecontext";
 import { useTranslation } from "../Customize/translations";
 import { useTheme } from "../ThemeContext";
 import { loadProfileFromFirestore, saveProfileToFirestore } from "../../Firebase/firestoreProfileService";
+import { notifyProfileUpdated } from "../services/notificationService";
 
 const STORAGE_KEY       = "signupDraft";
 const CLOUDINARY_CLOUD  = "dignpxpgy";
@@ -195,6 +196,7 @@ export default function EditProfile() {
             const data = saved ? JSON.parse(saved) : {};
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, ...profileUpdate }));
             await saveProfileToFirestore(profileUpdate);
+            notifyProfileUpdated().catch(() => {});
             Alert.alert(t('profileSaved'), t('profileUpdated'), [{ text: t('ok'), onPress: () => router.back() }]);
         } catch (err) {
             console.error('handleSave error:', err);

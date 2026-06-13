@@ -385,7 +385,7 @@ td{padding:8px 7px;vertical-align:middle}
   </div>
   <div class="banner"><p>Complete Skin Analysis Summary</p></div>
   <div class="meta">
-    <div class="mtitle">All Reports — Full History</div>
+    <div class="mtitle">All Reports. Full History</div>
     <div class="mdate">Generated: ${params.generatedDate}</div>
   </div>
   <div class="psec">
@@ -717,6 +717,24 @@ export default function ReportsPage() {
             </View>
           ) : (
             <>
+              {/* Summary stats bar */}
+              <View style={[styles.statsBar, { backgroundColor: isDark ? '#0D2030' : '#004F7F' }]}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{moles.length}</Text>
+                  <Text style={styles.statLabel}>{t('reportsTab') || 'Reports'}</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{moles.filter(m => !isWeb(m.source)).length}</Text>
+                  <Text style={styles.statLabel}>App Scans</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{moles.filter(m => isWeb(m.source)).length}</Text>
+                  <Text style={styles.statLabel}>Web Scans</Text>
+                </View>
+              </View>
+
               {displayMoles.map((mole, displayIndex) => {
                 const reportNumber = moles.length - displayIndex;
                 const webScan = isWeb(mole.source);
@@ -724,7 +742,7 @@ export default function ReportsPage() {
                 const confidence = mole.result?.confidence || 0;
 
                 return (
-                  <View key={mole.id} style={[styles.reportCard, { backgroundColor: colors.card }]}>
+                  <View key={mole.id} style={[styles.reportCard, { backgroundColor: colors.card, borderTopColor: '#00A3A3', borderTopWidth: 3 }]}>
                     <TouchableOpacity
                       style={styles.imageContainer}
                       onPress={() => router.push({
@@ -770,9 +788,12 @@ export default function ReportsPage() {
                           {formatDate(mole.timestamp)}
                         </Text>
                       </View>
-                      <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.reportText, customText, { color: colors.subText, textAlign: isArabic ? "right" : "left" }]}>
-                        {diseaseName}
-                      </Text>
+                      <View style={[styles.diseaseNameBox, { backgroundColor: isDark ? '#0D2030' : '#EBF5FB', borderColor: isDark ? '#1E3A4A' : '#C5E3ED' }]}>
+                        <Ionicons name="scan-outline" size={14} color="#00A3A3" style={{ marginRight: 6 }} />
+                        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.diseaseNameText, { color: isDark ? '#00C8C8' : '#004F7F' }]} numberOfLines={2}>
+                          {diseaseName}
+                        </Text>
+                      </View>
                       {confidence > 0 && (
                         <View style={{ marginVertical: 8 }}>
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -844,8 +865,8 @@ export default function ReportsPage() {
                 <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
                   <View style={[
                     styles.navIcon,
-                    { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
-                    isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" },
+                    { backgroundColor: colors.navBg },
+                    isActive && { backgroundColor: isDark ? "#1E3A4A" : pageBg, borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#2A7DA0" },
                   ]}>
                     <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
@@ -863,8 +884,8 @@ export default function ReportsPage() {
                 <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
                   <View style={[
                     styles.navIcon,
-                    { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
-                    isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" },
+                    { backgroundColor: colors.navBg },
+                    isActive && { backgroundColor: isDark ? "#1E3A4A" : pageBg, borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#2A7DA0" },
                   ]}>
                     <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                   </View>
@@ -904,7 +925,14 @@ const styles = StyleSheet.create({
     emptyIcon:          { width: 90, height: 90 },
     emptyTitle:         { fontSize: 20, marginTop: 16 },
     emptyText:          { fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 },
+    statsBar:           { borderRadius: 14, padding: 16, marginBottom: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3 },
+    statItem:           { alignItems: 'center', flex: 1 },
+    statValue:          { fontSize: 22, fontWeight: '800', color: '#FFFFFF' },
+    statLabel:          { fontSize: 10, color: '#C5E3ED', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
+    statDivider:        { width: 1, height: 36, backgroundColor: 'rgba(255,255,255,0.2)' },
     reportCard:         { borderRadius: 16, marginBottom: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
+    diseaseNameBox:     { flexDirection: 'row', alignItems: 'center', borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12 },
+    diseaseNameText:    { flex: 1, fontSize: 14, fontWeight: '700', lineHeight: 20 },
     imageContainer:     { position: 'relative', width: '100%', height: 200 },
     reportImage:        { width: '100%', height: '100%' },
     imageBadgeRight:    { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,79,127,0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
@@ -945,7 +973,7 @@ const styles = StyleSheet.create({
     navCenterSpacer:    { flex: 1 },
     navItem:            { flex: 1, alignItems: 'center', justifyContent: 'center' },
     navIcon:            { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-    navIconImg:         { width: 44, height: 44 },
+    navIconImg:         { width: 32, height: 32 },
     navText:            { fontSize: 11 },
     cameraButton: {
         position: 'absolute',

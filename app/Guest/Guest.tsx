@@ -22,7 +22,7 @@ const { width, height } = Dimensions.get('window');
 // ── Free scan flag key (shared with cameraguest.tsx) ────────────
 export const GUEST_FREE_SCAN_KEY = 'guestFreeScanUsed';
 
-// ── Session flag (onboarding) ─────────────────────────────────
+const GUEST_ONBOARDING_KEY = 'guestOnboardingSeen';
 let guestOnboardingShownThisSession = false;
 
 const Icons = {
@@ -233,21 +233,20 @@ export default function Guest() {
     React.useCallback(() => {
       setActiveTab('Home');
 
-      // Re-read the free scan flag every time the screen is focused
-      // (covers the case where cameraguest sets it and user comes back)
       AsyncStorage.getItem(GUEST_FREE_SCAN_KEY).then((val) => {
         setFreeScanUsed(val === 'true');
       });
 
       if (guestOnboardingShownThisSession) return;
-      guestOnboardingShownThisSession = true;
-      setOnboardingStep(0);
-      setShowOnboarding(false);
 
-      const t = setTimeout(() => {
-        setShowOnboarding(true);
-        animateIn();
-      }, 350);
+      let t: ReturnType<typeof setTimeout>;
+      AsyncStorage.getItem(GUEST_ONBOARDING_KEY).then((seen) => {
+        if (seen === 'true') return;
+        guestOnboardingShownThisSession = true;
+        setOnboardingStep(0);
+        setShowOnboarding(false);
+        t = setTimeout(() => { setShowOnboarding(true); animateIn(); }, 350);
+      });
 
       return () => clearTimeout(t);
     }, [])
@@ -281,16 +280,24 @@ export default function Guest() {
     if (route && tabName !== 'Home' && tabName !== 'Camera') router.push(route as any);
   };
 
+  const markOnboardingSeen = () => {
+    AsyncStorage.setItem(GUEST_ONBOARDING_KEY, 'true').catch(() => {});
+  };
+
   const handleNext = () => {
     if (onboardingStep < ONBOARDING_STEPS.length - 1) {
       setOnboardingStep(prev => prev + 1);
       setTimeout(animateIn, 30);
     } else {
       setShowOnboarding(false);
+      markOnboardingSeen();
     }
   };
 
-  const handleSkipAll = () => { setShowOnboarding(false); };
+  const handleSkipAll = () => {
+    setShowOnboarding(false);
+    markOnboardingSeen();
+  };
 
   // ── Free-scan-used toast: show for 20s then auto-hide ────────
   const triggerFreeScanToast = () => {
@@ -475,7 +482,7 @@ export default function Guest() {
           <TouchableOpacity style={[StyleSheet.absoluteFill, ob.overlay]} activeOpacity={1} onPress={closeCameraModal} />
           <Animated.View
             pointerEvents="none"
-            style={[ob.spotlight, { left: width / 2 - 34, top: height - NAV_BAR_HEIGHT - 64, transform: [{ scale: pulseAnim }] }]}
+            style={[ob.spotlight, { left: width / 2 - 34, top: height - NAV_BAR_HEIGHT - 60, transform: [{ scale: pulseAnim }] }]}
           />
           <Animated.View style={[ob.cameraModalWrapper, { opacity: cameraFade, transform: [{ scale: cameraScale }] }]}>
             <View style={ob.tooltip}>
@@ -509,7 +516,7 @@ export default function Guest() {
               </Text>
 
               <View style={ob.cameraActions}>
-                <TouchableOpacity style={ob.signUpBtn} activeOpacity={0.85}
+                <TouchableOpacity style={[ob.signUpBtn, { flex: 1 }]} activeOpacity={0.85}
                   onPress={() => { closeCameraModal(); router.push('/SignUp'); }}>
                   <Ionicons name="person-add-outline" size={14} color="#fff" />
                   <Text style={ob.signUpBtnText}>Create Account</Text>
@@ -532,7 +539,7 @@ export default function Guest() {
         <TouchableOpacity style={[StyleSheet.absoluteFill, ob.overlay]} activeOpacity={1} onPress={closeCameraModal} />
         <Animated.View
           pointerEvents="none"
-          style={[ob.spotlight, { left: width / 2 - 34, top: height - NAV_BAR_HEIGHT - 64, transform: [{ scale: pulseAnim }] }]}
+          style={[ob.spotlight, { left: width / 2 - 34, top: height - NAV_BAR_HEIGHT - 60, transform: [{ scale: pulseAnim }] }]}
         />
         <Animated.View style={[ob.cameraModalWrapper, { opacity: cameraFade, transform: [{ scale: cameraScale }] }]}>
           <View style={ob.tooltip}>
@@ -566,7 +573,7 @@ export default function Guest() {
             </Text>
 
             {/* Primary: use free scan. Secondary: sign up / log in */}
-            <TouchableOpacity style={[ob.signUpBtn, { marginBottom: 8 }]} activeOpacity={0.85}
+            <TouchableOpacity style={[ob.signUpBtn, { marginBottom: 8, alignSelf: 'stretch' }]} activeOpacity={0.85}
               onPress={handleUseFreeScan}>
               <Ionicons name="camera-outline" size={14} color="#fff" />
               <Text style={ob.signUpBtnText}>Use Free Scan</Text>
@@ -852,11 +859,11 @@ export default function Guest() {
                 <View
                   style={[
                     styles.navIcon,
-                    { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                    { backgroundColor: colors.navBg },
                     isActive && {
-                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                      backgroundColor: isDark ? "#1E3A4A" : "#D8E9F0",
                       borderWidth: 2,
-                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                      borderColor: isDark ? "#00A3A3" : "#2A7DA0",
                     },
                   ]}
                 >
@@ -897,11 +904,11 @@ export default function Guest() {
                 <View
                   style={[
                     styles.navIcon,
-                    { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                    { backgroundColor: colors.navBg },
                     isActive && {
-                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                      backgroundColor: isDark ? "#1E3A4A" : "#D8E9F0",
                       borderWidth: 2,
-                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                      borderColor: isDark ? "#00A3A3" : "#2A7DA0",
                     },
                   ]}
                 >
@@ -938,7 +945,7 @@ export default function Guest() {
             {
               backgroundColor: colors.navBg,
               borderColor: freeScanUsed
-                ? (isDark ? '#EF4444' : '#FCA5A5')
+                ? '#EF4444'
                 : (isDark ? '#374151' : '#C5E3ED'),
             },
             activeTab === "Camera" && {
@@ -1016,8 +1023,8 @@ const ob = StyleSheet.create({
   root:    { zIndex: 9999, elevation: 9999 },
   overlay: { backgroundColor: 'rgba(0,10,20,0.60)', zIndex: 1 },
   spotlight: {
-    position: 'absolute', width: 80, height: 80, borderRadius: 38,
-    backgroundColor: 'rgba(0,163,163,0.15)', borderWidth: 2.5, borderColor: '#00A3A3', zIndex: 2,
+    position: 'absolute', width: 68, height: 68, borderRadius: 34,
+    backgroundColor: 'rgba(0,163,163,0.12)', borderWidth: 2.5, borderColor: '#00A3A3', zIndex: 2,
     shadowColor: '#00A3A3', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 12, elevation: 8,
   },
   tooltipWrapper:     { position: 'absolute', zIndex: 3 },
@@ -1112,8 +1119,8 @@ const styles = StyleSheet.create({
   },
   navCenterSpacer:     { flex: 1 },
   navItem:             { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  navIcon:             { width: 42, height: 42, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  navIconImg:          { width: 42, height: 42 },
+  navIcon:             { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  navIconImg:          { width: 32, height: 32 },
   headerIconImg:       { width: 55, height: 55 },
   notifIconImg:        { width: 56, height: 56 },
   navText:             { fontSize: 11, fontWeight: '500' },

@@ -123,7 +123,7 @@ const dict = {
 
     // Help
     help: 'Help & Support',
-    faqSubtitle: 'Frequently asked questions — tap a question to see the answer.',
+    faqSubtitle: 'Frequently asked questions. Tap a question to see the answer.',
   },
 
   Arabic: {
@@ -247,7 +247,7 @@ const dict = {
 
     // Help
     help: 'المساعدة والدعم',
-    faqSubtitle: 'الأسئلة الشائعة — اضغط على السؤال لرؤية الإجابة.',
+    faqSubtitle: 'الأسئلة الشائعة. اضغط على السؤال لرؤية الإجابة.',
   },
 } as const;
 

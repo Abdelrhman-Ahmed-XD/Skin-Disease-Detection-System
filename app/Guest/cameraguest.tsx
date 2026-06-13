@@ -9,6 +9,7 @@ import {
     StatusBar,
     Alert,
     Animated,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -190,7 +191,7 @@ export default function CameraScreen() {
             await AsyncStorage.setItem(GUEST_FREE_SCAN_KEY, 'true');
 
             router.push({
-                pathname: '/Screensbar/ResultsScreen',
+                pathname: '/Guest/GuestResultsScreen',
                 params: {
                     result: JSON.stringify(predictionResult),
                     originalUri: predictionResult.originalUri || photoUri,
@@ -289,9 +290,8 @@ export default function CameraScreen() {
     // ── EXISTING PHOTO PREVIEW ─────────────────────────────────────
     if (screenMode === 'existing_preview' && existingPhotoUri) {
         return (
-            <View style={styles.previewContainer}>
-                <StatusBar barStyle="light-content" backgroundColor="#000" />
-                <Image source={{ uri: existingPhotoUri }} style={styles.previewImage} />
+            <SafeAreaView style={styles.previewContainer} edges={['top', 'bottom']}>
+                <StatusBar barStyle="light-content" backgroundColor="#111" />
 
                 <View style={styles.previewTopBar}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.previewTopBtn}>
@@ -299,6 +299,22 @@ export default function CameraScreen() {
                     </TouchableOpacity>
                     <Text style={styles.previewTitle}>Current Photo</Text>
                     <View style={{ width: 44 }} />
+                </View>
+
+                <View style={styles.previewImageArea}>
+                    <Image source={{ uri: existingPhotoUri }} style={styles.previewImage} />
+                </View>
+
+                <View style={styles.previewInfoPanel}>
+                    <View style={styles.previewInfoRow}>
+                        <View style={styles.previewInfoIconWrap}>
+                            <Ionicons name="eye-outline" size={20} color="#00A3A3" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.previewInfoLabel}>Current saved photo</Text>
+                            <Text style={styles.previewInfoSub}>Keep it, pick from gallery, or retake</Text>
+                        </View>
+                    </View>
                 </View>
 
                 <View style={styles.existingActions}>
@@ -315,39 +331,48 @@ export default function CameraScreen() {
                         <Text style={styles.cameraActionBtnText}>Camera</Text>
                     </TouchableOpacity>
                 </View>
-            </View>
+            </SafeAreaView>
         );
     }
 
     // ── NEW PHOTO PREVIEW ─────────────────────────────────────────
     if (screenMode === 'new_preview' && capturedPhoto) {
         return (
-            <View style={styles.previewContainer}>
-                <StatusBar barStyle="light-content" backgroundColor="#000" />
-                <Image source={{ uri: capturedPhoto }} style={styles.previewImage} />
+            <SafeAreaView style={styles.previewContainer} edges={['top', 'bottom']}>
+                <StatusBar barStyle="light-content" backgroundColor="#111" />
 
                 <View style={styles.previewTopBar}>
-                    <TouchableOpacity
-                        onPress={() => setScreenMode('camera')}
-                        style={styles.previewTopBtn}
-                    >
+                    <TouchableOpacity onPress={() => setScreenMode('camera')} style={styles.previewTopBtn}>
                         <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
                     <Text style={styles.previewTitle}>Preview</Text>
                     <View style={{ width: 44 }} />
                 </View>
 
-                <View style={styles.previewBadge}>
-                    <Ionicons name="sparkles-outline" size={14} color="#fff" />
-                    <Text style={styles.previewBadgeText}>Ready for AI Analysis</Text>
+                <View style={styles.previewImageArea}>
+                    <Image source={{ uri: capturedPhoto }} style={styles.previewImage} />
                 </View>
 
-                {isSaving && (
-                    <View style={styles.savingBadge}>
-                        <Ionicons name="cloud-upload-outline" size={14} color="#fff" />
-                        <Text style={styles.savingBadgeText}>Analyzing...</Text>
+                <View style={styles.previewInfoPanel}>
+                    <View style={styles.previewInfoRow}>
+                        <View style={styles.previewInfoIconWrap}>
+                            <Ionicons
+                                name={isSaving ? 'cloud-upload-outline' : 'sparkles-outline'}
+                                size={20}
+                                color="#00A3A3"
+                            />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.previewInfoLabel}>
+                                {isSaving ? 'Analyzing your scan...' : 'Ready for AI Analysis'}
+                            </Text>
+                            <Text style={styles.previewInfoSub}>
+                                Your free guest scan. Results will appear shortly.
+                            </Text>
+                        </View>
+                        {isSaving && <ActivityIndicator size="small" color="#00A3A3" />}
                     </View>
-                )}
+                </View>
 
                 <View style={styles.previewActions}>
                     <TouchableOpacity
@@ -367,7 +392,7 @@ export default function CameraScreen() {
                         <Text style={styles.confirmBtnText}>{isSaving ? 'Analyzing...' : 'Analyze Scan'}</Text>
                     </TouchableOpacity>
                 </View>
-            </View>
+            </SafeAreaView>
         );
     }
 
@@ -472,23 +497,25 @@ const styles = StyleSheet.create({
     galleryBtn:       { width: 72, height: 72, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', gap: 4 },
     galleryBtnText:   { color: '#fff', fontSize: 11, fontWeight: '600' },
 
-    previewContainer:     { flex: 1, backgroundColor: '#000' },
-    previewImage:         { flex: 1, width: '100%', resizeMode: 'cover' },
-    previewTopBar:        { position: 'absolute', top: 52, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
-    previewTopBtn:        { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    previewContainer:     { flex: 1, backgroundColor: '#111' },
+    previewTopBar:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: 'rgba(0,0,0,0.7)' },
+    previewTopBtn:        { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
     previewTitle:         { color: '#fff', fontSize: 18, fontWeight: '600' },
-    previewBadge:         { position: 'absolute', top: 110, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,79,127,0.85)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-    previewBadgeText:     { color: '#fff', fontSize: 12, fontWeight: '600' },
-    savingBadge:          { position: 'absolute', top: 150, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,163,163,0.9)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-    savingBadgeText:      { color: '#fff', fontSize: 12, fontWeight: '600' },
-    existingActions:      { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: 10, backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 20, paddingHorizontal: 20 },
+    previewImageArea:     { flex: 1 },
+    previewImage:         { flex: 1, width: '100%', resizeMode: 'contain' },
+    previewInfoPanel:     { backgroundColor: 'rgba(0,0,0,0.85)', paddingHorizontal: 20, paddingVertical: 14 },
+    previewInfoRow:       { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    previewInfoIconWrap:  { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(0,163,163,0.15)', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+    previewInfoLabel:     { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 3 },
+    previewInfoSub:       { color: 'rgba(255,255,255,0.55)', fontSize: 12, lineHeight: 18 },
+    existingActions:      { flexDirection: 'row', gap: 10, backgroundColor: 'rgba(0,0,0,0.85)', paddingVertical: 16, paddingHorizontal: 20 },
     keepBtn:              { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
     keepBtnText:          { color: '#004F7F', fontWeight: '700', fontSize: 14 },
     galleryActionBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#00A3A3', paddingVertical: 14, borderRadius: 14 },
     galleryActionBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
     cameraActionBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#004F7F', paddingVertical: 14, borderRadius: 14 },
     cameraActionBtnText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
-    previewActions:       { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.75)', paddingVertical: 20, paddingHorizontal: 30, gap: 16 },
+    previewActions:       { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.85)', paddingVertical: 16, paddingHorizontal: 20, gap: 16 },
     retakeBtn:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#fff', paddingVertical: 14, borderRadius: 14 },
     retakeBtnText:        { color: '#004F7F', fontWeight: '700', fontSize: 15 },
     confirmBtn:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#004F7F', paddingVertical: 14, borderRadius: 14 },

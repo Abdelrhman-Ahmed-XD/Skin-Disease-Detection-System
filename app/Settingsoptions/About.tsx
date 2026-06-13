@@ -33,66 +33,78 @@ export default function AboutPage() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.mainTitle, customText, { textAlign: isArabic ? 'right' : 'center' }]}>{t('appName')}</Text>
-        <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.mainSubtitle, { color: '#2A7DA0', textAlign: isArabic ? 'right' : 'center', fontSize: settings.fontSize, fontFamily: customText.fontFamily }]}>{t('usingAI')}</Text>
-        <View style={[styles.divider, { backgroundColor: '#2A7DA0' }]} />
+        {/* Hero card */}
+        <View style={[styles.heroCard, { backgroundColor: isDark ? '#0D2030' : '#004F7F' }]}>
+          <Text style={styles.heroTitle}>{t('appName')}</Text>
+          <View style={styles.heroDivider} />
+          <Text style={styles.heroSubtitle}>{t('usingAI')}</Text>
+        </View>
 
         <Section title={isArabic ? 'مقدمة' : 'Introduction'} colors={colors} isArabic={isArabic} customText={customText}>
           {isArabic
-            ? 'في عصر التكنولوجيا المتقدمة والذكاء الاصطناعي، يمكننا الاستفادة من هذه التقنيات الحديثة في المجال الطبي بطرق غير مسبوقة. يُعد تطبيق كشف أمراض الجلد من أبرز التطبيقات الطبية الذكية التي تهدف إلى مساعدة المرضى والأطباء في تشخيص أمراض الجلد بسرعة وبدقة عالية.'
-            : 'In the age of advanced technology and artificial intelligence, we can now benefit from these modern technologies in the medical field in unprecedented ways. The Skin Disease Detection App is one of the most prominent smart medical applications that aims to help both patients and doctors diagnose skin diseases quickly and with high accuracy.'}
+            ? 'SkinSight تطبيق طبي ذكي يستخدم الذكاء الاصطناعي لتحليل صور الجلد واكتشاف الأمراض الجلدية المحتملة. يجمع التطبيق بين خمسة نماذج ذكاء اصطناعي متخصصة للحصول على أعلى دقة في التشخيص، مع تقديم نتائج شاملة تشمل نسبة الثقة ومعلومات عن الحالة.'
+            : 'SkinSight is a smart medical app that uses artificial intelligence to analyze skin images and detect potential skin conditions. It combines five specialized AI models to maximize diagnostic accuracy, and provides comprehensive results including a confidence score and detailed condition information.'}
         </Section>
 
-        <Section title={isArabic ? 'فكرة التطبيق' : 'App Concept'} colors={colors} isArabic={isArabic} customText={customText}>
+        <Section title={isArabic ? 'كيف يعمل التطبيق' : 'How It Works'} colors={colors} isArabic={isArabic} customText={customText}>
           {isArabic
-            ? 'الفكرة الأساسية للتطبيق هي تمكين المستخدم من التقاط صورة لمنطقة الجلد المصابة باستخدام كاميرا هاتفه المحمول. يقوم التطبيق بعد ذلك بتحليل هذه الصورة تلقائياً وتحديد نوع مرض الجلد المحتمل، وتقديم تقرير شامل يتضمن اسم المرض المحتمل ومستوى الثقة به.'
-            : 'The basic idea of the application is to enable the user to take a picture of the affected skin area using their mobile phone camera. The application then automatically analyzes this image and identifies the type of skin disease likely present, providing a comprehensive report that includes the name of the likely disease and its confidence level.'}
+            ? 'التقط صورة لمنطقة الجلد المصابة أو اختر صورة من معرضك. يرسل التطبيق الصورة إلى نظام ذكاء اصطناعي متكامل يضم نماذج ConvNeXt-Base وDenseNet121 وMaxViT-T وResNeXt50 وU-Net++ مع EfficientNet-B4. يعمل هذا التجميع على تحسين الدقة، ويُعيد تقريراً تشخيصياً فورياً مع نسبة الثقة.'
+            : 'Capture a photo of the affected skin area or choose one from your gallery. The app sends the image to an AI ensemble consisting of ConvNeXt-Base, DenseNet121, MaxViT-T, ResNeXt50, and U-Net++ with EfficientNet-B4. This combination improves accuracy and returns an instant diagnostic report with a confidence percentage.'}
         </Section>
 
         <Section title={isArabic ? 'أهداف التطبيق' : 'App Objectives'} colors={colors} isArabic={isArabic} customText={customText}>
           {isArabic
-            ? 'يسعى التطبيق إلى تحقيق أهداف رئيسية: توفير وصول سهل إلى خدمات التشخيص الطبي الأولية، وتقليل تكاليف الزيارات الطبية الروتينية، ورفع مستوى وعي المستخدمين بأمراض الجلد الشائعة. كما يساعد الأطباء على الحصول على آراء ثانوية سريعة مع التأكيد دائماً على ضرورة استشارة أخصائي للتشخيص النهائي.'
-            : 'The application seeks to achieve key objectives: providing easy access to primary medical diagnostic services, reducing costs of routine medical visits, and raising users awareness of common skin diseases. The app helps doctors obtain quick second opinions while always emphasizing the necessity of consulting a specialist for a final diagnosis.'}
+            ? 'يهدف التطبيق إلى توفير وصول سهل ومبدئي لتحليل الحالات الجلدية، ورفع مستوى الوعي لدى المستخدمين. لا يُغني التطبيق عن استشارة طبيب متخصص، بل يُساعد في توجيه المستخدم نحو القرار الصحيح.'
+            : 'The app aims to provide accessible, preliminary AI powered analysis of skin conditions and raise user awareness. It is not a replacement for professional medical advice. It guides users toward making more informed decisions.'}
         </Section>
 
-        <Section title={isArabic ? 'الفئات المستهدفة' : 'Target Audiences'} colors={colors} isArabic={isArabic} customText={customText}>
+        <Section title={isArabic ? 'الفئات المستهدفة' : 'Who Is It For?'} colors={colors} isArabic={isArabic} customText={customText}>
           {isArabic
-            ? 'يستهدف التطبيق المرضى الذين يعانون من مشاكل جلدية، والأطباء العامين، وأطباء الأمراض الجلدية، والصيادلة، والممرضين الذين يواجهون بشكل متكرر أسئلة المرضى حول أمراض الجلد.'
-            : 'The app targets patients with skin problems, general practitioners, dermatologists, pharmacists, and nurses who frequently encounter patients questions about skin diseases.'}
+            ? 'يستهدف التطبيق أي شخص لديه مخاوف بشأن صحة جلده، سواء كنت تلاحظ تغيراً جلدياً وتريد فهماً أولياً، أو تبحث عن طريقة منظمة لتتبع حالتك الجلدية عبر الزمن.'
+            : 'SkinSight is for anyone concerned about a skin change, whether you want a preliminary understanding of what you are seeing, or a structured way to track your skin health over time.'}
         </Section>
 
         <Text style={[{ fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }, styles.sectionTitle, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{t('keyFeatures')}</Text>
 
         <FeatureCard
           icon="camera-outline"
-          title={isArabic ? 'التشخيص الذكي بالصور' : 'Smart Diagnosis with Images'}
-          description={isArabic ? 'التقط صورة مباشرة بالكاميرا أو اختر من معرض صورك. تعالج خوارزميات الذكاء الاصطناعي الصورة في ثوانٍ، وتقدم نتائج تشخيصية مع مستوى الثقة.' : 'Take a picture directly with the camera or select one from your gallery. AI algorithms process the image within seconds, providing diagnostic results with a confidence level.'}
+          title={isArabic ? 'فحص الجلد بالذكاء الاصطناعي' : 'AI Skin Scan'}
+          description={isArabic ? 'التقط صورة بالكاميرا أو اختر من المعرض. يعالجها نظام ذكاء اصطناعي متكامل من خمسة نماذج ويُعيد النتيجة مع نسبة الثقة خلال ثوانٍ.' : 'Capture via camera or pick from your gallery. A five model AI ensemble analyzes the image and returns a diagnosis with a confidence score in seconds.'}
           colors={colors} isDark={isDark} isArabic={isArabic} customText={customText}
         />
         <FeatureCard
-          icon="library-outline"
-          title={isArabic ? 'قاعدة بيانات طبية شاملة' : 'Comprehensive Medical Database'}
-          description={isArabic ? 'يحتوي التطبيق على قاعدة بيانات غنية بمعلومات تفصيلية عن أكثر من مائة مرض جلدي، بما في ذلك الأسباب والأعراض والمضاعفات وطرق العلاج.' : 'The application contains a rich database with detailed information on more than one hundred skin diseases, including causes, symptoms, complications, and treatment methods.'}
+          icon="map-outline"
+          title={isArabic ? 'خريطة الجسم' : 'Body Map'}
+          description={isArabic ? 'ضع نقاطاً على خريطة الجسم لتحديد مناطق الجلد التي تراقبها. يمكنك تكبير الخريطة ومشاهدة الصور المرتبطة بكل نقطة.' : 'Pin locations on an interactive body map to mark skin areas you are monitoring. Zoom in, tap a pin to rescan, or long-press to remove it.'}
           colors={colors} isDark={isDark} isArabic={isArabic} customText={customText}
         />
         <FeatureCard
-          icon="trending-up-outline"
-          title={isArabic ? 'متابعة تطور الحالة' : 'Monitoring Condition Progress'}
-          description={isArabic ? 'وثّق حالتك الجلدية بمرور الوقت، وخزّن صوراً متعددة للمنطقة المصابة، وتتبع استجابتها للعلاج مع تذكيرات لمواعيد المتابعة.' : 'Document your skin condition over time, store multiple images of the affected area, and track its response to treatment with reminders for follow-up appointments.'}
+          icon="time-outline"
+          title={isArabic ? 'سجل الفحوصات' : 'Scan History'}
+          description={isArabic ? 'يُسجّل التطبيق جميع فحوصاتك مع الصور والتواريخ والنتائج. راجع سجلك في أي وقت لمتابعة تطور حالتك.' : 'Every scan is saved with its photo, date, and results. Review your full history at any time to track how your condition changes.'}
           colors={colors} isDark={isDark} isArabic={isArabic} customText={customText}
         />
         <FeatureCard
-          icon="people-outline"
-          title={isArabic ? 'التواصل مع الأطباء' : 'Connecting with Doctors'}
-          description={isArabic ? 'يوفر التطبيق منصة للتواصل المباشر مع أطباء الأمراض الجلدية من خلال نظام استشارات طبية عبر الإنترنت.' : 'The application provides a platform for direct communication with dermatologists through an online medical consultation system.'}
+          icon="shield-checkmark-outline"
+          title={isArabic ? 'الخصوصية والأمان' : 'Privacy & Security'}
+          description={isArabic ? 'تُخزَّن بياناتك بأمان في Firebase ولا تُشارَك مع أطراف ثالثة. يمكنك حذف حسابك وبياناتك بالكامل في أي وقت.' : 'Your data is stored securely in Firebase and never shared with third parties. You can delete your account and all data at any time.'}
           colors={colors} isDark={isDark} isArabic={isArabic} customText={customText}
         />
 
-        <Section title={isArabic ? 'الخصوصية والأمان' : 'Privacy and Security'} colors={colors} isArabic={isArabic} customText={customText}>
-          {isArabic
-            ? 'يتم تخزين جميع الصور والبيانات الطبية مشفرة على خوادم آمنة ولا تتم مشاركتها مع أي أطراف ثالثة دون موافقة صريحة. يمتثل التطبيق للقوانين الدولية المتعلقة بحماية بيانات الصحة، مثل قانون HIPAA.'
-            : 'All images and medical data are stored encrypted on secure servers and are not shared with any third parties without explicit consent. The application complies with international laws related to health data protection, such as HIPAA.'}
-        </Section>
+        {/* Medical Disclaimer — warning card */}
+        <View style={[styles.disclaimerCard, { backgroundColor: isDark ? '#1A1200' : '#FFFBEB', borderColor: isDark ? '#92400E' : '#F59E0B' }]}>
+          <View style={styles.disclaimerHeader}>
+            <Ionicons name="warning-outline" size={20} color="#F59E0B" />
+            <Text style={[styles.disclaimerTitle, { fontFamily: customText.fontFamily, textAlign: isArabic ? 'right' : 'left' }]}>
+              {isArabic ? 'تنبيه طبي' : 'Medical Disclaimer'}
+            </Text>
+          </View>
+          <Text style={[styles.disclaimerBody, customText, { textAlign: isArabic ? 'right' : 'left' }]}>
+            {isArabic
+              ? 'SkinSight أداة توعوية وليست بديلاً عن التشخيص الطبي المتخصص. النتائج المقدمة تعتمد على الذكاء الاصطناعي وقد لا تكون دقيقة في جميع الحالات. استشر طبيباً مختصاً دائماً للتشخيص النهائي والعلاج.'
+              : 'SkinSight is an awareness tool, not a substitute for professional medical diagnosis. AI results may not be accurate in all cases. Always consult a licensed dermatologist for a final diagnosis and treatment plan.'}
+          </Text>
+        </View>
 
         <View style={{ height: 30 }} />
       </ScrollView>
@@ -102,7 +114,7 @@ export default function AboutPage() {
 
 function Section({ title, children, colors, isArabic, customText }: { title: string; children: React.ReactNode; colors: any; isArabic: boolean; customText: any }) {
   return (
-    <View style={[styles.section, { backgroundColor: colors.card }]}>
+    <View style={[styles.section, { backgroundColor: colors.card, borderLeftColor: '#2A7DA0', borderLeftWidth: isArabic ? 0 : 3, borderRightColor: '#2A7DA0', borderRightWidth: isArabic ? 3 : 0 }]}>
       <Text style={[styles.sectionTitle, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{title}</Text>
       <Text style={[styles.sectionBody, customText, { textAlign: isArabic ? 'right' : 'left' }]}>{children}</Text>
     </View>
@@ -127,18 +139,23 @@ const styles = StyleSheet.create({
   container:          { flex: 1 },
   header:             { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
   backButton:         { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  headerTitle:        { fontSize: 20},
+  headerTitle:        { fontSize: 20 },
   scrollView:         { flex: 1 },
   scrollContent:      { paddingHorizontal: 16, paddingBottom: 20 },
-  mainTitle:          { fontSize: 22,  textAlign: 'center', marginTop: 8 },
-  mainSubtitle:       { fontSize: 15,  textAlign: 'center', marginTop: 4 },
-  divider:            { height: 2, borderRadius: 2, marginVertical: 16, opacity: 0.3 },
-  section:            { marginBottom: 20, borderRadius: 14, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
-  sectionTitle:       { fontSize: 16,  marginBottom: 10, marginTop: 4 },
+  heroCard:           { borderRadius: 16, padding: 22, alignItems: 'center', marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 4 },
+  heroTitle:          { fontSize: 26, fontWeight: '800', color: '#FFFFFF', textAlign: 'center', letterSpacing: 1 },
+  heroDivider:        { width: 40, height: 3, backgroundColor: '#00A3A3', borderRadius: 2, marginVertical: 10 },
+  heroSubtitle:       { fontSize: 14, color: '#C5E3ED', textAlign: 'center', fontStyle: 'italic' },
+  section:            { marginBottom: 16, borderRadius: 14, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1, overflow: 'hidden' },
+  sectionTitle:       { fontSize: 16, fontWeight: '700', marginBottom: 8, marginTop: 2, color: '#2A7DA0' },
   sectionBody:        { fontSize: 14, lineHeight: 22 },
-  featureCard:        { flexDirection: 'row', borderRadius: 14, padding: 14, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1, alignItems: 'flex-start' },
-  featureIconWrapper: { width: 42, height: 42, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 },
+  featureCard:        { flexDirection: 'row', borderRadius: 14, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1, alignItems: 'flex-start' },
+  featureIconWrapper: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 },
   featureTextWrapper: { flex: 1 },
-  featureTitle:       { fontSize: 20, marginBottom: 10 },
+  featureTitle:       { fontSize: 14, fontWeight: '700', marginBottom: 4 },
   featureDescription: { fontSize: 13, lineHeight: 20 },
+  disclaimerCard:     { borderRadius: 14, borderWidth: 1.5, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
+  disclaimerHeader:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  disclaimerTitle:    { fontSize: 15, fontWeight: '700', color: '#F59E0B', flex: 1 },
+  disclaimerBody:     { fontSize: 14, lineHeight: 22 },
 });

@@ -43,6 +43,36 @@ const { width, height } = Dimensions.get('window');
 const BODY_IMG_W = width * 0.85;
 const BODY_IMG_H = height * 0.55;
 
+const FRONT_IMG_SOURCE = require("../../assets/images/body-front.png");
+const BACK_IMG_SOURCE  = require("../../assets/images/body-back.png");
+
+// Returns the actual rendered rect of the body image inside BODY_IMG_W × BODY_IMG_H
+// accounting for resizeMode="contain" letterboxing.
+function getImageRenderLayout(bodyView: 'front' | 'back') {
+    try {
+        const asset = Image.resolveAssetSource(
+            bodyView === 'front' ? FRONT_IMG_SOURCE : BACK_IMG_SOURCE
+        );
+        const imageAspect     = asset.width / asset.height;
+        const containerAspect = BODY_IMG_W / BODY_IMG_H;
+        let renderedW: number, renderedH: number, offsetX: number, offsetY: number;
+        if (imageAspect > containerAspect) {
+            renderedW = BODY_IMG_W;
+            renderedH = BODY_IMG_W / imageAspect;
+            offsetX   = 0;
+            offsetY   = (BODY_IMG_H - renderedH) / 2;
+        } else {
+            renderedH = BODY_IMG_H;
+            renderedW = BODY_IMG_H * imageAspect;
+            offsetX   = (BODY_IMG_W - renderedW) / 2;
+            offsetY   = 0;
+        }
+        return { renderedW, renderedH, offsetX, offsetY };
+    } catch {
+        return { renderedW: BODY_IMG_W, renderedH: BODY_IMG_H, offsetX: 0, offsetY: 0 };
+    }
+}
+
 function inRect(nx: number, ny: number, x1: number, y1: number, x2: number, y2: number) {
     return nx >= x1 && nx <= x2 && ny >= y1 && ny <= y2;
 }
@@ -92,6 +122,7 @@ export default function FirstHomePage() {
     const [unreadCount, setUnreadCount]                   = useState<number>(0);
     const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
     const [showOnboarding, setShowOnboarding]             = useState(false);
+    const [longPressedMoleId, setLongPressedMoleId]       = useState<string | null>(null);
 
     // ── Prevent back to startup for logged-in users ─────────
     useFocusEffect(
@@ -134,6 +165,13 @@ export default function FirstHomePage() {
     const tyVal      = useRef(0);
     const bodyViewRef    = useRef<BodyView>('front');
     const bodyWrapperRef = useRef<any>(null);
+    const bodyCenter     = useRef({ x: 0, y: 0 });
+    const molesRef       = useRef<Mole[]>([]);
+    const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pinchSession   = useRef<{
+        startDist: number; startScale: number; startTx: number; startTy: number;
+        midX: number; midY: number; cx: number; cy: number;
+    } | null>(null);
 
     useEffect(() => {
         const s = scale.addListener(({ value })      => { scaleVal.current = value; });
@@ -141,6 +179,8 @@ export default function FirstHomePage() {
         const y = translateY.addListener(({ value }) => { tyVal.current    = value; });
         return () => { scale.removeListener(s); translateX.removeListener(x); translateY.removeListener(y); };
     }, []);
+
+    useEffect(() => { molesRef.current = moles; }, [moles]);
 
     const lastDistance = useRef<number | null>(null);
     const isPinching   = useRef(false);
@@ -161,67 +201,141 @@ export default function FirstHomePage() {
         onMoveShouldSetPanResponder:  () => true,
         onPanResponderGrant: (evt) => {
             const touches = evt.nativeEvent.touches;
-            isPinching.current = touches.length >= 2;
-            if (touches.length === 1) {
-                tapStartTime.current = Date.now();
-                tapStartPos.current  = { x: touches[0].pageX, y: touches[0].pageY };
-                panStartTx.current   = txVal.current;
-                panStartTy.current   = tyVal.current;
-            } else if (touches.length === 2) {
-                const dx = touches[0].pageX - touches[1].pageX;
-                const dy = touches[0].pageY - touches[1].pageY;
-                lastDistance.current = Math.sqrt(dx * dx + dy * dy);
-            }
+            // Grant always fires with 1 touch; 2-touch is only visible in Move
+            isPinching.current = false;
+            pinchSession.current = null;
+            if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+            tapStartTime.current = Date.now();
+            tapStartPos.current  = { x: touches[0].pageX, y: touches[0].pageY };
+            panStartTx.current   = txVal.current;
+            panStartTy.current   = tyVal.current;
+            longPressTimer.current = setTimeout(() => {
+                longPressTimer.current = null;
+                if (!bodyWrapperRef.current) return;
+                bodyWrapperRef.current.measure((_fx: number, _fy: number, _fw: number, _fh: number, px: number, py: number) => {
+                    const cx   = px + BODY_IMG_W / 2;
+                    const cy   = py + BODY_IMG_H / 2;
+                    const relX = (tapStartPos.current.x - txVal.current - cx) / scaleVal.current + BODY_IMG_W / 2;
+                    const relY = (tapStartPos.current.y - tyVal.current - cy) / scaleVal.current + BODY_IMG_H / 2;
+                    const HIT  = 28;
+                    const hit  = molesRef.current
+                        .filter(m => m.bodyView === bodyViewRef.current)
+                        .find(m => Math.sqrt((relX - m.x) ** 2 + (relY - m.y) ** 2) < HIT);
+                    if (hit) setLongPressedMoleId(hit.id);
+                });
+            }, 500);
         },
         onPanResponderMove: (evt) => {
             const touches = evt.nativeEvent.touches;
-            if (touches.length === 2) {
+            if (touches.length >= 2) {
                 isPinching.current = true;
+                if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
                 const dx      = touches[0].pageX - touches[1].pageX;
                 const dy      = touches[0].pageY - touches[1].pageY;
-                const newDist = Math.sqrt(dx * dx + dy * dy);
-                if (lastDistance.current !== null) {
-                    const ratio    = newDist / lastDistance.current;
-                    const newScale = Math.max(1, Math.min(4, scaleVal.current * ratio));
-                    scale.setValue(newScale);
-                    scaleVal.current = newScale;
+                const curDist = Math.sqrt(dx * dx + dy * dy);
+                const midX    = (touches[0].pageX + touches[1].pageX) / 2;
+                const midY    = (touches[0].pageY + touches[1].pageY) / 2;
+
+                // Initialise pinch session on first 2-touch frame
+                if (!pinchSession.current) {
+                    // Use bodyCenter from focus-effect measurement (accurate page coords)
+                    const cx = bodyCenter.current.x;
+                    const cy = bodyCenter.current.y;
+                    pinchSession.current = {
+                        startDist: curDist,
+                        startScale: scaleVal.current,
+                        startTx: txVal.current,
+                        startTy: tyVal.current,
+                        midX, midY, cx, cy,
+                    };
+                    // Async refresh for accuracy on subsequent frames
+                    bodyWrapperRef.current?.measure((_fx: number, _fy: number, _fw: number, _fh: number, px: number, py: number) => {
+                        bodyCenter.current = { x: px + BODY_IMG_W / 2, y: py + BODY_IMG_H / 2 };
+                        if (pinchSession.current) {
+                            pinchSession.current.cx = bodyCenter.current.x;
+                            pinchSession.current.cy = bodyCenter.current.y;
+                        }
+                    });
+                    return; // skip first frame; let next frame use accurate session
                 }
-                lastDistance.current = newDist;
+
+                const { startDist, startScale, startTx, startTy, cx, cy } = pinchSession.current;
+                const ratio    = curDist / startDist;
+                const newScale = Math.max(1, Math.min(4, startScale * ratio));
+                const sr       = newScale / startScale;
+                const newTx    = (pinchSession.current.midX - cx) * (1 - sr) + startTx * sr;
+                const newTy    = (pinchSession.current.midY - cy) * (1 - sr) + startTy * sr;
+                const clamped  = clampTranslation(newTx, newTy, newScale);
+                scale.setValue(newScale);
+                translateX.setValue(clamped.x);
+                translateY.setValue(clamped.y);
+                scaleVal.current = newScale;
+                txVal.current    = clamped.x;
+                tyVal.current    = clamped.y;
                 return;
             }
-            if (touches.length === 1 && scaleVal.current > 1 && !isPinching.current) {
-                const dx      = touches[0].pageX - tapStartPos.current.x;
-                const dy      = touches[0].pageY - tapStartPos.current.y;
-                const clamped = clampTranslation(panStartTx.current + dx, panStartTy.current + dy, scaleVal.current);
-                translateX.setValue(clamped.x); translateY.setValue(clamped.y);
-                txVal.current = clamped.x; tyVal.current = clamped.y;
+            // Single-finger pan (only after a completed pinch or at scale > 1)
+            if (touches.length === 1) {
+                if (pinchSession.current) {
+                    // Transition from pinch to pan: reset pan start
+                    pinchSession.current = null;
+                    isPinching.current   = false;
+                    panStartTx.current   = txVal.current;
+                    panStartTy.current   = tyVal.current;
+                    tapStartPos.current  = { x: touches[0].pageX, y: touches[0].pageY };
+                    return;
+                }
+                const dx = touches[0].pageX - tapStartPos.current.x;
+                const dy = touches[0].pageY - tapStartPos.current.y;
+                if (longPressTimer.current && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+                    clearTimeout(longPressTimer.current);
+                    longPressTimer.current = null;
+                }
+                if (scaleVal.current > 1 && !isPinching.current) {
+                    const clamped = clampTranslation(panStartTx.current + dx, panStartTy.current + dy, scaleVal.current);
+                    translateX.setValue(clamped.x); translateY.setValue(clamped.y);
+                    txVal.current = clamped.x; tyVal.current = clamped.y;
+                }
             }
         },
         onPanResponderRelease: (evt) => {
             const touch = evt.nativeEvent.changedTouches[0];
             lastDistance.current = null;
+            pinchSession.current = null;
+            if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
             if (isPinching.current) { isPinching.current = false; return; }
             const elapsed = Date.now() - tapStartTime.current;
             const movedX  = Math.abs(touch.pageX - tapStartPos.current.x);
             const movedY  = Math.abs(touch.pageY - tapStartPos.current.y);
             if (elapsed < 300 && movedX < 10 && movedY < 10) {
-                // ── FIXED: measure body wrapper to get exact image bounds ──
                 if (bodyWrapperRef.current) {
                     bodyWrapperRef.current.measure(
                         (_fx: number, _fy: number, _fw: number, _fh: number, px: number, py: number) => {
-                            // The image is centered inside the wrapper
-                            const imgLeft   = px;
-                            const imgTop    = py;
-                            const imgCenterX = imgLeft + BODY_IMG_W / 2;
-                            const imgCenterY = imgTop  + BODY_IMG_H / 2;
-
-                            // Reverse the transform applied to the image
+                            const imgCenterX = px + BODY_IMG_W / 2;
+                            const imgCenterY = py + BODY_IMG_H / 2;
                             const touchRelX = (touch.pageX - txVal.current - imgCenterX) / scaleVal.current + BODY_IMG_W / 2;
                             const touchRelY = (touch.pageY - tyVal.current - imgCenterY) / scaleVal.current + BODY_IMG_H / 2;
-
-                            const nx = touchRelX / BODY_IMG_W;
-                            const ny = touchRelY / BODY_IMG_H;
-
+                            const HIT = 28;
+                            const hitMole = molesRef.current
+                                .filter(m => m.bodyView === bodyViewRef.current)
+                                .find(m => Math.sqrt((touchRelX - m.x) ** 2 + (touchRelY - m.y) ** 2) < HIT);
+                            if (hitMole) {
+                                router.push({
+                                    pathname: '/Screensbar/Camera',
+                                    params: {
+                                        tapX: hitMole.x.toFixed(2),
+                                        tapY: hitMole.y.toFixed(2),
+                                        bodyView: hitMole.bodyView,
+                                        moleId: hitMole.id,
+                                        existingPhotoUri: hitMole.photoUri || '',
+                                        firestoreId: (hitMole as any).firestoreId || '',
+                                    },
+                                });
+                                return;
+                            }
+                            const { renderedW, renderedH, offsetX, offsetY } = getImageRenderLayout(bodyViewRef.current);
+                            const nx = (touchRelX - offsetX) / renderedW;
+                            const ny = (touchRelY - offsetY) / renderedH;
                             if (checkBodyHit(nx, ny)) {
                                 router.push({
                                     pathname: '/Screensbar/Camera',
@@ -303,6 +417,16 @@ export default function FirstHomePage() {
         }, [])
     );
 
+    // Seed bodyCenter after the screen is fully rendered so measure() returns accurate page coords
+    useFocusEffect(React.useCallback(() => {
+        const id = requestAnimationFrame(() => {
+            bodyWrapperRef.current?.measure((_fx: number, _fy: number, _fw: number, _fh: number, px: number, py: number) => {
+                bodyCenter.current = { x: px + BODY_IMG_W / 2, y: py + BODY_IMG_H / 2 };
+            });
+        });
+        return () => cancelAnimationFrame(id);
+    }, []));
+
     const currentMoles = moles.filter((m) => m.bodyView === bodyView);
 
     const deleteMole = async (moleId: string) => {
@@ -319,6 +443,16 @@ export default function FirstHomePage() {
             }
         } catch (err) { console.log('Error deleting mole from Firestore:', err); }
     };
+
+    useEffect(() => {
+        if (!longPressedMoleId) return;
+        const moleId = longPressedMoleId;
+        setLongPressedMoleId(null);
+        Alert.alert('Delete Point', 'Are you sure?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Delete', style: 'destructive', onPress: () => deleteMole(moleId) },
+        ]);
+    }, [longPressedMoleId]);
 
     const toggleBodyView = (view: BodyView) => {
         setBodyView(view);
@@ -431,6 +565,11 @@ const bottomTabs = [
             style={[styles.bodyClipWrapper, { backgroundColor: pageBg }]}
             {...panResponder.panHandlers}
             ref={(r) => { bodyWrapperRef.current = r; }}
+            onLayout={() => {
+              bodyWrapperRef.current?.measure((_fx: number, _fy: number, _fw: number, _fh: number, px: number, py: number) => {
+                bodyCenter.current = { x: px + BODY_IMG_W / 2, y: py + BODY_IMG_H / 2 };
+              });
+            }}
           >
             <Animated.View
               style={[
@@ -542,11 +681,11 @@ const bottomTabs = [
                   <View
                     style={[
                       styles.navIcon,
-                      { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                      { backgroundColor: colors.navBg },
                       isActive && {
-                        backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                        backgroundColor: isDark ? "#1E3A4A" : pageBg,
                         borderWidth: 2,
-                        borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                        borderColor: isDark ? "#00A3A3" : "#2A7DA0",
                       },
                     ]}
                   >
@@ -581,11 +720,11 @@ const bottomTabs = [
                   <View
                     style={[
                       styles.navIcon,
-                      { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                      { backgroundColor: colors.navBg },
                       isActive && {
-                        backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
+                        backgroundColor: isDark ? "#1E3A4A" : pageBg,
                         borderWidth: 2,
-                        borderColor: isDark ? "#00A3A3" : "#C5E3ED",
+                        borderColor: isDark ? "#00A3A3" : "#2A7DA0",
                       },
                     ]}
                   >
@@ -712,8 +851,8 @@ const styles = StyleSheet.create({
     },
     navCenterSpacer:      { flex: 1 },
     navItem:              { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    navIcon:              { width: 42, height: 42, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-    navIconImg:           { width: 42, height: 42 },
+    navIcon:              { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+    navIconImg:           { width: 32, height: 32 },
     notifIconImg:         { width: 56, height: 56 },
     headerIconImg:        { width: 45, height: 45 },
     navText:              { fontSize: 11, fontWeight: '500' },

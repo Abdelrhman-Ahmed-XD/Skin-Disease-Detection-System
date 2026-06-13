@@ -1,6 +1,6 @@
 import { Stack, router } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { auth } from "../Firebase/firebaseConfig";
 import { CustomizeProvider } from "./Customize/Customizecontext";
 import { ThemeProvider } from "./ThemeContext";
@@ -12,10 +12,17 @@ export const setIsLoggingIn = (val: boolean) => {
 
 export default function RootLayout() {
   const [authChecked, setAuthChecked] = useState(false);
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
+    const unsub = onAuthStateChanged(auth, (user) => {
       setAuthChecked(true);
+      // On first auth check, if the user is already signed in from a previous session,
+      // skip the startup/login screens and go straight to home.
+      if (!hasRedirected.current && user && !user.isAnonymous && !isLoggingIn) {
+        hasRedirected.current = true;
+        router.replace("/Screensbar/FirstHomePage");
+      }
     });
     return unsub;
   }, []);
