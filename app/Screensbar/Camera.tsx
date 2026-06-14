@@ -210,7 +210,8 @@ export default function CameraScreen() {
                         y: tapY ?? 0,
                         result: resultPayload,
                         createdAt: serverTimestamp(),
-                        source: 'mobile'
+                        source: 'mobile',
+                        isDeleted: false,
                     });
                     firestoreId = docRef.id;
                 }
