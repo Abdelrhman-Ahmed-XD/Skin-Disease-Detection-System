@@ -380,12 +380,12 @@ const styles = StyleSheet.create({
     label: { fontSize: 15, marginTop: 16, alignSelf: "flex-start", marginBottom: 5 },
     input: {
         borderWidth: 1, borderColor: "#000", backgroundColor: "#fff",
-        borderRadius: 8, padding: 12,
+        borderRadius: 8, padding: 12, color: "#000",
     },
     emailWrapper: { position: "relative", marginTop: 5 },
     emailInput: {
         borderWidth: 1, borderColor: "#000", backgroundColor: "#fff",
-        borderRadius: 8, padding: 12, paddingRight: 110,
+        borderRadius: 8, padding: 12, paddingRight: 110, color: "#000",
     },
     verifyBtn: {
         position: "absolute", right: 10, top: "50%", transform: [{ translateY: -16 }],
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     passwordWrapper: { position: "relative", marginTop: 5 },
     passwordInput: {
         borderWidth: 1, borderColor: "#000", backgroundColor: "#fff",
-        borderRadius: 8, padding: 12, paddingRight: 48,
+        borderRadius: 8, padding: 12, paddingRight: 48, color: "#000",
     },
     eyeIcon: { position: "absolute", right: 12, height: "100%", justifyContent: "center" },
     errorText: { color: "red", marginTop: 6, fontSize: 13 },

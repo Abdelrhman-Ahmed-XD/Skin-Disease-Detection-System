@@ -15,7 +15,7 @@ import {
     Modal, Platform, Pressable, ScrollView,
     StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { auth, db } from "../Firebase/firebaseConfig";
 import { setIsLoggingIn } from "./_layout";
 import { loadMolesFromFirestore } from "../Firebase/firestoreService";
@@ -35,6 +35,7 @@ const flushUI = () => new Promise<void>((r) => {
 
 export default function Login1() {
     const Router = useRouter();
+    const insets = useSafeAreaInsets();
 
     const [showPassword, setShowPassword] = useState(true);
     const [email, setEmail]               = useState("");
@@ -55,10 +56,14 @@ export default function Login1() {
     const isLocked    = lockSeconds > 0;
 
     // ── Google OAuth ─────────────────────────────────────────────
+    const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '';
+    const androidRedirectUri = `com.googleusercontent.apps.${androidClientId.replace('.apps.googleusercontent.com', '')}:/oauth2redirect`;
+
     const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
         iosClientId:     process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+        androidClientId,
         webClientId:     process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        redirectUri:     Platform.OS === 'android' ? androidRedirectUri : undefined,
     });
 
     // ── Facebook OAuth ────────────────────────────────────────────
@@ -391,7 +396,7 @@ export default function Login1() {
             </Modal>
 
             {/* Back button fixed outside scroll so it doesn't shift form content */}
-                <Pressable onPress={() => router.back()} style={styles.backBtn}>
+                <Pressable onPress={() => router.back()} style={[styles.backBtn, { top: insets.top + 12 }]}>
                     <Ionicons name="arrow-back" size={28} color="black" />
                 </Pressable>
 
@@ -513,10 +518,10 @@ const styles = StyleSheet.create({
     logo:             { width: 220, height: 48, alignSelf: "center", marginBottom: 8 },
     title:            { fontSize: 30, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
     label:            { fontSize: 16, marginTop: 16, alignSelf: "flex-start", textAlign: "left", fontWeight: '600' },
-    input:            { borderWidth: 1, borderColor: "#000", backgroundColor: "#fff", borderRadius: 8, padding: 12, marginTop: 10, textAlign: "left" },
+    input:            { borderWidth: 1, borderColor: "#000", backgroundColor: "#fff", borderRadius: 8, padding: 12, marginTop: 10, textAlign: "left", color: "#000" },
     inputError:       { borderColor: "#D9534F", shadowColor: "#D9534F", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 6, elevation: 4 },
     passwordWrapper:  { position: "relative", marginTop: 10 },
-    passwordInput:    { borderWidth: 1, borderColor: "#000", backgroundColor: "#fff", borderRadius: 8, padding: 12, paddingRight: 45, textAlign: "left" },
+    passwordInput:    { borderWidth: 1, borderColor: "#000", backgroundColor: "#fff", borderRadius: 8, padding: 12, paddingRight: 45, textAlign: "left", color: "#000" },
     eyeIcon:          { position: "absolute", right: 12, top: "50%", transform: [{ translateY: -11 }] },
     errorText:        { color: "red", marginTop: 6, textAlign: "left" },
     loginErrorText:   { color: "#D9534F", marginTop: 8, fontSize: 13, textAlign: "center", fontWeight: "600" },
