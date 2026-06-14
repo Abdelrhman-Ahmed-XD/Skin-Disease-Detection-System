@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -37,7 +38,7 @@ export default function Eye() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#DDF0F6" }}>
-      <View style={{ margin: 20 }}>
+      <ScrollView contentContainerStyle={{ margin: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={28} color="black" />
         </Pressable>
@@ -79,7 +80,7 @@ export default function Eye() {
         >
           <Text style={styles.continueText}>Continue</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -170,20 +170,24 @@ export const saveMole = async (mole: Mole): Promise<void> => {
     }
 };
 
-export const deleteMole = async (moleId: string): Promise<Mole[]> => {
+export const deleteMole = async (moleId: string): Promise<void> => {
     try {
+        // Remove from both local caches
         const existing = await loadMolesFromLocal();
-        const updated = existing.filter(m => m.id !== moleId);
-        await AsyncStorage.setItem(MOLES_STORAGE_KEY, JSON.stringify(updated));
+        await AsyncStorage.setItem(MOLES_STORAGE_KEY, JSON.stringify(existing.filter(m => m.id !== moleId)));
+
+        const allSaved = await AsyncStorage.getItem(ALL_SCANS_CACHE_KEY);
+        if (allSaved) {
+            const allScans: Mole[] = JSON.parse(allSaved);
+            await AsyncStorage.setItem(ALL_SCANS_CACHE_KEY, JSON.stringify(allScans.filter(m => m.id !== moleId)));
+        }
 
         const userId = auth.currentUser?.uid;
         if (userId) {
             await deleteDoc(doc(db, 'users', userId, 'scans', moleId));
         }
-        return updated;
     } catch (error) {
         console.log('❌ Error deleting mole:', error);
-        return [];
     }
 };
 

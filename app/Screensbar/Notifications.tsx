@@ -219,13 +219,12 @@ export default function NotificationsPage() {
                 >
                   <View style={styles.iconContainer}>
                     {notif.imageUri ? (
-                      <Image
-                        source={{ uri: notif.imageUri }}
-                        style={[
-                          styles.thumb,
-                          { borderColor: isDark ? '#374151' : '#E5E7EB' },
-                        ]}
-                      />
+                      <View style={[styles.thumbWrapper, { borderColor: isDark ? '#374151' : '#E5E7EB' }]}>
+                        <Image
+                          source={{ uri: notif.imageUri }}
+                          style={styles.thumb}
+                        />
+                      </View>
                     ) : (
                       <Ionicons
                         name={
@@ -386,7 +385,8 @@ const styles = StyleSheet.create({
   },
   notifHeader:   { flexDirection: 'row', padding: 16, alignItems: 'center' },
   iconContainer: { position: 'relative', marginRight: 12 },
-  thumb:         { width: 52, height: 52, borderRadius: 14, borderWidth: 1 },
+  thumbWrapper:  { width: 52, height: 52, borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
+  thumb:         { width: '100%', height: '100%' },
   unreadDot: {
     position:        'absolute',
     top:             0,

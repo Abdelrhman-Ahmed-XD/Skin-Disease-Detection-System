@@ -44,7 +44,7 @@ const eyeColorOptions  = [{ name: "Black", color: "#000000" }, { name: "Brown", 
 const hairColorOptions = [
   { name: "Black", color: "#000000" },
   { name: "Brown", color: "#7B4B1A" },
-  { name: "Gold", color: "#D4A853" },
+  { name: "Blonde", color: "#D4A853" },
   { name: "Red", color: "#C0392B" },
   { name: "Grey", color: "#9AA0A6" },
 ];

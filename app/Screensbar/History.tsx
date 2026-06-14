@@ -95,8 +95,8 @@ export default function HistoryPage() {
             { text: t('cancel'), style: 'cancel' },
             {
                 text: t('delete'), style: 'destructive', onPress: async () => {
-                    const updated = await deleteMoleService(moleId);
-                    setMoles(updated);
+                    await deleteMoleService(moleId);
+                    await loadMoles();
                 },
             },
         ]);

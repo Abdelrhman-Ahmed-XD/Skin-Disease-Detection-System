@@ -30,25 +30,31 @@ export default function Index() {
       <View style={styles.container}>
         {showImage && (
           <View style={{ flex: 1, width: "100%" }}>
-            {/* Background Image */}
+            {/* Background Image — contain keeps full image visible, no cropping */}
             <Image
               source={require("../assets/images/splash-screen.png")}
               style={{ width: "100%", height: "100%", position: "absolute" }}
-              resizeMode="cover"
+              resizeMode="contain"
             />
-            {/* Logo in center */}
-            <Image
-              source={require("../assets/images/Logo4.png")}
+            {/* Logo in center with rounded corners */}
+            <View
               style={{
                 position: "absolute",
                 top: "50%",
-                left: "45%",
+                left: "50%",
                 transform: [{ translateX: -150 }, { translateY: -75 }],
-                width: 350,
+                width: 300,
                 height: 150,
-                resizeMode: "contain",
+                borderRadius: 20,
+                overflow: "hidden",
               }}
-            />
+            >
+              <Image
+                source={require("../assets/images/Logo4.png")}
+                style={{ width: "100%", height: "100%" }}
+                resizeMode="contain"
+              />
+            </View>
           </View>
         )}
         {!showImage && <StartUp />}
