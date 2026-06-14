@@ -89,7 +89,7 @@ export async function scheduleScanNotification(disease: string, confidence: numb
   await Notifications.scheduleNotificationAsync({
     content: {
       title: '🔬 Scan Analysis Complete',
-      body: `AI detected: ${disease} — ${confidence}% confidence`,
+      body: `AI detected ${disease} with ${confidence}% confidence.`,
       sound: true,
     },
     trigger: null,
@@ -99,7 +99,7 @@ export async function scheduleScanNotification(disease: string, confidence: numb
 export const notifyScanComplete = (disease: string, confidence: number, imageUri?: string) =>
   sendLocalAndFirestore(
     '🔬 Scan Analysis Complete',
-    `AI detected: ${disease} — ${confidence}% confidence`,
+    `AI detected ${disease} with ${confidence}% confidence.`,
     'scan_result',
     { disease, confidence, imageUri: imageUri ?? '' },
   );

@@ -349,28 +349,34 @@ export default function Login1() {
                         <ActivityIndicator color="#004F7F" size="large" />
                         <Text style={styles.overlayTitle}>{loadingStatus || "Logging in..."}</Text>
 
-                        {/* Step indicators */}
-                        <View style={styles.stepsRow}>
-                            {STEPS.map(({ step, label }) => (
-                                <View key={step} style={styles.stepItem}>
-                                    <View style={[
-                                        styles.stepDot,
-                                        loadingStep >= step && styles.stepDotActive,
-                                        loadingStep === step && styles.stepDotCurrent,
-                                    ]}>
-                                        {loadingStep > step
-                                            ? <Text style={styles.stepCheck}>✓</Text>
-                                            : <Text style={[styles.stepNum, loadingStep >= step && { color: "#fff" }]}>{step}</Text>
-                                        }
-                                    </View>
-                                    <Text style={[styles.stepLabel, loadingStep >= step && styles.stepLabelActive]}>
-                                        {label}
-                                    </Text>
-                                    {step < TOTAL_STEPS && (
-                                        <View style={[styles.stepLine, loadingStep > step && styles.stepLineActive]} />
-                                    )}
-                                </View>
-                            ))}
+                        {/* Step indicators — each column has dot + label, connected by lines */}
+                        <View style={styles.stepsWrap}>
+                            <View style={styles.dotsRow}>
+                                {STEPS.map(({ step, label }) => (
+                                    <React.Fragment key={step}>
+                                        <View style={styles.stepUnit}>
+                                            <View style={[
+                                                styles.stepDot,
+                                                loadingStep >= step && styles.stepDotActive,
+                                                loadingStep === step && styles.stepDotCurrent,
+                                            ]}>
+                                                {loadingStep > step
+                                                    ? <Text style={styles.stepCheck}>✓</Text>
+                                                    : <Text style={[styles.stepNum, loadingStep >= step && { color: "#fff" }]}>{step}</Text>
+                                                }
+                                            </View>
+                                            <Text style={[styles.stepLabel, loadingStep >= step && styles.stepLabelActive]}>
+                                                {label}
+                                            </Text>
+                                        </View>
+                                        {step < TOTAL_STEPS && (
+                                            <View style={styles.stepLineContainer}>
+                                                <View style={[styles.stepLine, loadingStep > step && styles.stepLineActive]} />
+                                            </View>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </View>
                         </View>
 
                         {/* Progress bar */}
@@ -405,6 +411,7 @@ export default function Login1() {
                     <Text style={styles.label}>Email</Text>
                     <TextInput
                         placeholder="Enter your email"
+                        placeholderTextColor="#9CA3AF"
                         value={email}
                         onChangeText={(text) => { setEmail(text); setLoginError(false); }}
                         keyboardType="email-address"
@@ -419,6 +426,7 @@ export default function Login1() {
                     <View style={styles.passwordWrapper}>
                         <TextInput
                             placeholder="Enter your password"
+                            placeholderTextColor="#9CA3AF"
                             secureTextEntry={showPassword}
                             value={password}
                             onChangeText={(text) => { setPassword(text); setLoginError(false); }}
@@ -528,18 +536,20 @@ const styles = StyleSheet.create({
     // Overlay
     overlayContainer: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", alignItems: "center" },
     overlayCard:      { backgroundColor: "#fff", borderRadius: 20, padding: 32, width: "80%", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 10 },
-    overlayTitle:     { fontSize: 16, fontWeight: "700", color: "#004F7F", marginTop: 16, marginBottom: 24, textAlign: "center" },
-    stepsRow:         { flexDirection: "row", alignItems: "center", marginBottom: 32 },
-    stepItem:         { alignItems: "center", flexDirection: "row" },
-    stepDot:          { width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: "#c0c0c0", backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center" },
-    stepDotActive:    { backgroundColor: "#004F7F", borderColor: "#004F7F" },
-    stepDotCurrent:   { backgroundColor: "#4A9CC2", borderColor: "#4A9CC2" },
-    stepNum:          { fontSize: 13, fontWeight: "700", color: "#aaa" },
-    stepCheck:        { fontSize: 13, fontWeight: "900", color: "#fff" },
-    stepLabel:        { position: "absolute", bottom: -18, left: "50%", fontSize: 10, color: "#aaa", fontWeight: "600", width: 50, textAlign: "center", marginLeft: -25 },
-    stepLabelActive:  { color: "#004F7F" },
-    stepLine:         { width: 20, height: 2, backgroundColor: "#ddd", marginHorizontal: 4 },
-    stepLineActive:   { backgroundColor: "#004F7F" },
+    overlayTitle:     { fontSize: 16, fontWeight: "700", color: "#004F7F", marginTop: 16, marginBottom: 20, textAlign: "center" },
+    stepsWrap:         { width: "100%", marginBottom: 24 },
+    dotsRow:           { flexDirection: "row", alignItems: "flex-start", justifyContent: "center" },
+    stepUnit:          { alignItems: "center", width: 52 },
+    stepDot:           { width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: "#c0c0c0", backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center" },
+    stepDotActive:     { backgroundColor: "#004F7F", borderColor: "#004F7F" },
+    stepDotCurrent:    { backgroundColor: "#4A9CC2", borderColor: "#4A9CC2" },
+    stepNum:           { fontSize: 13, fontWeight: "700", color: "#aaa" },
+    stepCheck:         { fontSize: 13, fontWeight: "900", color: "#fff" },
+    stepLabel:         { fontSize: 10, color: "#aaa", fontWeight: "600", textAlign: "center", marginTop: 6, width: 52 },
+    stepLabelActive:   { color: "#004F7F" },
+    stepLineContainer: { marginTop: 15, justifyContent: "center" },
+    stepLine:          { width: 20, height: 2, backgroundColor: "#ddd" },
+    stepLineActive:    { backgroundColor: "#004F7F" },
     progressBarBg:    { width: "100%", height: 8, backgroundColor: "#E8F0F5", borderRadius: 4, overflow: "hidden", marginTop: 8 },
     progressBarFill:  { height: "100%", backgroundColor: "#004F7F", borderRadius: 4 },
     progressText:     { marginTop: 8, fontSize: 12, color: "#7BAFC4", fontWeight: "600" },

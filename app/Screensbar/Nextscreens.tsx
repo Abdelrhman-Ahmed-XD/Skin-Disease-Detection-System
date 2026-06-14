@@ -106,7 +106,11 @@ export default function Nextscreens() {
     const txVal        = useRef(0);
     const tyVal        = useRef(0);
     const bodyViewRef  = useRef<BodyView>('front');
-    const bodyWrapperRef = useRef<any>(null);
+    const bodyWrapperRef  = useRef<any>(null);
+    const containerLayout = useRef({ px: 0, py: 0, fw: 0, fh: 0 });
+    const routerRef       = useRef(router);
+
+    useEffect(() => { routerRef.current = router; }, [router]);
 
     useEffect(() => {
         const s = scale.addListener(({ value }) => { scaleVal.current = value; });
@@ -177,20 +181,26 @@ export default function Nextscreens() {
             const movedX  = Math.abs(touch.pageX - tapStartPos.current.x);
             const movedY  = Math.abs(touch.pageY - tapStartPos.current.y);
             if (elapsed < 300 && movedX < 10 && movedY < 10) {
+                const imgW = width * 0.85;
+                const imgH = height * 0.55;
                 const doNavigate = (iL: number, iT: number, iW: number, iH: number) => {
                     const cx   = iL + iW / 2;
                     const cy   = iT + iH / 2;
                     const relX = (touch.pageX - txVal.current - cx) / scaleVal.current + iW / 2;
                     const relY = (touch.pageY - tyVal.current - cy) / scaleVal.current + iH / 2;
                     if (checkBodyHit(relX / iW, relY / iH, bodyViewRef.current)) {
-                        router.push({ pathname: '/Screensbar/Camera', params: { tapX: relX.toFixed(2), tapY: relY.toFixed(2), bodyView: bodyViewRef.current } });
+                        routerRef.current.push({ pathname: '/Screensbar/Camera', params: { tapX: relX.toFixed(2), tapY: relY.toFixed(2), bodyView: bodyViewRef.current } });
                     }
                 };
-                bodyWrapperRef.current?.measure((_fx: number, _fy: number, fw: number, fh: number, px: number, py: number) => {
-                    const imgW = width * 0.85;
-                    const imgH = height * 0.55;
+                const { px, py, fw, fh } = containerLayout.current;
+                if (fw > 0) {
                     doNavigate(px + (fw - imgW) / 2, py + (fh - imgH) / 2, imgW, imgH);
-                });
+                } else {
+                    bodyWrapperRef.current?.measure((_fx: number, _fy: number, fw2: number, fh2: number, px2: number, py2: number) => {
+                        containerLayout.current = { px: px2, py: py2, fw: fw2, fh: fh2 };
+                        doNavigate(px2 + (fw2 - imgW) / 2, py2 + (fh2 - imgH) / 2, imgW, imgH);
+                    });
+                }
             }
         },
     })).current;
@@ -407,7 +417,16 @@ const spotY = height - 34 + (step.navSlot === 2 ? -30 : 0);
 
             {/* Body + gestures */}
             <View style={styles.bodyMainContainer}>
-                <View style={styles.bodyTouchable} {...panResponder.panHandlers} ref={r => { bodyWrapperRef.current = r; }}>
+                <View
+                    style={styles.bodyTouchable}
+                    {...panResponder.panHandlers}
+                    ref={r => { bodyWrapperRef.current = r; }}
+                    onLayout={() => {
+                        bodyWrapperRef.current?.measure((_fx: number, _fy: number, fw: number, fh: number, px: number, py: number) => {
+                            containerLayout.current = { px, py, fw, fh };
+                        });
+                    }}
+                >
                     <Animated.View style={[styles.bodyImageWrapper, { transform: [{ scale }, { translateX }, { translateY }] }]}>
                         <Image
                             source={bodyView === 'front'

@@ -13,6 +13,8 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {FONT_FAMILY_MAP, useCustomize} from '../Customize/Customizecontext';
 import {useTranslation} from '../Customize/translations';
 import {useTheme} from '../ThemeContext';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../../Firebase/firebaseConfig';
 
 // ── Save PDF ──────────────────────────────────────────────────
 const savePDF = async (uri: string, filename: string) => {
@@ -91,6 +93,48 @@ const getPlatform = (source?: string): string =>
 const confColor = (c: number) =>
     c >= 80 ? '#22C55E' : c >= 60 ? '#F59E0B' : '#EF4444';
 
+const getDiseaseAccent = (disease: string): { color: string; bg: string; border: string } => {
+    const d = (disease || '').toLowerCase();
+    if (d.includes('melanoma') || d === 'mel') return { color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' };
+    if (d.includes('basal') || d.includes('bcc')) return { color: '#EA580C', bg: '#FFF7ED', border: '#FED7AA' };
+    if (d.includes('actinic') || d.includes('akiec')) return { color: '#B45309', bg: '#FFFBEB', border: '#FDE68A' };
+    if (d.includes('keratosis') || d.includes('bkl')) return { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' };
+    if (d.includes('nevus') || d === 'nv' || d.includes(' nv')) return { color: '#16A34A', bg: '#F0FDF4', border: '#BBF7D0' };
+    if (d.includes('dermatofibroma') || d === 'df') return { color: '#2563EB', bg: '#EFF6FF', border: '#BFDBFE' };
+    if (d.includes('vascular') || d.includes('vasc')) return { color: '#7C3AED', bg: '#FAF5FF', border: '#DDD6FE' };
+    if (d.includes('rejected')) return { color: '#EF4444', bg: '#FEF2F2', border: '#FECACA' };
+    return { color: '#00A3A3', bg: '#E8F4F8', border: '#C5E3ED' };
+};
+
+const getSeverity = (disease: string): { label: string; color: string; bg: string } | null => {
+    const d = (disease || '').toLowerCase();
+    if (d.includes('melanoma') || d === 'mel' || d.includes('basal') || d.includes('bcc') || d.includes('actinic') || d.includes('akiec'))
+        return { label: 'DANGEROUS', color: '#DC2626', bg: '#FEF2F2' };
+    if (d.includes('keratosis') || d.includes('bkl') || d.includes('dermatofibroma') || d === 'df' || d.includes('vascular') || d.includes('vasc'))
+        return { label: 'NEEDS MONITORING', color: '#D97706', bg: '#FFFBEB' };
+    if (d.includes('nevus') || d === 'nv' || d.includes(' nv'))
+        return { label: 'LIKELY SAFE', color: '#16A34A', bg: '#F0FDF4' };
+    return null;
+};
+
+const uploadPDFToCloudinary = async (pdfUri: string, filename: string): Promise<string> => {
+    try {
+        const formData = new FormData();
+        formData.append('file', { uri: pdfUri, type: 'application/pdf', name: filename } as any);
+        formData.append('upload_preset', 'skinsight_uploads');
+        formData.append('resource_type', 'raw');
+        const res = await fetch(
+            'https://api.cloudinary.com/v1_1/dignpxpgy/raw/upload',
+            { method: 'POST', body: formData }
+        );
+        const json = await res.json();
+        return json.secure_url || '';
+    } catch (e) {
+        console.log('Cloudinary PDF upload error:', e);
+        return '';
+    }
+};
+
 // ── buildReportHTML ───────────────────────────────────────────
 const buildReportHTML = (params: {
     reportIndex:        number;
@@ -116,8 +160,10 @@ const buildReportHTML = (params: {
     precautions:        string[];
     sources:            string[];
 }) => {
-    const cc  = confColor(params.confidence);
-    const loc = params.bodyView === 'front'
+    const cc     = confColor(params.confidence);
+    const accent = getDiseaseAccent(params.analysis);
+    const sev    = getSeverity(params.analysis);
+    const loc    = params.bodyView === 'front'
         ? params.frontBody
         : params.bodyView === 'back'
         ? params.backBody
@@ -244,21 +290,22 @@ body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:10px
 
   <div style="background:#fff;border-left:1px solid #C5E3ED;border-right:1px solid #C5E3ED;padding:8px 18px">
     <div style="font-size:12px;font-weight:bold;color:#004F7F;padding-bottom:6px;border-bottom:1px solid #E5E7EB;margin-bottom:7px">Analysis Results</div>
-    <div style="background:#E8F4F8;border-radius:8px;padding:8px 11px;border:1px solid #C5E3ED;margin-bottom:7px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div>
+    <div style="background:${accent.bg};border-radius:8px;padding:10px 12px;border:1px solid ${accent.border};border-left:4px solid ${accent.color};margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:${params.confidence > 0 ? '8px' : '0'}">
+        <div style="flex:1">
           <div style="font-size:7px;color:#9CA3AF;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">Detected Condition</div>
-          <div style="font-size:14px;font-weight:bold;color:${cc};font-family:system-ui,sans-serif">${params.analysis}</div>
+          <div style="font-size:14px;font-weight:bold;color:${accent.color};font-family:system-ui,sans-serif;margin-bottom:3px">${params.analysis}</div>
+          ${sev ? `<span style="display:inline-block;background:${sev.bg};color:${sev.color};border:1px solid ${sev.color}40;border-radius:10px;padding:1px 8px;font-size:7px;font-weight:700;font-family:system-ui,sans-serif;letter-spacing:.5px">${sev.label}</span>` : ''}
         </div>
         ${params.confidence > 0 ? `
-        <div style="text-align:right;min-width:72px">
+        <div style="text-align:right;min-width:65px;margin-left:8px">
           <div style="font-size:7px;color:#9CA3AF;font-family:system-ui,sans-serif;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">AI Confidence</div>
           <div style="font-size:16px;font-weight:bold;font-family:system-ui,sans-serif;color:${cc}">${params.confidence}%</div>
         </div>` : ''}
       </div>
       ${params.confidence > 0 ? `
-      <div style="width:100%;height:5px;background:#E5E7EB;border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${params.confidence}%;border-radius:3px;background:${cc}"></div>
+      <div style="width:100%;height:6px;background:#E5E7EB;border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${params.confidence}%;border-radius:3px;background:linear-gradient(90deg,${cc}99,${cc})"></div>
       </div>` : ''}
     </div>
     ${params.diseaseDescription ? `
@@ -275,7 +322,7 @@ body{font-family:Georgia,'Times New Roman',serif;background:#D8E9F0;padding:10px
   <div style="background:#004F7F;padding:10px 18px;text-align:center">
     <div style="width:26px;height:2px;background:#00A3A3;margin:0 auto 6px;border-radius:10px"></div>
     <div style="font-size:12px;font-weight:bold;color:#fff;margin-bottom:2px"><span style="color:#00A3A3">S</span>kinsight</div>
-    <div style="color:#C5E3ED;font-size:7px;font-family:system-ui,sans-serif">© 2026 SkinSight. All rights reserved.</div>
+    <div style="color:#C5E3ED;font-size:7px;font-family:system-ui,sans-serif">© 2026 SkinSight — Graduation Project · Faculty of Computers &amp; AI</div>
     <div style="color:#8ab4c9;font-size:6px;margin-top:2px;font-family:system-ui,sans-serif">📧 skinsight.help.2025@gmail.com</div>
   </div>
 
@@ -312,7 +359,9 @@ export default function ReportDetailsPage() {
         return {};
     }, [rawParams.result]);
 
-    const analysis    = aiResult.disease      || (rawParams.analysis as string) || t('analysisInProgress');
+    const isRejected  = !aiResult.disease && !!(aiResult.message || aiResult.status);
+    const rejectedMsg = isRejected ? (aiResult.message || aiResult.status || '') : '';
+    const analysis    = aiResult.disease || (rawParams.analysis as string) || (isRejected ? 'Analysis Rejected' : t('analysisInProgress'));
     const confidence  = aiResult.confidence   || 0;
     const maskUrl     = aiResult.segmentedUrl || aiResult.segmented_url || '';
     const description = aiResult.description  || '';
@@ -409,8 +458,18 @@ export default function ReportDetailsPage() {
                 sources,
             });
 
+            const filename = `SkinSight_Report_${reportIndex + 1}.pdf`;
             const {uri} = await Print.printToFileAsync({html, base64: false});
-            await savePDF(uri, `SkinSight_Report_${reportIndex + 1}.pdf`);
+            await savePDF(uri, filename);
+            uploadPDFToCloudinary(uri, filename).then(cloudUrl => {
+                if (!cloudUrl) return;
+                const user = auth.currentUser;
+                if (user && moleId) {
+                    setDoc(doc(db, 'users', user.uid, 'reports', moleId), {
+                        pdfUrl: cloudUrl, generatedAt: Date.now(), reportIndex: reportIndex + 1,
+                    }, { merge: true }).catch(() => {});
+                }
+            }).catch(() => {});
         } catch (error: any) {
             if (!String(error?.message || '').includes('Another share request')) {
                 Alert.alert(t('error'), 'Failed to generate the report. Please try again.');
@@ -531,13 +590,18 @@ export default function ReportDetailsPage() {
                 </View>
 
                 {/* Detected Condition + Confidence */}
-                <View style={[styles.card, {backgroundColor: colors.card, borderColor: colors.border}]}>
+                <View style={[styles.card, {backgroundColor: colors.card, borderColor: isRejected ? '#EF444440' : colors.border, borderLeftWidth: 4, borderLeftColor: isRejected ? '#EF4444' : confColor(confidence)}]}>
                     <Text style={[styles.sectionTitle, {color: isDark ? '#9CA3AF' : '#6B7280'}]}>
                         Detected Condition
                     </Text>
-                    <Text style={[styles.diseaseTitle, {fontFamily: customText.fontFamily, color: confColor(confidence)}]}>
+                    <Text style={[styles.diseaseTitle, {fontFamily: customText.fontFamily, color: isRejected ? '#EF4444' : confColor(confidence)}]}>
                         {analysis}
                     </Text>
+                    {isRejected && rejectedMsg ? (
+                        <Text style={{fontSize: 13, color: isDark ? '#FCA5A5' : '#991B1B', marginBottom: 8, lineHeight: 20}}>
+                            {rejectedMsg.length > 120 ? rejectedMsg.slice(0, 117) + '...' : rejectedMsg}
+                        </Text>
+                    ) : null}
                     <View style={styles.confidenceRow}>
                         <Text style={[styles.confLabel, {fontFamily: customText.fontFamily, color: isDark ? '#9CA3AF' : '#6B7280'}]}>
                             AI Confidence

@@ -215,6 +215,7 @@ export default function SignUp() {
                     <Label style={styles.label}>First Name</Label>
                     <TextInput
                         placeholder="Enter your first name"
+                        placeholderTextColor="#9CA3AF"
                         style={styles.input}
                         value={firstName}
                         onChangeText={(text) => { setFirstName(text); saveData({ firstName: text }); }}
@@ -224,6 +225,7 @@ export default function SignUp() {
                     <Label style={styles.label}>Last Name</Label>
                     <TextInput
                         placeholder="Enter your last name"
+                        placeholderTextColor="#9CA3AF"
                         style={styles.input}
                         value={lastName}
                         onChangeText={(text) => { setLastName(text); saveData({ lastName: text }); }}
@@ -234,6 +236,7 @@ export default function SignUp() {
                     <View style={styles.emailWrapper}>
                         <TextInput
                             placeholder="Enter your email"
+                            placeholderTextColor="#9CA3AF"
                             value={email}
                             onChangeText={(text) => {
                                 setEmail(text);
@@ -283,6 +286,7 @@ export default function SignUp() {
                     <View style={styles.passwordWrapper}>
                         <TextInput
                             placeholder="Create your password"
+                            placeholderTextColor="#9CA3AF"
                             secureTextEntry={!showPassword}
                             value={password}
                             textContentType="oneTimeCode"
@@ -324,6 +328,7 @@ export default function SignUp() {
                     <View style={styles.passwordWrapper}>
                         <TextInput
                             placeholder="Re-enter your password"
+                            placeholderTextColor="#9CA3AF"
                             secureTextEntry={!showConfirmPassword}
                             value={confirmPassword}
                             textContentType="oneTimeCode"

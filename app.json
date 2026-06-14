@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "SkinDisease",
-    "slug": "SkinDisease",
+    "name": "SkinSight",
+    "slug": "SkinSight",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "assets/images/logo.png",
     "scheme": [
-      "skindisease",
+      "skinsight",
       "fb1602991657655981"
     ],
     "userInterfaceStyle": "automatic",
@@ -31,7 +31,8 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "assets/images/logo.png",
-        "backgroundColor": "#E6F4FE"
+        "monochromeImage": "assets/images/logo.png",
+        "backgroundColor": "#D8E9F0"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -45,11 +46,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "assets/images/splash-screen.png",
-          "imageWidth": 200,
-          "resizeMode": "cover",
+          "image": "assets/images/logo.png",
+          "imageWidth": 280,
+          "resizeMode": "contain",
           "backgroundColor": "#D8E9F0",
           "dark": {
+            "image": "assets/images/logo.png",
             "backgroundColor": "#D8E9F0"
           }
         }
@@ -57,6 +59,14 @@
       "@react-native-community/datetimepicker",
       "expo-font",
       "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/logo.png",
+          "color": "#004F7F",
+          "defaultChannel": "default"
+        }
+      ],
       [
         "react-native-fbsdk-next",
         {
@@ -72,9 +82,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "21938bae-4442-487d-ad2e-648c1ef2f8a0"
+        "projectId": "c8a17def-6eaa-4390-8907-f1b8c39d99d3"
       }
     },
-    "owner": "samuel-milad"
+    "owner": "abdelrhmanahmed2004"
   }
 }

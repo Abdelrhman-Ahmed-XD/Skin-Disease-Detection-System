@@ -44,6 +44,16 @@ type Mole = {
     result?: MoleResult;
 };
 
+const shortRejected = (msg: string): string => {
+    if (!msg) return '';
+    const m = msg.toLowerCase();
+    if (m.includes('no skin') || m.includes('no lesion') || m.includes('no dermatological')) return 'No lesion detected';
+    if (m.includes('quality') || m.includes('blur') || m.includes('clear image')) return 'Poor image quality';
+    if (m.includes('not skin') || m.includes('non-skin') || m.includes('non skin')) return 'Not a skin image';
+    if (m.includes('segment')) return 'Segmentation failed';
+    return '';
+};
+
 export default function HistoryPage() {
     const router = useRouter();
     const { colors, isDark } = useTheme();
@@ -220,9 +230,14 @@ export default function HistoryPage() {
                     const reportNumber = moles.length - globalIdx;
                     const result       = mole.result || {};
                     const displayDisease = result.disease || mole.analysis || '';
-                    const isAnalyzed   = !!(result.disease || mole.analysis);
+                    const isAnalyzed   = !!displayDisease;
+                    const isRejected   = !displayDisease && !!(result.message || result.status);
+                    const rejectedMsg  = isRejected ? (result.message || result.status || '') : '';
                     const conf         = result.confidence ?? 0;
-                    const confColor    = conf >= 80 ? '#22C55E' : conf >= 60 ? '#F59E0B' : '#EF4444';
+                    const accentColor  = isAnalyzed
+                        ? (conf >= 70 ? '#22C55E' : conf >= 50 ? '#F59E0B' : '#EF4444')
+                        : isRejected ? '#EF4444' : '#9CA3AF';
+                    const confColor    = accentColor;
 
                     return (
                       <TouchableOpacity
@@ -243,9 +258,9 @@ export default function HistoryPage() {
                           },
                         })}
                       >
-                        <View style={[styles.card, { backgroundColor: colors.card, flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+                        <View style={[styles.card, { backgroundColor: colors.card, flexDirection: isArabic ? 'row-reverse' : 'row', borderWidth: 0.5, borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
                           {/* Accent bar */}
-                          <View style={[styles.accentBar, { backgroundColor: isAnalyzed ? (conf >= 70 ? '#22C55E' : '#F59E0B') : '#9CA3AF' }]} />
+                          <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
 
                           {/* Thumbnail */}
                           <View style={styles.thumbWrap}>
@@ -256,9 +271,9 @@ export default function HistoryPage() {
                                 <Ionicons name="scan-outline" size={26} color={colors.primary} />
                               </View>
                             )}
-                            {isAnalyzed && (
-                              <View style={[styles.thumbBadge, { backgroundColor: isAnalyzed ? (conf >= 70 ? '#22C55E' : '#F59E0B') : '#9CA3AF' }]}>
-                                <Ionicons name="checkmark" size={10} color="#fff" />
+                            {(isAnalyzed || isRejected) && (
+                              <View style={[styles.thumbBadge, { backgroundColor: accentColor }]}>
+                                <Ionicons name={isRejected ? 'close' : 'checkmark'} size={10} color="#fff" />
                               </View>
                             )}
                           </View>
@@ -278,11 +293,11 @@ export default function HistoryPage() {
                               <Text style={[styles.diseaseText, { color: isDark ? '#00C8C8' : '#004F7F', fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }]} numberOfLines={2}>
                                 {displayDisease}
                               </Text>
-                            ) : (
-                              <Text style={[styles.pendingText, { color: colors.subText }]}>
-                                {isArabic ? 'في انتظار التحليل' : 'Awaiting analysis'}
+                            ) : isRejected ? (
+                              <Text style={[styles.diseaseText, { color: '#EF4444', fontFamily: FONT_FAMILY_MAP[settings.fontFamily] }]} numberOfLines={1}>
+                                {isArabic ? 'تحليل مرفوض' : 'Analysis Rejected'}{shortRejected(rejectedMsg) ? ` · ${shortRejected(rejectedMsg)}` : ''}
                               </Text>
-                            )}
+                            ) : null}
 
                             <View style={[styles.badgeRow, { flexDirection: isArabic ? 'row-reverse' : 'row', marginTop: 6 }]}>
                               <View style={[styles.chip, { backgroundColor: isDark ? '#1E3A4A' : '#EBF5FB' }]}>
@@ -294,6 +309,22 @@ export default function HistoryPage() {
                               {conf > 0 && (
                                 <View style={[styles.chip, { backgroundColor: isDark ? '#1E3A4A' : '#EBF5FB' }]}>
                                   <Text style={[styles.chipText, { color: confColor, fontWeight: '700' }]}>{conf}%</Text>
+                                </View>
+                              )}
+                              {isAnalyzed && (
+                                <View style={[styles.chip, { backgroundColor: isDark ? '#0D2A1A' : '#F0FDF4', borderColor: '#22C55E', borderWidth: 1 }]}>
+                                  <Ionicons name="checkmark-circle" size={11} color="#22C55E" />
+                                  <Text style={[styles.chipText, { color: '#22C55E' }]}>
+                                    {isArabic ? 'محلل' : 'Analyzed'}
+                                  </Text>
+                                </View>
+                              )}
+                              {isRejected && (
+                                <View style={[styles.chip, { backgroundColor: isDark ? '#2A0D0D' : '#FEF2F2', borderColor: '#EF4444', borderWidth: 1 }]}>
+                                  <Ionicons name="close-circle" size={11} color="#EF4444" />
+                                  <Text style={[styles.chipText, { color: '#EF4444' }]}>
+                                    {isArabic ? 'مرفوض' : 'Rejected'}
+                                  </Text>
                                 </View>
                               )}
                             </View>

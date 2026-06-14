@@ -1,9 +1,13 @@
 import { Stack, router } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { onAuthStateChanged } from "firebase/auth";
 import React, { useEffect, useRef, useState } from "react";
 import { auth } from "../Firebase/firebaseConfig";
 import { CustomizeProvider } from "./Customize/Customizecontext";
 import { ThemeProvider } from "./ThemeContext";
+
+// Keep the native splash visible until React is ready to render
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export let isLoggingIn = false;
 export const setIsLoggingIn = (val: boolean) => {

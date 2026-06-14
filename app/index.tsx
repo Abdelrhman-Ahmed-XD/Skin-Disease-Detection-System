@@ -1,4 +1,5 @@
 import StartUp from "@/app/StartUp";
+import * as SplashScreen from "expo-splash-screen";
 import * as Updates from "expo-updates";
 import React, { useEffect, useState } from "react";
 import { I18nManager, Image, StyleSheet, View } from "react-native";
@@ -14,6 +15,9 @@ export default function Index() {
   const [showImage, setShowImage] = useState(true);
 
   useEffect(() => {
+    // Dismiss the native splash now that React is rendered — seamless handoff
+    SplashScreen.hideAsync().catch(() => {});
+
     const timer = setTimeout(() => {
       setShowImage(false);
     }, 3000);

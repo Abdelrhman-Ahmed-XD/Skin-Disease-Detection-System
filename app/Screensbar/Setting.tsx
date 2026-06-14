@@ -92,7 +92,7 @@ export default function SettingsPage() {
     try {
       const uid = auth.currentUser?.uid ?? null;
       await signOut(auth);
-      const keysToRemove = ['signupDraft', 'savedMoles'];
+      const keysToRemove = ['signupDraft', 'savedMoles', 'savedAllScans'];
       if (uid) {
         keysToRemove.push(`appCustomizeSettings_${uid}`);
         keysToRemove.push(`darkMode_${uid}`);

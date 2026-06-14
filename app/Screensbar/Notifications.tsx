@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   },
   notifHeader:   { flexDirection: 'row', padding: 16, alignItems: 'center' },
   iconContainer: { position: 'relative', marginRight: 12 },
-  thumb:         { width: 44, height: 44, borderRadius: 8, borderWidth: 1 },
+  thumb:         { width: 52, height: 52, borderRadius: 14, borderWidth: 1 },
   unreadDot: {
     position:        'absolute',
     top:             0,
