@@ -38,7 +38,7 @@ export default function RootLayout() {
           screenOptions={{
             headerShown: false,
             animation: "none",
-            animationDuration: 200,
+            animationDuration: 100,
             gestureEnabled: true,
           }}
         >
@@ -46,7 +46,7 @@ export default function RootLayout() {
 
           <Stack.Screen
             name="StartUp"
-            options={{ animation: "none", animationDuration: 200 }}
+            options={{ animation: "none", animationDuration: 100 }}
             listeners={{
               focus: () => {
                 if (
@@ -62,7 +62,7 @@ export default function RootLayout() {
 
           <Stack.Screen
             name="Login1"
-            options={{ animation: "none", animationDuration: 200 }}
+            options={{ animation: "none", animationDuration: 100 }}
             listeners={{
               focus: () => {
                 if (
@@ -78,7 +78,7 @@ export default function RootLayout() {
 
           <Stack.Screen
             name="SignUp"
-            options={{ animation: "none", animationDuration: 200 }}
+            options={{ animation: "none", animationDuration: 100 }}
             listeners={{
               focus: () => {
                 if (
@@ -97,7 +97,7 @@ export default function RootLayout() {
             options={{
               gestureEnabled: false,
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
           />
 
@@ -105,7 +105,7 @@ export default function RootLayout() {
             name="Screensbar/Camera"
             options={{
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
           />
 
@@ -113,7 +113,7 @@ export default function RootLayout() {
             name="Screensbar/ResultsScreen"
             options={{
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
           />
 
@@ -121,7 +121,7 @@ export default function RootLayout() {
             name="Screensbar/History"
             options={{
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
           />
 
@@ -129,7 +129,7 @@ export default function RootLayout() {
             name="Screensbar/Reports"
             options={{
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
           />
 
@@ -137,7 +137,7 @@ export default function RootLayout() {
             name="Screensbar/Setting"
             options={{
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
           />
 
@@ -145,7 +145,7 @@ export default function RootLayout() {
             name="Screensbar/Notifications"
             options={{
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
           />
 
@@ -153,7 +153,7 @@ export default function RootLayout() {
             name="Screensbar/Reportdetails"
             options={{
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
           />
 
@@ -161,15 +161,28 @@ export default function RootLayout() {
             name="Settingsoptions/Editprofile"
             options={{
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
+          />
+          <Stack.Screen name="Guest/Guest" options={{ animation: "none", animationDuration: 100 }} />
+          <Stack.Screen
+            name="Guest/reportguest"
+            options={{ animation: "none", animationDuration: 100 }}
+          />
+          <Stack.Screen
+            name="Guest/histroyguest"
+            options={{ animation: "none", animationDuration: 100 }}
+          />
+          <Stack.Screen
+            name="Guest/settingsguest"
+            options={{ animation: "none", animationDuration: 100 }}
           />
 
           <Stack.Screen
             name="Settingsoptions/Customize"
             options={{
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
           />
 
@@ -177,7 +190,7 @@ export default function RootLayout() {
             name="Settingsoptions/About"
             options={{
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
           />
 
@@ -185,7 +198,7 @@ export default function RootLayout() {
             name="Settingsoptions/Help"
             options={{
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
           />
 
@@ -193,7 +206,7 @@ export default function RootLayout() {
             name="Settingsoptions/Changepassword"
             options={{
               animation: "none",
-              animationDuration: 200,
+              animationDuration: 100,
             }}
           />
         </Stack>
