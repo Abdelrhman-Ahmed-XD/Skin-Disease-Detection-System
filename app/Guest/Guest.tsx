@@ -19,10 +19,8 @@ import { useTheme } from '../ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
-// ── Free scan flag key (shared with cameraguest.tsx) ────────────
 export const GUEST_FREE_SCAN_KEY = 'guestFreeScanUsed';
 
-const GUEST_ONBOARDING_KEY = 'guestOnboardingSeen';
 let guestOnboardingShownThisSession = false;
 
 const Icons = {
@@ -34,7 +32,6 @@ const Icons = {
   person:       require('../../assets/Icons/Account person.png'),
 };
 
-// ── body image dimensions (same as FirstHomePage) ──────────────
 const BODY_IMG_W = width * 0.85;
 const BODY_IMG_H = height * 0.55;
 
@@ -76,17 +73,34 @@ const TAB_ROUTES: Record<string, string> = {
   Settings: '/Guest/settingsguest',
 };
 
-const NAV_BAR_HEIGHT = 55;
+// ── Nav pill geometry ──────────────────────────────────────────
+// pill: left:16, right:16, height≈70, bottom:16 from screen
+// 4 tabs + 1 center spacer → each tab = navWidth/5
+const NAV_PILL_BOTTOM = 16;          // pill bottom edge from screen bottom
+const NAV_PILL_HEIGHT = 70;          // approx pill height
+const NAV_PILL_TOP    = height - NAV_PILL_BOTTOM - NAV_PILL_HEIGHT;
 
-function getNavX(slot: number): number {
-  const navWidth = width - 32; // bottomNavContainer has left:16, right:16
-  const tabW = navWidth / 5;   // 4 nav items + 1 center spacer, all flex:1
-  if (slot === 0) return 16 + tabW * 0.5;  // Home
-  if (slot === 1) return 16 + tabW * 1.5;  // Reports
-  if (slot === 2) return width / 2;        // Camera FAB (center)
-  if (slot === 3) return 16 + tabW * 3.5;  // History
-  if (slot === 4) return 16 + tabW * 4.5;  // Settings
-  return width / 2;
+// Icon is 44px tall with 4px marginBottom inside the pill.
+// paddingVertical:10 at top → icon top = pillTop + 10
+// icon center Y = pillTop + 10 + 22 = pillTop + 32
+const ICON_CENTER_Y = NAV_PILL_TOP + 10 + 22;  // page-absolute Y of nav icon center
+
+function getNavIconCenter(slot: number): { x: number; y: number } {
+  const navWidth = width - 32; // left:16 + right:16
+  const tabW     = navWidth / 5;
+  let x: number;
+  if      (slot === 0) x = 16 + tabW * 0.5;  // Home
+  else if (slot === 1) x = 16 + tabW * 1.5;  // Reports
+  else if (slot === 2) x = width / 2;          // Camera FAB (absolute center)
+  else if (slot === 3) x = 16 + tabW * 3.5;  // History
+  else                 x = 16 + tabW * 4.5;  // Settings
+
+  // Camera FAB center Y is higher (it sits above the pill)
+  const y = slot === 2
+    ? NAV_PILL_TOP - 26 + 30   // FAB top = pillTop - 26; FAB center = +30
+    : ICON_CENTER_Y;
+
+  return { x, y };
 }
 
 type Mole     = { id: string; x: number; y: number; timestamp: number; photoUri?: string; bodyView: 'front' | 'back' };
@@ -101,20 +115,16 @@ export default function Guest() {
   const [moles,     setMoles]     = useState<Mole[]>([]);
   const [activeTab, setActiveTab] = useState<string>('Home');
 
-  // ── Free scan state ─────────────────────────────────────────
-  // true  → scan already used → show "locked" modal asking to sign up
-  // false → scan not used yet → navigate to cameraguest
   const [freeScanUsed, setFreeScanUsed] = useState<boolean>(false);
 
-  // ── Login modal (body map lock for guests) ──────────────────
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showLoginModal,  setShowLoginModal]  = useState(false);
 
-  // ── Free-scan-used toast (replaces the inline red warning) ───
+  // Toast
   const [showFreeScanToast, setShowFreeScanToast] = useState(false);
-  const toastAnim    = useRef(new Animated.Value(0)).current;
-  const toastTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastAnim  = useRef(new Animated.Value(0)).current;
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Onboarding ─────────────────────────────────────────────
+  // Onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const fadeAnim     = useRef(new Animated.Value(0)).current;
@@ -122,24 +132,24 @@ export default function Guest() {
   const pulseAnim    = useRef(new Animated.Value(1)).current;
   const pulseLoop    = useRef<Animated.CompositeAnimation | null>(null);
 
-  // ── Camera Modal (two modes: free scan offer OR locked upgrade) ──
-  const [showCameraModal,  setShowCameraModal]  = useState(false);
-  // 'free'    → user hasn't scanned yet, offer 1 free scan + sign up
-  // 'locked'  → user has used their free scan, ask them to sign up
+  // Tips modal (shown after onboarding)
+  const [showTips, setShowTips] = useState(false);
+
+  // Camera modal
+  const [showCameraModal, setShowCameraModal] = useState(false);
   const [cameraModalMode, setCameraModalMode] = useState<'free' | 'locked'>('free');
   const cameraFade  = useRef(new Animated.Value(0)).current;
   const cameraScale = useRef(new Animated.Value(0.85)).current;
 
-  // ── Zoom & Pan ─────────────────────────────────────────────
+  // Zoom & Pan
   const scale      = useRef(new Animated.Value(1)).current;
   const translateX = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
   const scaleVal   = useRef(1);
   const txVal      = useRef(0);
   const tyVal      = useRef(0);
-  const bodyViewRef        = useRef<BodyView>('front');
-  const bodyWrapperRef     = useRef<any>(null);
-  const openCameraModalRef = useRef<() => void>(() => {});
+  const bodyViewRef    = useRef<BodyView>('front');
+  const bodyWrapperRef = useRef<any>(null);
 
   useEffect(() => { bodyViewRef.current = bodyView; }, [bodyView]);
 
@@ -157,7 +167,6 @@ export default function Guest() {
   const panStartTx   = useRef(0);
   const panStartTy   = useRef(0);
 
-  // ── clamp translation within the scaled container (same as FirstHomePage) ──
   const clampTranslation = (tx: number, ty: number, sc: number) => {
     const maxX = (BODY_IMG_W * (sc - 1)) / 2;
     const maxY = (BODY_IMG_H * (sc - 1)) / 2;
@@ -228,7 +237,6 @@ export default function Guest() {
     },
   })).current;
 
-  // ── Read free scan flag & onboarding on focus ─────────────
   useFocusEffect(
     React.useCallback(() => {
       setActiveTab('Home');
@@ -238,15 +246,14 @@ export default function Guest() {
       });
 
       if (guestOnboardingShownThisSession) return;
+      guestOnboardingShownThisSession = true;
+      setOnboardingStep(0);
+      setShowOnboarding(false);
 
-      let t: ReturnType<typeof setTimeout>;
-      AsyncStorage.getItem(GUEST_ONBOARDING_KEY).then((seen) => {
-        if (seen === 'true') return;
-        guestOnboardingShownThisSession = true;
-        setOnboardingStep(0);
-        setShowOnboarding(false);
-        t = setTimeout(() => { setShowOnboarding(true); animateIn(); }, 350);
-      });
+      const t = setTimeout(() => {
+        setShowOnboarding(true);
+        animateIn();
+      }, 350);
 
       return () => clearTimeout(t);
     }, [])
@@ -280,26 +287,25 @@ export default function Guest() {
     if (route && tabName !== 'Home' && tabName !== 'Camera') router.push(route as any);
   };
 
-  const markOnboardingSeen = () => {
-    AsyncStorage.setItem(GUEST_ONBOARDING_KEY, 'true').catch(() => {});
-  };
-
   const handleNext = () => {
     if (onboardingStep < ONBOARDING_STEPS.length - 1) {
       setOnboardingStep(prev => prev + 1);
       setTimeout(animateIn, 30);
     } else {
+      // Last step → show Tips
       setShowOnboarding(false);
-      markOnboardingSeen();
+      pulseLoop.current?.stop();
+      setShowTips(true);
     }
   };
 
   const handleSkipAll = () => {
     setShowOnboarding(false);
-    markOnboardingSeen();
+    pulseLoop.current?.stop();
+    setShowTips(true);
   };
 
-  // ── Free-scan-used toast: show for 20s then auto-hide ────────
+  // Toast
   const triggerFreeScanToast = () => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setShowFreeScanToast(true);
@@ -323,30 +329,25 @@ export default function Guest() {
     return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
   }, []);
 
-  // ── Open camera modal (decides mode based on freeScanUsed) ──
   const openCameraModal = () => {
-    // Re-read from state (already synced via useFocusEffect + live setFreeScanUsed)
-    const mode = freeScanUsed ? 'locked' : 'free';
-    setCameraModalMode(mode);
-    setShowCameraModal(true);
-    cameraFade.setValue(0);
-    cameraScale.setValue(0.85);
-    Animated.parallel([
-      Animated.timing(cameraFade,  { toValue: 1, duration: 260, useNativeDriver: true }),
-      Animated.spring(cameraScale, { toValue: 1, tension: 130, friction: 8, useNativeDriver: true }),
-    ]).start();
-
-    // Show the "free scan used" warning as a temporary toast instead of
-    // an inline red banner, so it doesn't block the modal content.
-    if (mode === 'locked') {
-      triggerFreeScanToast();
-    }
+    AsyncStorage.getItem(GUEST_FREE_SCAN_KEY).then(val => {
+      const used = val === 'true';
+      setFreeScanUsed(used);
+      const mode = used ? 'locked' : 'free';
+      setCameraModalMode(mode);
+      setShowCameraModal(true);
+      cameraFade.setValue(0);
+      cameraScale.setValue(0.85);
+      Animated.parallel([
+        Animated.timing(cameraFade,  { toValue: 1, duration: 260, useNativeDriver: true }),
+        Animated.spring(cameraScale, { toValue: 1, tension: 130, friction: 8, useNativeDriver: true }),
+      ]).start();
+      if (mode === 'locked') triggerFreeScanToast();
+    });
   };
 
-  useEffect(() => { openCameraModalRef.current = openCameraModal; });
   const closeCameraModal = () => setShowCameraModal(false);
 
-  // ── Navigate to the guest camera for the 1 free scan ───────
   const handleUseFreeScan = () => {
     closeCameraModal();
     router.push('/Guest/cameraguest' as any);
@@ -378,34 +379,66 @@ export default function Guest() {
     { name: 'Settings', iconImg: Icons.settings },
   ];
 
-  // ── Onboarding overlay ────────────────────────────────────
+  // ── Onboarding overlay ─────────────────────────────────────
   const renderOnboarding = () => {
     if (!showOnboarding) return null;
-    const step      = ONBOARDING_STEPS[onboardingStep];
-    const isLast    = onboardingStep === ONBOARDING_STEPS.length - 1;
-    const navX      = getNavX(step.navSlot);
-    const spotY     = height - 34 + (step.navSlot === 2 ? -30 : 0);
-    const TW        = 210;
-    let   tLeft     = navX - TW / 2;
-    tLeft           = Math.max(12, Math.min(width - TW - 12, tLeft));
-    const tBottom   = NAV_BAR_HEIGHT + 50;
-    const arrowLeft = Math.max(14, Math.min(TW - 34, navX - tLeft - 14));
+    const step   = ONBOARDING_STEPS[onboardingStep];
+    const isLast = onboardingStep === ONBOARDING_STEPS.length - 1;
+
+    // Get the true icon center in page coordinates
+    const { x: iconCX, y: iconCY } = getNavIconCenter(step.navSlot);
+
+    const SPOT = 70; // spotlight diameter
+    const spotLeft   = iconCX - SPOT / 2;
+    const spotTop    = iconCY - SPOT / 2;
+
+    // Tooltip width and horizontal clamp
+    const TW      = 215;
+    let   tLeft   = iconCX - TW / 2;
+    tLeft         = Math.max(12, Math.min(width - TW - 12, tLeft));
+
+    // Tooltip sits above the spotlight with a small gap
+    const tBottom_fromScreen = height - spotTop + 14;  // how far from bottom
+    // We render tooltip using `bottom:` so:
+    const tBottomVal = height - spotTop + 14;
+
+    // Arrow points down toward the spotlight; offset within tooltip
+    const arrowLeft = Math.max(14, Math.min(TW - 34, iconCX - tLeft - 14));
 
     return (
       <View style={[StyleSheet.absoluteFill, ob.root]} pointerEvents="box-none">
         <View style={[StyleSheet.absoluteFill, ob.overlay]} pointerEvents="none" />
+
+        {/* Spotlight centered exactly on the icon */}
         <Animated.View
           pointerEvents="none"
-          style={[ob.spotlight, {
-            left: navX - 34,
-            top:  spotY - 58,
-            transform: [{ scale: pulseAnim }],
-          }]}
+          style={[
+            ob.spotlight,
+            {
+              width:        SPOT,
+              height:       SPOT,
+              borderRadius: SPOT / 2,
+              left:         spotLeft,
+              top:          spotTop,
+              transform: [{ scale: pulseAnim }],
+            },
+          ]}
         />
-        <Animated.View style={[ob.tooltipWrapper, {
-          bottom: tBottom, left: tLeft, width: TW,
-          opacity: fadeAnim, transform: [{ scale: scaleTooltip }],
-        }]}>
+
+        {/* Tooltip above spotlight, using absolute top positioning */}
+        <Animated.View
+          style={[
+            ob.tooltipWrapper,
+            {
+              left:      tLeft,
+              width:     TW,
+              // position from top so we can use exact coordinates
+              top:       spotTop - 14 - 160, // 160 ≈ tooltip height
+              opacity:   fadeAnim,
+              transform: [{ scale: scaleTooltip }],
+            },
+          ]}
+        >
           <View style={ob.tooltip}>
             <View style={ob.header}>
               <View style={ob.iconCircle}>
@@ -424,18 +457,62 @@ export default function Guest() {
                   <View key={i} style={[ob.dot, i === onboardingStep && ob.dotActive, i < onboardingStep && ob.dotDone]} />
                 ))}
               </View>
-              <TouchableOpacity onPress={handleSkipAll} activeOpacity={0.7}>
-                <Text style={ob.skip}>Skip all</Text>
+              {/* X close button */}
+              <TouchableOpacity onPress={handleSkipAll} activeOpacity={0.7} style={ob.skipBtn}>
+                <Ionicons name="close" size={14} color="rgba(255,255,255,0.6)" />
               </TouchableOpacity>
             </View>
           </View>
+          {/* Arrow pointing down toward spotlight */}
           <View style={[ob.arrow, { left: arrowLeft }]} />
         </Animated.View>
       </View>
     );
   };
 
-  // ── Free-scan-used toast (appears below header, auto-hides after 20s) ──
+  // ── Tips modal ─────────────────────────────────────────────
+  const renderTips = () => (
+    <Modal
+      visible={showTips}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowTips(false)}
+    >
+      <View style={tipsStyles.overlay}>
+        <View style={[tipsStyles.card, { backgroundColor: isDark ? '#1A2A35' : '#FFFFFF' }]}>
+          <Ionicons name="hand-left-outline" size={40} color="#004F7F" style={{ marginBottom: 12 }} />
+          <Text style={[tipsStyles.title, { color: isDark ? '#fff' : '#1F2937' }]}>Tips</Text>
+          <View style={tipsStyles.row}>
+            <Ionicons name="search-outline" size={20} color="#00A3A3" />
+            <Text style={[tipsStyles.text, { color: isDark ? '#ccc' : '#374151' }]}>
+              You can pinch to zoom in/out on the body map.
+            </Text>
+          </View>
+          <View style={tipsStyles.row}>
+            <Ionicons name="finger-print-outline" size={20} color="#00A3A3" />
+            <Text style={[tipsStyles.text, { color: isDark ? '#ccc' : '#374151' }]}>
+              Tap on your body to mark a skin area and scan it.
+            </Text>
+          </View>
+          <View style={tipsStyles.row}>
+            <Ionicons name="camera-outline" size={20} color="#00A3A3" />
+            <Text style={[tipsStyles.text, { color: isDark ? '#ccc' : '#374151' }]}>
+              You have 1 free guest scan — use the camera button!
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={tipsStyles.btn}
+            onPress={() => setShowTips(false)}
+            activeOpacity={0.85}
+          >
+            <Text style={tipsStyles.btnText}>Got it!</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // ── Free-scan-used toast ───────────────────────────────────
   const renderFreeScanToast = () => {
     if (!showFreeScanToast) return null;
     return (
@@ -444,10 +521,8 @@ export default function Guest() {
         style={[
           toastStyles.wrapper,
           {
-            opacity: toastAnim,
-            transform: [{
-              translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, 0] }),
-            }],
+            opacity:   toastAnim,
+            transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, 0] }) }],
           },
         ]}
       >
@@ -456,12 +531,8 @@ export default function Guest() {
             <Ionicons name="lock-closed-outline" size={16} color="#EF4444" />
           </View>
           <View style={toastStyles.textCol}>
-            <Text style={[toastStyles.title, { color: isDark ? '#FFFFFF' : '#7F1D1D' }]}>
-              Free Scan Used
-            </Text>
-            <Text style={[toastStyles.subtitle, { color: isDark ? '#FCA5A5' : '#B91C1C' }]}>
-              Sign up to unlock unlimited scans
-            </Text>
+            <Text style={[toastStyles.title, { color: isDark ? '#FFFFFF' : '#7F1D1D' }]}>Free Scan Used</Text>
+            <Text style={[toastStyles.subtitle, { color: isDark ? '#FCA5A5' : '#B91C1C' }]}>Sign up to unlock unlimited scans</Text>
           </View>
           <TouchableOpacity onPress={dismissFreeScanToast} activeOpacity={0.7} style={toastStyles.closeBtn}>
             <Ionicons name="close" size={16} color={isDark ? '#FCA5A5' : '#B91C1C'} />
@@ -475,18 +546,25 @@ export default function Guest() {
   const renderCameraModal = () => {
     if (!showCameraModal) return null;
 
-    // ── MODE: LOCKED — free scan already used ───────────────
+    // Camera FAB spotlight position
+    const fabCX = width / 2;
+    const fabCY = NAV_PILL_TOP - 26 + 30; // FAB center Y
+
     if (cameraModalMode === 'locked') {
       return (
         <View style={[StyleSheet.absoluteFill, ob.root]} pointerEvents="box-none">
           <TouchableOpacity style={[StyleSheet.absoluteFill, ob.overlay]} activeOpacity={1} onPress={closeCameraModal} />
           <Animated.View
             pointerEvents="none"
-            style={[ob.spotlight, { left: width / 2 - 34, top: height - NAV_BAR_HEIGHT - 60, transform: [{ scale: pulseAnim }] }]}
+            style={[ob.spotlight, {
+              width: 58, height: 58, borderRadius: 29,
+              left: fabCX - 29,
+              top:  fabCY - 29,
+              transform: [{ scale: pulseAnim }],
+            }]}
           />
           <Animated.View style={[ob.cameraModalWrapper, { opacity: cameraFade, transform: [{ scale: cameraScale }] }]}>
             <View style={ob.tooltip}>
-              {/* Header */}
               <View style={ob.header}>
                 <View style={[ob.iconCircle, { backgroundColor: '#FFE8E8' }]}>
                   <Ionicons name="lock-closed-outline" size={15} color="#EF4444" />
@@ -496,8 +574,6 @@ export default function Guest() {
                   <Ionicons name="close" size={14} color="#fff" />
                 </TouchableOpacity>
               </View>
-
-              {/* Lock badge */}
               <View style={ob.lockedBadge}>
                 <Ionicons name="scan-circle-outline" size={28} color="#9CA3AF" />
                 <View style={ob.lockedBadgeTextCol}>
@@ -505,18 +581,14 @@ export default function Guest() {
                   <Text style={ob.lockedBadgeSub}>Create an account for unlimited scans</Text>
                 </View>
               </View>
-
-              {/* Progress bar (full) */}
               <View style={ob.progressTrack}>
                 <View style={ob.progressFill} />
               </View>
-
               <Text style={ob.desc}>
                 You&#39;ve used your free scan. Sign up to unlock unlimited AI skin analyses, full reports, and scan history.
               </Text>
-
               <View style={ob.cameraActions}>
-                <TouchableOpacity style={[ob.signUpBtn, { flex: 1 }]} activeOpacity={0.85}
+                <TouchableOpacity style={ob.signUpBtn} activeOpacity={0.85}
                   onPress={() => { closeCameraModal(); router.push('/SignUp'); }}>
                   <Ionicons name="person-add-outline" size={14} color="#fff" />
                   <Text style={ob.signUpBtnText}>Create Account</Text>
@@ -533,17 +605,20 @@ export default function Guest() {
       );
     }
 
-    // ── MODE: FREE — first scan, offer it + encourage sign up ──
     return (
       <View style={[StyleSheet.absoluteFill, ob.root]} pointerEvents="box-none">
         <TouchableOpacity style={[StyleSheet.absoluteFill, ob.overlay]} activeOpacity={1} onPress={closeCameraModal} />
         <Animated.View
           pointerEvents="none"
-          style={[ob.spotlight, { left: width / 2 - 34, top: height - NAV_BAR_HEIGHT - 60, transform: [{ scale: pulseAnim }] }]}
+          style={[ob.spotlight, {
+            width: 58, height: 58, borderRadius: 29,
+            left: fabCX - 29,
+            top:  fabCY - 29,
+            transform: [{ scale: pulseAnim }],
+          }]}
         />
         <Animated.View style={[ob.cameraModalWrapper, { opacity: cameraFade, transform: [{ scale: cameraScale }] }]}>
           <View style={ob.tooltip}>
-            {/* Header */}
             <View style={ob.header}>
               <View style={ob.iconCircle}>
                 <Ionicons name="gift-outline" size={15} color="#004F7F" />
@@ -553,8 +628,6 @@ export default function Guest() {
                 <Ionicons name="close" size={14} color="#fff" />
               </TouchableOpacity>
             </View>
-
-            {/* Progress badge */}
             <View style={ob.lockedBadge}>
               <Ionicons name="scan-circle-outline" size={28} color="#00A3A3" />
               <View style={ob.lockedBadgeTextCol}>
@@ -562,23 +635,17 @@ export default function Guest() {
                 <Text style={ob.lockedBadgeSub}>Sign up for unlimited scans</Text>
               </View>
             </View>
-
-            {/* Progress bar (empty) */}
             <View style={ob.progressTrack}>
               <View style={[ob.progressFill, { width: '0%' }]} />
             </View>
-
             <Text style={ob.desc}>
               You have 1 free scan as a guest. Use it now, or create an account to get unlimited AI skin analyses.
             </Text>
-
-            {/* Primary: use free scan. Secondary: sign up / log in */}
-            <TouchableOpacity style={[ob.signUpBtn, { marginBottom: 8, alignSelf: 'stretch' }]} activeOpacity={0.85}
+            <TouchableOpacity style={[ob.signUpBtn, { marginBottom: 8 }]} activeOpacity={0.85}
               onPress={handleUseFreeScan}>
               <Ionicons name="camera-outline" size={14} color="#fff" />
               <Text style={ob.signUpBtnText}>Use Free Scan</Text>
             </TouchableOpacity>
-
             <View style={ob.cameraActions}>
               <TouchableOpacity style={[ob.loginBtn, { backgroundColor: '#004F7F' }]} activeOpacity={0.85}
                 onPress={() => { closeCameraModal(); router.push('/SignUp'); }}>
@@ -597,7 +664,7 @@ export default function Guest() {
     );
   };
 
-  // ── Login modal (body map locked for guests) ─────────────
+  // ── Login modal ───────────────────────────────────────────
   const renderLoginModal = () => (
     <Modal
       visible={showLoginModal}
@@ -607,50 +674,26 @@ export default function Guest() {
     >
       <View style={loginModal.overlay}>
         <View style={[loginModal.card, { backgroundColor: isDark ? '#1A2A35' : '#FFFFFF' }]}>
-          {/* Icon */}
           <View style={loginModal.iconWrap}>
             <Ionicons name="lock-closed" size={32} color="#004F7F" />
           </View>
-
-          {/* Title */}
-          <Text style={[loginModal.title, { color: isDark ? '#FFFFFF' : '#111827' }]}>
-            Feature Locked
-          </Text>
-
-          {/* Message */}
+          <Text style={[loginModal.title, { color: isDark ? '#FFFFFF' : '#111827' }]}>Feature Locked</Text>
           <Text style={[loginModal.message, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>
             Mole mapping is available only for registered users.
           </Text>
-
-          {/* Create Free Account */}
-          <TouchableOpacity
-            style={loginModal.primaryBtn}
-            activeOpacity={0.85}
-            onPress={() => { setShowLoginModal(false); router.push('/SignUp'); }}
-          >
+          <TouchableOpacity style={loginModal.primaryBtn} activeOpacity={0.85}
+            onPress={() => { setShowLoginModal(false); router.push('/SignUp'); }}>
             <Ionicons name="person-add-outline" size={16} color="#fff" />
             <Text style={loginModal.primaryBtnText}>Create Free Account</Text>
           </TouchableOpacity>
-
-          {/* Log In */}
-          <TouchableOpacity
-            style={loginModal.secondaryBtn}
-            activeOpacity={0.85}
-            onPress={() => { setShowLoginModal(false); router.push('/Login1'); }}
-          >
+          <TouchableOpacity style={loginModal.secondaryBtn} activeOpacity={0.85}
+            onPress={() => { setShowLoginModal(false); router.push('/Login1'); }}>
             <Ionicons name="log-in-outline" size={16} color="#004F7F" />
             <Text style={loginModal.secondaryBtnText}>Log In</Text>
           </TouchableOpacity>
-
-          {/* Maybe Later */}
-          <TouchableOpacity
-            style={loginModal.ghostBtn}
-            activeOpacity={0.7}
-            onPress={() => setShowLoginModal(false)}
-          >
-            <Text style={[loginModal.ghostBtnText, { color: isDark ? '#6B7280' : '#9CA3AF' }]}>
-              Maybe Later
-            </Text>
+          <TouchableOpacity style={loginModal.ghostBtn} activeOpacity={0.7}
+            onPress={() => setShowLoginModal(false)}>
+            <Text style={[loginModal.ghostBtnText, { color: isDark ? '#6B7280' : '#9CA3AF' }]}>Maybe Later</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -658,131 +701,73 @@ export default function Guest() {
   );
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top"]}
-    >
-      <StatusBar
-        barStyle={colors.statusBar}
-        backgroundColor={colors.background}
-      />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <StatusBar barStyle={colors.statusBar} backgroundColor={colors.background} />
 
+      {/* Header */}
       <View style={[styles.headerCard, { backgroundColor: colors.card }]}>
         <View style={styles.headerContent}>
-          <TouchableOpacity
-            style={[
-              styles.profileIconContainer,
-              { backgroundColor: isDark ? "#1A3A4A" : "#E8F4F8" },
-            ]}
-          >
-            <Image
-              source={Icons.person}
-              style={styles.headerIconImg}
-              resizeMode="contain"
-            />
+          <TouchableOpacity style={[styles.profileIconContainer, { backgroundColor: isDark ? "#1A3A4A" : "#E8F4F8" }]}>
+            <Image source={Icons.person} style={styles.headerIconImg} resizeMode="contain" />
           </TouchableOpacity>
           <View style={styles.welcomeContainer}>
-            <Text style={[styles.welcomeLabel, { color: "#00A3A3" }]}>
-              Welcome,
-            </Text>
-            <Text
-              style={{
-                fontWeight: "bold",
-                marginLeft: 4,
-                marginTop: 3,
-                fontSize: 17,
-                color: isDark ? "#fff" : "#000",
-              }}
-            >
+            <Text style={[styles.welcomeLabel, { color: "#00A3A3" }]}>Welcome,</Text>
+            <Text style={{ fontWeight: "bold", marginLeft: 4, marginTop: 3, fontSize: 17, color: isDark ? "#fff" : "#000" }}>
               {userName}
             </Text>
           </View>
           <TouchableOpacity
-            style={[
-              styles.notificationButton,
-              { backgroundColor: isDark ? "#1E2A35" : "#fff" },
-            ]}
+            style={[styles.notificationButton, { backgroundColor: isDark ? "#1E2A35" : "#fff" }]}
             onPress={() => router.push("/Guest/notificationguest")}
             activeOpacity={0.8}
           >
-            <Image
-              source={Icons.notification}
-              style={styles.notifIconImg}
-              resizeMode="contain"
-            />
+            <Image source={Icons.notification} style={styles.notifIconImg} resizeMode="contain" />
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* Title */}
       <View style={styles.titleContainer}>
         <Text style={[styles.title, { color: isDark ? "#fff" : "#000" }]}>
           Let&#39;s Check your{" "}
-          <Text
-            style={[
-              styles.titleBold,
-              { color: isDark ? "#00A3A3" : "#004F7F" },
-            ]}
-          >
-            Skin
-          </Text>
+          <Text style={[styles.titleBold, { color: isDark ? "#00A3A3" : "#004F7F" }]}>Skin</Text>
         </Text>
       </View>
 
-      {/* ── body map — clipped wrapper like FirstHomePage ── */}
+      {/* Body map */}
       <View style={[styles.bodyMainContainer, { backgroundColor: colors.background }]}>
         <View
           style={[styles.bodyClipWrapper, { backgroundColor: colors.background }]}
           {...panResponder.panHandlers}
-          ref={(r) => {
-            bodyWrapperRef.current = r;
-          }}
+          ref={(r) => { bodyWrapperRef.current = r; }}
         >
           <Animated.View
             style={[
               styles.bodyImageWrapper,
-              {
-                backgroundColor: colors.background,
-                transform: [{ scale }, { translateX }, { translateY }],
-              },
+              { backgroundColor: colors.background, transform: [{ scale }, { translateX }, { translateY }] },
             ]}
           >
             <Image
-              source={
-                bodyView === "front"
-                  ? require("../../assets/images/body-front.png")
-                  : require("../../assets/images/body-back.png")
-              }
+              source={bodyView === "front"
+                ? require("../../assets/images/body-front.png")
+                : require("../../assets/images/body-back.png")}
               style={[styles.bodyImage, { backgroundColor: colors.background }]}
               resizeMode="contain"
             />
             {currentMoles.map((mole) => {
               const S = 28;
               return (
-                <View
-                  key={mole.id}
-                  style={[
-                    styles.moleContainer,
-                    { left: mole.x - S / 2, top: mole.y - S / 2 },
-                  ]}
-                  pointerEvents="box-none"
-                >
+                <View key={mole.id} style={[styles.moleContainer, { left: mole.x - S / 2, top: mole.y - S / 2 }]} pointerEvents="box-none">
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 4,
-                    }}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
                     onPress={() => setShowLoginModal(true)}
                   >
                     <View style={styles.moleInner}>
                       <Text style={styles.moleIcon}>+</Text>
                     </View>
                     {mole.photoUri && (
-                      <Image
-                        source={{ uri: mole.photoUri }}
-                        style={styles.moleThumbnail}
-                      />
+                      <Image source={{ uri: mole.photoUri }} style={styles.moleThumbnail} />
                     )}
                   </TouchableOpacity>
                 </View>
@@ -792,100 +777,34 @@ export default function Guest() {
         </View>
       </View>
 
+      {/* Toggle Front/Back */}
       <View style={styles.bottomControls}>
-        <View
-          style={[
-            styles.toggleWrapper,
-            { backgroundColor: isDark ? "#1A3A4A" : "#B8D4DE" },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => toggleBodyView("front")}
-            style={[
-              styles.toggleButton,
-              bodyView === "front" && styles.toggleButtonActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                { color: isDark ? "#FFFFFF" : "#6B7280" },
-                bodyView === "front" && styles.toggleTextActive,
-              ]}
-            >
-              Front
-            </Text>
+        <View style={[styles.toggleWrapper, { backgroundColor: isDark ? "#1A3A4A" : "#B8D4DE" }]}>
+          <TouchableOpacity onPress={() => toggleBodyView("front")} style={[styles.toggleButton, bodyView === "front" && styles.toggleButtonActive]}>
+            <Text style={[styles.toggleText, { color: isDark ? "#FFFFFF" : "#6B7280" }, bodyView === "front" && styles.toggleTextActive]}>Front</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => toggleBodyView("back")}
-            style={[
-              styles.toggleButton,
-              bodyView === "back" && styles.toggleButtonActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                { color: isDark ? "#FFFFFF" : "#6B7280" },
-                bodyView === "back" && styles.toggleTextActive,
-              ]}
-            >
-              Back
-            </Text>
+          <TouchableOpacity onPress={() => toggleBodyView("back")} style={[styles.toggleButton, bodyView === "back" && styles.toggleButtonActive]}>
+            <Text style={[styles.toggleText, { color: isDark ? "#FFFFFF" : "#6B7280" }, bodyView === "back" && styles.toggleTextActive]}>Back</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── floating bottom nav (same style as FirstHomePage) ── */}
+      {/* Bottom Nav */}
       <View style={styles.bottomNavContainer}>
-        <View
-          style={[
-            styles.bottomNav,
-            {
-              backgroundColor: colors.navBg,
-              borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-            },
-          ]}
-        >
+        <View style={[styles.bottomNav, {
+          backgroundColor: colors.navBg,
+          borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+        }]}>
           {["Home", "Reports"].map((tabName) => {
             const tab = bottomTabs.find((t) => t.name === tabName)!;
             const isActive = activeTab === tab.name;
             return (
-              <TouchableOpacity
-                key={tab.name}
-                style={styles.navItem}
-                onPress={() => handleTabPress(tab.name)}
-              >
-                <View
-                  style={[
-                    styles.navIcon,
-                    { backgroundColor: colors.navBg },
-                    isActive && {
-                      backgroundColor: isDark ? "#1E3A4A" : "#D8E9F0",
-                      borderWidth: 2,
-                      borderColor: isDark ? "#00A3A3" : "#2A7DA0",
-                    },
-                  ]}
-                >
-                  <Image
-                    source={tab.iconImg}
-                    style={styles.navIconImg}
-                    resizeMode="contain"
-                  />
+              <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
+                <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                  isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
+                  <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                 </View>
-                <Text
-                  style={[
-                    styles.navText,
-                    {
-                      color: isActive
-                        ? colors.navActive
-                        : isDark
-                          ? "#FFFFFF"
-                          : "#6B7280",
-                    },
-                    isActive && { fontWeight: "700" },
-                  ]}
-                >
+                <Text style={[styles.navText, { color: isActive ? colors.navActive : isDark ? "#FFFFFF" : "#6B7280" }, isActive && { fontWeight: "700" }]}>
                   {tab.name}
                 </Text>
               </TouchableOpacity>
@@ -896,41 +815,12 @@ export default function Guest() {
             const tab = bottomTabs.find((t) => t.name === tabName)!;
             const isActive = activeTab === tab.name;
             return (
-              <TouchableOpacity
-                key={tab.name}
-                style={styles.navItem}
-                onPress={() => handleTabPress(tab.name)}
-              >
-                <View
-                  style={[
-                    styles.navIcon,
-                    { backgroundColor: colors.navBg },
-                    isActive && {
-                      backgroundColor: isDark ? "#1E3A4A" : "#D8E9F0",
-                      borderWidth: 2,
-                      borderColor: isDark ? "#00A3A3" : "#2A7DA0",
-                    },
-                  ]}
-                >
-                  <Image
-                    source={tab.iconImg}
-                    style={styles.navIconImg}
-                    resizeMode="contain"
-                  />
+              <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
+                <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
+                  isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
+                  <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                 </View>
-                <Text
-                  style={[
-                    styles.navText,
-                    {
-                      color: isActive
-                        ? colors.navActive
-                        : isDark
-                          ? "#FFFFFF"
-                          : "#6B7280",
-                    },
-                    isActive && { fontWeight: "700" },
-                  ]}
-                >
+                <Text style={[styles.navText, { color: isActive ? colors.navActive : isDark ? "#FFFFFF" : "#6B7280" }, isActive && { fontWeight: "700" }]}>
                   {tab.name}
                 </Text>
               </TouchableOpacity>
@@ -938,20 +828,17 @@ export default function Guest() {
           })}
         </View>
 
-        {/* ── Camera FAB — shows lock icon when scan used ── */}
+        {/* Camera FAB */}
         <TouchableOpacity
           style={[
             styles.cameraButton,
             {
               backgroundColor: colors.navBg,
               borderColor: freeScanUsed
-                ? '#EF4444'
+                ? (isDark ? '#EF4444' : '#FCA5A5')
                 : (isDark ? '#374151' : '#C5E3ED'),
             },
-            activeTab === "Camera" && {
-              borderColor: "#004F7F",
-              backgroundColor: isDark ? "#1A3A4A" : "#E8F4F8",
-            },
+            activeTab === "Camera" && { borderColor: "#004F7F", backgroundColor: isDark ? "#1A3A4A" : "#E8F4F8" },
           ]}
           onPress={() => handleTabPress("Camera")}
           activeOpacity={0.85}
@@ -960,19 +847,16 @@ export default function Guest() {
             name={freeScanUsed ? "lock-closed-outline" : "camera-outline"}
             size={30}
             color={
-              freeScanUsed
-                ? '#EF4444'
-                : activeTab === "Camera"
-                  ? "#004F7F"
-                  : isDark
-                    ? "#FFFFFF"
-                    : "#6B7280"
+              freeScanUsed ? '#EF4444'
+                : activeTab === "Camera" ? "#004F7F"
+                : isDark ? "#FFFFFF" : "#6B7280"
             }
           />
         </TouchableOpacity>
       </View>
 
       {renderFreeScanToast()}
+      {renderTips()}
       {renderOnboarding()}
       {renderCameraModal()}
       {renderLoginModal()}
@@ -980,51 +864,33 @@ export default function Guest() {
   );
 }
 
-// ── Toast styles (free scan used warning) ───────────────────────
+const tipsStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
+  card: { width: '100%', borderRadius: 24, paddingVertical: 28, paddingHorizontal: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20, elevation: 16 },
+  title: { fontSize: 18, fontWeight: '700', marginBottom: 16 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12, width: '100%' },
+  text: { flex: 1, fontSize: 14, lineHeight: 20 },
+  btn: { marginTop: 8, backgroundColor: '#004F7F', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
+  btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+});
+
 const toastStyles = StyleSheet.create({
-  wrapper: {
-    position: 'absolute',
-    top: 100,
-    left: 16,
-    right: 16,
-    zIndex: 10000,
-    elevation: 10000,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  iconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(239,68,68,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  wrapper: { position: 'absolute', top: 100, left: 16, right: 16, zIndex: 10000, elevation: 10000 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, borderWidth: 1.5, paddingVertical: 12, paddingHorizontal: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 10 },
+  iconCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(239,68,68,0.15)', alignItems: 'center', justifyContent: 'center' },
   textCol: { flex: 1 },
-  title:    { fontSize: 13, fontWeight: '700' },
+  title: { fontSize: 13, fontWeight: '700' },
   subtitle: { fontSize: 11.5, marginTop: 2 },
   closeBtn: { padding: 4 },
 });
 
-// ── Styles ─────────────────────────────────────────────────────
 const ob = StyleSheet.create({
   root:    { zIndex: 9999, elevation: 9999 },
   overlay: { backgroundColor: 'rgba(0,10,20,0.60)', zIndex: 1 },
   spotlight: {
-    position: 'absolute', width: 68, height: 68, borderRadius: 34,
-    backgroundColor: 'rgba(0,163,163,0.12)', borderWidth: 2.5, borderColor: '#00A3A3', zIndex: 2,
+    position: 'absolute',
+    backgroundColor: 'rgba(0,163,163,0.15)',
+    borderWidth: 2.5, borderColor: '#00A3A3', zIndex: 2,
     shadowColor: '#00A3A3', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 12, elevation: 8,
   },
   tooltipWrapper:     { position: 'absolute', zIndex: 3 },
@@ -1045,14 +911,13 @@ const ob = StyleSheet.create({
   dot:         { width: 5, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.25)' },
   dotActive:   { width: 14, backgroundColor: '#00A3A3' },
   dotDone:     { backgroundColor: 'rgba(255,255,255,0.55)' },
-  skip:        { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600' },
+  skipBtn:     { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   arrow:       { position: 'absolute', bottom: -10, width: 0, height: 0, borderLeftWidth: 12, borderRightWidth: 12, borderTopWidth: 11, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#004F7F' },
   cameraActions:      { flexDirection: 'row', gap: 8, marginTop: 4 },
   signUpBtn:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#00A3A3', paddingVertical: 10, borderRadius: 14 },
   signUpBtnText:      { color: '#fff', fontSize: 12, fontWeight: '700' },
   loginBtn:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#C5E3ED', paddingVertical: 10, borderRadius: 14 },
   loginBtnText:       { color: '#004F7F', fontSize: 12, fontWeight: '700' },
-  // Free-scan progress elements
   lockedBadge:        { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 8, marginBottom: 8 },
   lockedBadgeTextCol: { flex: 1 },
   lockedBadgeTitle:   { color: '#fff', fontSize: 12, fontWeight: '700' },
@@ -1066,169 +931,48 @@ const styles = StyleSheet.create({
   titleContainer:      { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
   title:               { fontSize: 20, textAlign: 'center' },
   titleBold:           { fontWeight: '700' },
-
-  // ── body area clips overflow so zoom stays inside (FirstHomePage style) ──
   bodyMainContainer:   { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, marginBottom: 160 },
-  bodyClipWrapper: {
-    width: BODY_IMG_W,
-    height: BODY_IMG_H,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
-  bodyImageWrapper: {
-    width: BODY_IMG_W,
-    height: BODY_IMG_H,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  bodyClipWrapper:     { width: BODY_IMG_W, height: BODY_IMG_H, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
+  bodyImageWrapper:    { width: BODY_IMG_W, height: BODY_IMG_H, alignItems: 'center', justifyContent: 'center' },
   bodyImage:           { width: '100%', height: '100%' },
   moleContainer:       { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 4 },
   moleInner:           { width: 28, height: 28, borderRadius: 14, backgroundColor: '#004F7F', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   moleIcon:            { color: '#FFFFFF', fontSize: 18, fontWeight: '700', lineHeight: 22 },
   moleThumbnail:       { width: 38, height: 38, borderRadius: 8, borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: '#ccc' },
-
   bottomControls:      { position: 'absolute', bottom: 140, left: 0, right: 0, alignItems: 'center' },
   toggleWrapper:       { flexDirection: 'row', borderRadius: 25, padding: 4, width: width * 0.45 },
   toggleButton:        { flex: 1, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
   toggleButtonActive:  { backgroundColor: '#004F7F' },
   toggleText:          { fontSize: 14, fontWeight: '600' },
   toggleTextActive:    { color: '#FFFFFF', fontWeight: '700' },
-
-  // ── floating bottom nav (FirstHomePage style) ──
-  bottomNavContainer: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
-    alignItems: 'center',
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    paddingVertical: 10,
-    paddingBottom: 14,
-    borderRadius: 28,
-    borderWidth: 1,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8,
-  },
+  bottomNavContainer:  { position: 'absolute', bottom: 16, left: 16, right: 16, alignItems: 'center' },
+  bottomNav:           { flexDirection: 'row', paddingVertical: 10, paddingBottom: 14, borderRadius: 28, borderWidth: 1, width: '100%', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 8 },
   navCenterSpacer:     { flex: 1 },
   navItem:             { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  navIcon:             { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  navIconImg:          { width: 32, height: 32 },
+  navIcon:             { width: 42, height: 42, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  navIconImg:          { width: 42, height: 42 },
   headerIconImg:       { width: 55, height: 55 },
   notifIconImg:        { width: 56, height: 56 },
   navText:             { fontSize: 11, fontWeight: '500' },
-  cameraButton: {
-    position: 'absolute',
-    top: -26,
-    alignSelf: 'center',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-  },
+  cameraButton:        { position: 'absolute', top: -26, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', borderWidth: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 8 },
   headerCard:          { marginHorizontal: 16, marginTop: 12, marginBottom: 8, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
   headerContent:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   profileIconContainer:{ width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#C5E3ED' },
   welcomeContainer:    { flex: 1, marginLeft: 12, flexDirection: 'row', alignItems: 'center' },
   welcomeLabel:        { fontSize: 18, fontStyle: 'italic' },
-  notificationButton:  { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+  notificationButton:  { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
 });
 
-// ── Login Modal Styles ──────────────────────────────────────────
 const loginModal = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
-  },
-  card: {
-    width: '100%',
-    borderRadius: 24,
-    paddingVertical: 28,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 16,
-  },
-  iconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#E8F4F8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  message: {
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  primaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    width: '100%',
-    backgroundColor: '#004F7F',
-    paddingVertical: 13,
-    borderRadius: 14,
-    marginBottom: 10,
-  },
-  primaryBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  secondaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    width: '100%',
-    backgroundColor: '#C5E3ED',
-    paddingVertical: 13,
-    borderRadius: 14,
-    marginBottom: 10,
-  },
-  secondaryBtnText: {
-    color: '#004F7F',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  ghostBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginTop: 2,
-  },
-  ghostBtnText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  overlay:         { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
+  card:            { width: '100%', borderRadius: 24, paddingVertical: 28, paddingHorizontal: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 20, elevation: 16 },
+  iconWrap:        { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E8F4F8', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  title:           { fontSize: 20, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
+  message:         { fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 24 },
+  primaryBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', backgroundColor: '#004F7F', paddingVertical: 13, borderRadius: 14, marginBottom: 10 },
+  primaryBtnText:  { color: '#fff', fontSize: 14, fontWeight: '700' },
+  secondaryBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', backgroundColor: '#C5E3ED', paddingVertical: 13, borderRadius: 14, marginBottom: 10 },
+  secondaryBtnText:{ color: '#004F7F', fontSize: 14, fontWeight: '700' },
+  ghostBtn:        { paddingVertical: 8, paddingHorizontal: 16, marginTop: 2 },
+  ghostBtnText:    { fontSize: 13, fontWeight: '500' },
 });

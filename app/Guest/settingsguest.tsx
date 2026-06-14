@@ -1,538 +1,310 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-  Animated, Image, ScrollView, StatusBar,
-  StyleSheet, Switch, Text, TouchableOpacity, View,
+  Animated,
+  Dimensions,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../ThemeContext';
+import GuestBottomNav from './Guestbottomnav';
+
+const { width, height } = Dimensions.get('window');
+
+const NAV_PILL_BOTTOM = 16;
+const NAV_PILL_HEIGHT = 70;
+const NAV_PILL_TOP    = height - NAV_PILL_BOTTOM - NAV_PILL_HEIGHT;
+const FAB_CENTER_Y    = NAV_PILL_TOP - 26 + 30;
+const FAB_CENTER_X    = width / 2;
+
+const GUEST_FREE_SCAN_KEY = 'guestFreeScanUsed';
 
 const Icons = {
-  home:         require('../../assets/Icons/home.png'),
-  reports:      require('../../assets/Icons/Reports.png'),
-  history:      require('../../assets/Icons/history.png'),
-  settings:     require('../../assets/Icons/setting.png'),
-  person:       require('../../assets/Icons/Account person.png'),
-  about:        require('../../assets/Icons/about.png'),
-  darkMode:     require('../../assets/Icons/dark mode.png'),
-  help:         require('../../assets/Icons/help.png'),
-  notification: require('../../assets/Icons/notification.png'),
-};
-
-const ICON_SIZES = {
-  darkMode: { width: 32, height: 32 },
-  about:    { width: 26, height: 26 },
-  help:     { width: 26, height: 26 },
+  person:   require('../../assets/Icons/Account person.png'),
+  about:    require('../../assets/Icons/about.png'),
+  darkMode: require('../../assets/Icons/dark mode.png'),
+  help:     require('../../assets/Icons/help.png'),
 };
 
 export default function GuestSettingsPage() {
   const router = useRouter();
   const { isDark, toggleTheme, colors } = useTheme();
 
-  const color = isDark ? "#fff" : "#000";
+  const pageBg = isDark ? colors.background : '#D8E9F0';
+  const color  = isDark ? '#fff' : '#000';
 
-  const pageBg = isDark ? colors.background : "#D8E9F0";
-  const [activeTab, setActiveTab] = useState('Settings');
+  const [freeScanUsed,    setFreeScanUsed]    = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [cameraMode,      setCameraMode]      = useState<'free' | 'locked'>('free');
 
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const modalFade  = useRef(new Animated.Value(0)).current;
-  const modalScale = useRef(new Animated.Value(0.85)).current;
+  const cameraFade  = useRef(new Animated.Value(0)).current;
+  const cameraScale = useRef(new Animated.Value(0.85)).current;
+  const pulseAnim   = useRef(new Animated.Value(1)).current;
+  const pulseLoop   = useRef<Animated.CompositeAnimation | null>(null);
 
-  const openLoginModal = () => {
-    setShowLoginModal(true);
-    modalFade.setValue(0); modalScale.setValue(0.85);
-    Animated.parallel([
-      Animated.timing(modalFade,  { toValue: 1, duration: 220, useNativeDriver: true }),
-      Animated.spring(modalScale, { toValue: 1, tension: 130, friction: 8, useNativeDriver: true }),
-    ]).start();
-  };
-
-  const closeLoginModal = () => {
-    Animated.timing(modalFade, { toValue: 0, duration: 180, useNativeDriver: true })
-      .start(() => setShowLoginModal(false));
-  };
-
-  useFocusEffect(React.useCallback(() => { setActiveTab('Settings'); }, []));
-
-  const bottomTabs = [
-    { name: 'Home',     iconImg: Icons.home     },
-    { name: 'Reports',  iconImg: Icons.reports  },
-    { name: 'History',  iconImg: Icons.history  },
-    { name: 'Settings', iconImg: Icons.settings },
-  ];
-
-  const handleTabPress = (tabName: string) => {
-    setActiveTab(tabName);
-    if (tabName === 'Camera') { openLoginModal(); return; }
-    switch (tabName) {
-      case 'Home':     router.push('/Guest/Guest');         break;
-      case 'Reports':  router.push('/Guest/reportguest');   break;
-      case 'History':  router.push('/Guest/histroyguest');  break;
-    }
-  };
-
-  type RowProps = {
-    style?:        object;
-    iconBgColor?:  string;
-    iconImg:       any;
-    iconSize:      { width: number; height: number };
-    label:         string;
-    onPress?:      () => void;
-    rightElement?: React.ReactNode;
-    isLast?:       boolean;
-    disabled?:     boolean;
-    labelcolor:    string;  // ← هنا
-  };
-
-  // ── التعديل: ضفنا labelcolor في الـ destructuring وطبقناه ──
-  const SettingsRow: React.FC<RowProps> = ({
-    style, iconBgColor, labelcolor, iconImg, iconSize, label, onPress, rightElement, isLast = false, disabled = false,
-  }) => (
-    <TouchableOpacity
-      style={[
-        styles.settingsRow,
-        style,
-        { flexDirection: 'row', opacity: disabled ? 0.4 : 1 },
-        !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border },
-      ]}
-      onPress={disabled ? undefined : onPress}
-      activeOpacity={disabled ? 1 : 0.7}
-    >
-      <View style={[
-        styles.settingsIconWrap,
-        {
-          marginRight: 14,
-          marginLeft:  0,
-          backgroundColor: iconBgColor ?? (isDark ? '#1A3A4A' : '#fff'),
-        },
-      ]}>
-        <Image source={iconImg} style={{ width: iconSize.width, height: iconSize.height }} resizeMode="contain" />
-      </View>
-      {/* ── التعديل: طبّقنا labelcolor على الـ Text ── */}
-      <Text style={[styles.settingsLabel, { color: labelcolor }]}>
-        {label}
-      </Text>
-      {rightElement ?? (onPress && !disabled
-        ? <Ionicons name="chevron-forward" size={18} color={colors.border} />
-        : null)}
-    </TouchableOpacity>
+  useFocusEffect(
+    React.useCallback(() => {
+      AsyncStorage.getItem(GUEST_FREE_SCAN_KEY).then(val => {
+        setFreeScanUsed(val === 'true');
+      });
+    }, [])
   );
 
+  const openCameraModal = () => {
+    AsyncStorage.getItem(GUEST_FREE_SCAN_KEY).then(val => {
+      const used = val === 'true';
+      setFreeScanUsed(used);
+      setCameraMode(used ? 'locked' : 'free');
+      setShowCameraModal(true);
+      cameraFade.setValue(0);
+      cameraScale.setValue(0.85);
+      Animated.parallel([
+        Animated.timing(cameraFade,  { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.spring(cameraScale, { toValue: 1, tension: 130, friction: 8, useNativeDriver: true }),
+      ]).start();
+      pulseAnim.setValue(1);
+      pulseLoop.current?.stop();
+      pulseLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.18, duration: 700, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1,    duration: 700, useNativeDriver: true }),
+        ])
+      );
+      pulseLoop.current.start();
+    });
+  };
+
+  const closeCameraModal = () => {
+    pulseLoop.current?.stop();
+    setShowCameraModal(false);
+  };
+
+  const renderCameraModal = () => {
+    if (!showCameraModal) return null;
+    const SPOT     = 58;
+    const spotLeft = FAB_CENTER_X - SPOT / 2;
+    const spotTop  = FAB_CENTER_Y - SPOT / 2;
+    const isLocked = cameraMode === 'locked';
+
+    return (
+      <View style={[StyleSheet.absoluteFill, cm.root]} pointerEvents="box-none">
+        <TouchableOpacity style={[StyleSheet.absoluteFill, cm.overlay]} activeOpacity={1} onPress={closeCameraModal} />
+        <Animated.View pointerEvents="none" style={[cm.spotlight, { width: SPOT, height: SPOT, borderRadius: SPOT / 2, left: spotLeft, top: spotTop, transform: [{ scale: pulseAnim }] }]} />
+        <Animated.View style={[cm.cardWrapper, { opacity: cameraFade, transform: [{ scale: cameraScale }] }]}>
+          <View style={cm.card}>
+            <View style={cm.header}>
+              <View style={[cm.iconCircle, isLocked && { backgroundColor: '#FFE8E8' }]}>
+                <Ionicons name={isLocked ? 'lock-closed-outline' : 'gift-outline'} size={15} color={isLocked ? '#EF4444' : '#004F7F'} />
+              </View>
+              <Text style={cm.titleText}>{isLocked ? 'Free Scan Used' : '1 Free Scan'}</Text>
+              <TouchableOpacity onPress={closeCameraModal} style={cm.closeBtn} activeOpacity={0.8}>
+                <Ionicons name="close" size={14} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <View style={cm.badge}>
+              <Ionicons name="scan-circle-outline" size={26} color={isLocked ? '#9CA3AF' : '#00A3A3'} />
+              <View style={{ flex: 1 }}>
+                <Text style={cm.badgeTitle}>{isLocked ? '1 / 1 Free Scans Used' : '0 / 1 Free Scans Used'}</Text>
+                <Text style={cm.badgeSub}>Create an account for unlimited scans</Text>
+              </View>
+            </View>
+            <View style={cm.progressTrack}>
+              <View style={[cm.progressFill, { width: isLocked ? '100%' : '0%' }]} />
+            </View>
+            <Text style={cm.desc}>
+              {isLocked
+                ? "You've used your free scan. Sign up to unlock unlimited AI skin analyses."
+                : 'You have 1 free scan as a guest. Use it now or create an account for unlimited scans.'}
+            </Text>
+            {!isLocked && (
+              <TouchableOpacity style={[cm.primaryBtn, { marginBottom: 8 }]} activeOpacity={0.85}
+                onPress={() => { closeCameraModal(); router.push('/Guest/cameraguest' as any); }}>
+                <Ionicons name="camera-outline" size={14} color="#fff" />
+                <Text style={cm.primaryBtnText}>Use Free Scan</Text>
+              </TouchableOpacity>
+            )}
+            <View style={cm.actions}>
+              <TouchableOpacity style={[cm.actionBtn, { backgroundColor: '#004F7F' }]} activeOpacity={0.85}
+                onPress={() => { closeCameraModal(); router.push('/SignUp'); }}>
+                <Ionicons name="person-add-outline" size={13} color="#fff" />
+                <Text style={[cm.actionBtnText, { color: '#fff' }]}>Sign Up</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[cm.actionBtn, { backgroundColor: '#C5E3ED' }]} activeOpacity={0.85}
+                onPress={() => { closeCameraModal(); router.push('/Login1'); }}>
+                <Ionicons name="log-in-outline" size={13} color="#004F7F" />
+                <Text style={[cm.actionBtnText, { color: '#004F7F' }]}>Log In</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Animated.View>
+      </View>
+    );
+  };
+
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: pageBg }]}
-      edges={["top"]}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
       <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
-      {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <TouchableOpacity
-          style={[styles.backButton, { borderColor: colors.border }]}
-          onPress={() => router.back()}
-        >
-          <Ionicons
-            name="chevron-back"
-            size={24}
-            style={{ color: isDark ? "#FFFFFF" : "#1F2937" }}
-          />
+        <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color={isDark ? '#FFFFFF' : '#1F2937'} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: isDark ? "#fff" : "#000" }]}>
-          Settings
-        </Text>
+        <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Settings</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Guest Profile */}
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+        {/* Guest profile card */}
         <TouchableOpacity
-          style={[
-            styles.profileCard,
-            { backgroundColor: colors.card, flexDirection: "row" },
-          ]}
-          onPress={openLoginModal}
+          style={[styles.profileCard, { backgroundColor: colors.card, flexDirection: 'row' }]}
+          onPress={() => router.push('/SignUp')}
           activeOpacity={0.8}
         >
-          <View
-            style={[
-              styles.profileAvatar,
-              {
-                backgroundColor: isDark ? "#2A3F50" : "#fff",
-                marginRight: 14,
-                marginLeft: 0,
-              },
-            ]}
-          >
-            <Image
-              source={Icons.person}
-              style={styles.profileAvatarIconImg}
-              resizeMode="contain"
-            />
+          <View style={[styles.profileAvatar, { backgroundColor: isDark ? '#2A3F50' : '#fff', marginRight: 14 }]}>
+            <Image source={Icons.person} style={styles.profileAvatarIcon} resizeMode="contain" />
           </View>
-          <View style={[styles.profileInfo, { alignItems: "flex-start" }]}>
-            <Text
-              style={[
-                styles.profileName,
-                { fontWeight: "700", color: isDark ? "#fff" : "#000" },
-              ]}
-            >
-              Guest
-            </Text>
-            <Text
-              style={[
-                styles.profileEmail,
-                { color: isDark ? "#AAAAAA" : colors.subText },
-              ]}
-            >
-              Tap to sign in
-            </Text>
+          <View style={[styles.profileInfo, { alignItems: 'flex-start' }]}>
+            <Text style={[styles.profileName, { color: isDark ? '#fff' : '#000' }]}>Guest</Text>
+            <Text style={[styles.profileEmail, { color: isDark ? '#AAAAAA' : colors.subText }]}>Tap to sign in</Text>
           </View>
-          <View style={[styles.loginBadge, { backgroundColor: "#004F7F" }]}>
+          <View style={[styles.loginBadge, { backgroundColor: '#004F7F' }]}>
             <Text style={styles.loginBadgeText}>Sign In</Text>
           </View>
         </TouchableOpacity>
 
-        {/* Preferences — Dark Mode */}
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: isDark ? "#AAAAAA" : colors.subText, textAlign: "left" },
-          ]}
-        >
-          PREFERENCES
-        </Text>
+        {/* Preferences */}
+        <Text style={[styles.sectionTitle, { color: isDark ? '#AAAAAA' : colors.subText }]}>PREFERENCES</Text>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <SettingsRow
-            iconImg={Icons.darkMode}
-            iconSize={ICON_SIZES.darkMode}
-            iconBgColor={isDark ? "#1E2A35" : "#fff"}
-            label="Dark Mode"
-            labelcolor={color}
-            isLast
-            rightElement={
-              <Switch
-                value={isDark}
-                onValueChange={toggleTheme}
-                trackColor={{ false: colors.border, true: "#C5E3ED" }}
-                thumbColor={isDark ? colors.primary : colors.subText}
-              />
-            }
-          />
+          <View style={[styles.settingsRow, { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
+            <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1E2A35' : '#fff' }]}>
+              <Image source={Icons.darkMode} style={{ width: 32, height: 32 }} resizeMode="contain" />
+            </View>
+            <Text style={[styles.settingsLabel, { color }]}>Dark Mode</Text>
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              trackColor={{ false: colors.border, true: '#C5E3ED' }}
+              thumbColor={isDark ? colors.primary : colors.subText}
+            />
+          </View>
         </View>
 
-        {/* App — About & Help */}
-        <Text
-          style={[
-            styles.sectionTitle,
-            { color: isDark ? "#AAAAAA" : colors.subText, textAlign: "left" },
-          ]}
-        >
-          APP
-        </Text>
+        {/* App */}
+        <Text style={[styles.sectionTitle, { color: isDark ? '#AAAAAA' : colors.subText }]}>APP</Text>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <SettingsRow
-            style={{ backgroundColor: isDark ? "#1E2A35" : "#fff" }}
-            iconImg={Icons.about}
-            iconSize={ICON_SIZES.about}
-            iconBgColor={isDark ? "#1E2A35" : "#fff"}
-            label="About"
-            labelcolor={color}
-            onPress={() => router.push("/Guest/aboutguest")}
-          />
-          <SettingsRow
-            style={{ backgroundColor: isDark ? "#1E2A35" : "#fff" }}
-            iconImg={Icons.help}
-            iconSize={ICON_SIZES.help}
-            iconBgColor={isDark ? "#1E2A35" : "#fff"}
-            label="Help & Support"
-            labelcolor={color}
-            onPress={() => router.push("/Guest/helpguest")}
-            isLast
-          />
+          <TouchableOpacity
+            style={[styles.settingsRow, { borderBottomWidth: 1, borderBottomColor: colors.border }]}
+            onPress={() => router.push('/Guest/aboutguest')}
+          >
+            <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1E2A35' : '#fff' }]}>
+              <Image source={Icons.about} style={{ width: 26, height: 26 }} resizeMode="contain" />
+            </View>
+            <Text style={[styles.settingsLabel, { color }]}>About</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.border} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.settingsRow}
+            onPress={() => router.push('/Guest/helpguest')}
+          >
+            <View style={[styles.iconWrap, { backgroundColor: isDark ? '#1E2A35' : '#fff' }]}>
+              <Image source={Icons.help} style={{ width: 26, height: 26 }} resizeMode="contain" />
+            </View>
+            <Text style={[styles.settingsLabel, { color }]}>Help & Support</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.border} />
+          </TouchableOpacity>
         </View>
 
         {/* CTA */}
-        <View
-          style={[
-            styles.ctaCard,
-            {
-              backgroundColor: isDark ? "#1E2A35" : "#E8F4F8",
-              borderColor: "#C5E3ED",
-            },
-          ]}
-        >
-          <Ionicons
-            name="lock-closed-outline"
-            size={22}
-            style={{ marginBottom: 8, color: isDark ? "#fff" : "#004F7F" }}
-          />
-          <Text
-            style={[styles.ctaText, { color: isDark ? "#FFFFFF" : "#374151" }]}
-          >
-            Sign in to unlock all features including language, customization,
-            notifications, and your personal data.
+        <View style={[styles.ctaCard, { backgroundColor: isDark ? '#1E2A35' : '#E8F4F8', borderColor: '#C5E3ED' }]}>
+          <Ionicons name="lock-closed-outline" size={22} color={isDark ? '#fff' : '#004F7F'} style={{ marginBottom: 8 }} />
+          <Text style={[styles.ctaText, { color: isDark ? '#FFFFFF' : '#374151' }]}>
+            Sign in to unlock all features including language, customization, notifications, and your personal data.
           </Text>
           <View style={styles.ctaButtons}>
             <TouchableOpacity
-              style={[styles.ctaSignUp, { backgroundColor: "#004F7F" }]}
-              onPress={() => router.push("/SignUp")}
+              style={[styles.ctaSignUp, { backgroundColor: '#004F7F' }]}
+              onPress={() => router.push('/SignUp')}
               activeOpacity={0.85}
             >
               <Ionicons name="person-add-outline" size={15} color="#fff" />
               <Text style={styles.ctaSignUpText}>Sign Up</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.ctaLogin, { borderColor: "#004F7F" }]}
-              onPress={() => router.push("/Login1")}
+              style={[styles.ctaLogin, { borderColor: '#004F7F' }]}
+              onPress={() => router.push('/Login1')}
               activeOpacity={0.85}
             >
-              <Ionicons
-                name="log-in-outline"
-                size={28}
-                style={{ color: isDark ? "#fff" : "#004F7F" }}
-              />
-              <Text
-                style={[
-                  styles.ctaLoginText,
-                  { color: isDark ? "#fff" : "#004F7F" },
-                ]}
-              >
-                Log In
-              </Text>
+              <Ionicons name="log-in-outline" size={28} color={isDark ? '#fff' : '#004F7F'} />
+              <Text style={[styles.ctaLoginText, { color: isDark ? '#fff' : '#004F7F' }]}>Log In</Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
 
-      {/* Bottom Nav */}
-      <View style={styles.bottomNavContainer}>
-        <View style={[styles.bottomNav, { backgroundColor: colors.navBg }]}>
-          {["Home", "Reports"].map((tabName) => {
-            const tab = bottomTabs.find((t) => t.name === tabName)!;
-            const isActive = activeTab === tab.name;
-            return (
-              <TouchableOpacity
-                key={tab.name}
-                style={styles.navItem}
-                onPress={() => handleTabPress(tab.name)}
-              >
-                <View
-                  style={[
-                    styles.navIcon,
-                    isActive && {
-                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-                      borderWidth: 2,
-                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
-                    },
-                  ]}
-                >
-                  <Image
-                    source={tab.iconImg}
-                    style={styles.navIconImg}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.navText,
-                    {
-                      color: isActive
-                        ? colors.navActive
-                        : isDark
-                          ? "#FFFFFF"
-                          : "#6B7280",
-                    },
-                    isActive && { fontWeight: "700" },
-                  ]}
-                >
-                  {tabName === "Home" ? "Home" : "Reports"}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-          <View style={styles.navCenterSpacer} />
-          {["History", "Settings"].map((tabName) => {
-            const tab = bottomTabs.find((t) => t.name === tabName)!;
-            const isActive = activeTab === tab.name;
-            return (
-              <TouchableOpacity
-                key={tab.name}
-                style={styles.navItem}
-                onPress={() => handleTabPress(tab.name)}
-              >
-                <View
-                  style={[
-                    styles.navIcon,
-                    isActive && {
-                      backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8",
-                      borderWidth: 2,
-                      borderColor: isDark ? "#00A3A3" : "#C5E3ED",
-                    },
-                  ]}
-                >
-                  <Image
-                    source={tab.iconImg}
-                    style={styles.navIconImg}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.navText,
-                    {
-                      color: isActive
-                        ? colors.navActive
-                        : isDark
-                          ? "#FFFFFF"
-                          : "#6B7280",
-                    },
-                    isActive && { fontWeight: "700" },
-                  ]}
-                >
-                  {tabName === "History" ? "History" : "Settings"}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        <TouchableOpacity
-          style={[
-            styles.cameraButton,
-            {
-              backgroundColor: colors.navBg,
-              borderColor: isDark ? "#374151" : "#C5E3ED",
-            },
-          ]}
-          onPress={openLoginModal}
-          activeOpacity={0.85}
-        >
-          <Ionicons
-            name="camera-outline"
-            size={30}
-            color={isDark ? "#FFFFFF" : "#6B7280"}
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Login Modal */}
-      {showLoginModal && (
-        <View style={styles.modalOverlay} pointerEvents="box-none">
-          <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
-            activeOpacity={1}
-            onPress={closeLoginModal}
-          />
-          <Animated.View
-            style={[
-              styles.modalBox,
-              {
-                backgroundColor: "#004F7F",
-                opacity: modalFade,
-                transform: [{ scale: modalScale }],
-              },
-            ]}
-          >
-            <View style={styles.modalHeader}>
-              <View style={styles.modalIconCircle}>
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={18}
-                  color="#004F7F"
-                />
-              </View>
-              <Text style={styles.modalTitle}>Login Required</Text>
-              <TouchableOpacity
-                onPress={closeLoginModal}
-                style={styles.modalClose}
-              >
-                <Ionicons name="close" size={14} color="#fff" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.modalDesc}>
-              This feature is only available to registered users. Create an
-              account or log in to continue.
-            </Text>
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalSignUp}
-                onPress={() => {
-                  closeLoginModal();
-                  router.push("/SignUp");
-                }}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="person-add-outline" size={14} color="#fff" />
-                <Text style={styles.modalSignUpText}>Create Account</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalLogin}
-                onPress={() => {
-                  closeLoginModal();
-                  router.push("/Login1");
-                }}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="log-in-outline" size={14} color="#004F7F" />
-                <Text style={styles.modalLoginText}>Log In</Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </View>
-      )}
+      <GuestBottomNav activeTab="Settings" onCameraPress={openCameraModal} />
+      {renderCameraModal()}
     </SafeAreaView>
   );
 }
 
+const cm = StyleSheet.create({
+  root:          { zIndex: 9999, elevation: 9999 },
+  overlay:       { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,10,20,0.60)' },
+  spotlight:     { position: 'absolute', backgroundColor: 'rgba(0,163,163,0.15)', borderWidth: 2.5, borderColor: '#00A3A3', zIndex: 2, shadowColor: '#00A3A3', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 12, elevation: 8 },
+  cardWrapper:   { position: 'absolute', zIndex: 3, width: 270, left: (width - 270) / 2, top: height * 0.25 },
+  card:          { backgroundColor: '#004F7F', borderRadius: 18, padding: 14 },
+  header:        { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 },
+  iconCircle:    { width: 28, height: 28, borderRadius: 14, backgroundColor: '#C5E3ED', alignItems: 'center', justifyContent: 'center' },
+  titleText:     { flex: 1, color: '#fff', fontWeight: '700', fontSize: 13 },
+  closeBtn:      { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  badge:         { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 8, marginBottom: 8 },
+  badgeTitle:    { color: '#fff', fontSize: 12, fontWeight: '700' },
+  badgeSub:      { color: '#93C5CE', fontSize: 10, marginTop: 2 },
+  progressTrack: { height: 5, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3, marginBottom: 10, overflow: 'hidden' },
+  progressFill:  { height: '100%', backgroundColor: '#EF4444', borderRadius: 3 },
+  desc:          { color: '#B8D4DE', fontSize: 11.5, lineHeight: 17, textAlign: 'center', marginBottom: 10 },
+  primaryBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#00A3A3', paddingVertical: 10, borderRadius: 14 },
+  primaryBtnText:{ color: '#fff', fontSize: 12, fontWeight: '700' },
+  actions:       { flexDirection: 'row', gap: 8 },
+  actionBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 10, borderRadius: 14 },
+  actionBtnText: { fontSize: 12, fontWeight: '700' },
+});
+
 const styles = StyleSheet.create({
-  container:           { flex: 1 },
-  header:              { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
-  backButton:          { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  headerTitle:         { fontSize: 20, fontWeight: 'bold' },
-  scrollView:          { flex: 1 },
-  scrollContent:       { padding: 16, paddingBottom: 110 },
-  profileCard:         { borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
-  profileAvatar:       { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  profileAvatarIconImg:{ width: 52, height: 52 },
-  profileInfo:         { flex: 1 },
-  profileName:         { fontSize: 16, fontWeight: '700' },
-  profileEmail:        { fontSize: 13, marginTop: 2 },
-  loginBadge:          { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  loginBadgeText:      { color: '#fff', fontSize: 12, fontWeight: '700' },
-  sectionTitle:        { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, marginLeft: 4 },
-  card:                { borderRadius: 16, marginBottom: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
-  settingsRow:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
-  settingsIconWrap:    { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  settingsLabel:       { flex: 1, fontSize: 15, fontWeight: '500' },
-  ctaCard:             { borderRadius: 16, padding: 18, alignItems: 'center', borderWidth: 1, marginBottom: 20 },
-  ctaText:             { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 16 },
-  ctaButtons:          { flexDirection: 'row', gap: 10, width: '100%' },
-  ctaSignUp:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 12 },
-  ctaSignUpText:       { color: '#fff', fontWeight: '700', fontSize: 14 },
-  ctaLogin:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 12, borderWidth: 2 },
-  ctaLoginText:        { fontWeight: '700', fontSize: 14 },
-  bottomNavContainer:  { position: 'absolute', bottom: 16, left: 16, right: 16, alignItems: 'center' },
-  bottomNav:           { flexDirection: 'row', paddingVertical: 10, paddingBottom: 14, borderRadius: 28, width: '100%', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 8 },
-  navCenterSpacer:     { flex: 1 },
-  navItem:             { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  navIcon:             { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  navIconImg:          { width: 44, height: 44 },
-  navText:             { fontSize: 11, fontWeight: '500' },
-  cameraButton:        { position: 'absolute', top: -26, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', borderWidth: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 6 },
-  modalOverlay:        { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,10,20,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 9999 },
-  modalBox:            { width: 280, borderRadius: 18, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 14 },
-  modalHeader:         { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8 },
-  modalIconCircle:     { width: 30, height: 30, borderRadius: 15, backgroundColor: '#C5E3ED', alignItems: 'center', justifyContent: 'center' },
-  modalTitle:          { flex: 1, color: '#fff', fontWeight: '700', fontSize: 13 },
-  modalClose:          { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  modalDesc:           { color: '#B8D4DE', fontSize: 12, lineHeight: 18, textAlign: 'center', marginBottom: 14 },
-  modalActions:        { flexDirection: 'row', gap: 8 },
-  modalSignUp:         { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#00A3A3', paddingVertical: 10, borderRadius: 12 },
-  modalSignUpText:     { color: '#fff', fontSize: 12, fontWeight: '700' },
-  modalLogin:          { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#C5E3ED', paddingVertical: 10, borderRadius: 12 },
-  modalLoginText:      { fontSize: 12, fontWeight: '700' },
+  container:      { flex: 1 },
+  header:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2, margin: 15 },
+  backButton:     { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  headerTitle:    { fontSize: 20, fontWeight: 'bold' },
+  scrollView:     { flex: 1 },
+  scrollContent:  { padding: 16, paddingBottom: 110 },
+  profileCard:    { borderRadius: 16, padding: 16, alignItems: 'center', marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
+  profileAvatar:  { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  profileAvatarIcon: { width: 52, height: 52 },
+  profileInfo:    { flex: 1 },
+  profileName:    { fontSize: 16, fontWeight: '700' },
+  profileEmail:   { fontSize: 13, marginTop: 2 },
+  loginBadge:     { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  loginBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  sectionTitle:   { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, marginLeft: 4 },
+  card:           { borderRadius: 16, marginBottom: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
+  settingsRow:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
+  iconWrap:       { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  settingsLabel:  { flex: 1, fontSize: 15, fontWeight: '500' },
+  ctaCard:        { borderRadius: 16, padding: 18, alignItems: 'center', borderWidth: 1, marginBottom: 20 },
+  ctaText:        { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 16 },
+  ctaButtons:     { flexDirection: 'row', gap: 10, width: '100%' },
+  ctaSignUp:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 12 },
+  ctaSignUpText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
+  ctaLogin:       { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 12, borderWidth: 2 },
+  ctaLoginText:   { fontWeight: '700', fontSize: 14 },
 });
