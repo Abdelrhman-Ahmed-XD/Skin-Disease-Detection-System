@@ -37,7 +37,7 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            animation: "fade",
+            animation: "none",
             animationDuration: 200,
             gestureEnabled: true,
           }}
@@ -46,7 +46,7 @@ export default function RootLayout() {
 
           <Stack.Screen
             name="StartUp"
-            options={{ animation: "fade", animationDuration: 200 }}
+            options={{ animation: "none", animationDuration: 200 }}
             listeners={{
               focus: () => {
                 if (
@@ -62,7 +62,7 @@ export default function RootLayout() {
 
           <Stack.Screen
             name="Login1"
-            options={{ animation: "fade", animationDuration: 200 }}
+            options={{ animation: "none", animationDuration: 200 }}
             listeners={{
               focus: () => {
                 if (
@@ -78,7 +78,7 @@ export default function RootLayout() {
 
           <Stack.Screen
             name="SignUp"
-            options={{ animation: "fade", animationDuration: 200 }}
+            options={{ animation: "none", animationDuration: 200 }}
             listeners={{
               focus: () => {
                 if (
@@ -96,7 +96,7 @@ export default function RootLayout() {
             name="Screensbar/FirstHomePage"
             options={{
               gestureEnabled: false,
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
@@ -104,7 +104,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="Screensbar/Camera"
             options={{
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
@@ -112,7 +112,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="Screensbar/ResultsScreen"
             options={{
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
@@ -120,7 +120,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="Screensbar/History"
             options={{
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
@@ -128,7 +128,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="Screensbar/Reports"
             options={{
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
@@ -136,7 +136,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="Screensbar/Setting"
             options={{
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
@@ -144,7 +144,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="Screensbar/Notifications"
             options={{
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
@@ -152,7 +152,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="Screensbar/Reportdetails"
             options={{
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
@@ -160,7 +160,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="Settingsoptions/Editprofile"
             options={{
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
@@ -168,7 +168,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="Settingsoptions/Customize"
             options={{
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
@@ -176,7 +176,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="Settingsoptions/About"
             options={{
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
@@ -184,7 +184,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="Settingsoptions/Help"
             options={{
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
@@ -192,7 +192,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="Settingsoptions/Changepassword"
             options={{
-              animation: "fade",
+              animation: "none",
               animationDuration: 200,
             }}
           />
