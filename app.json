@@ -30,8 +30,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "assets/images/logo.png",
-        "monochromeImage": "assets/images/logo.png",
+        "foregroundImage": "assets/images/logo1024.png",
+        "monochromeImage": "assets/images/logo1024.png",
         "backgroundColor": "#D8E9F0"
       },
       "edgeToEdgeEnabled": true,
@@ -46,14 +46,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "assets/images/logo.png",
-          "imageWidth": 280,
-          "resizeMode": "contain",
-          "backgroundColor": "#D8E9F0",
-          "dark": {
-            "image": "assets/images/logo.png",
-            "backgroundColor": "#D8E9F0"
-          }
+          "backgroundColor": "#D8E9F0"
         }
       ],
       "@react-native-community/datetimepicker",
@@ -82,9 +75,8 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "c8a17def-6eaa-4390-8907-f1b8c39d99d3"
+        "projectId": "12833f91-7da8-4692-a2a8-25d812643e9e"
       }
-    },
-    "owner": "abdelrhmanahmed2004"
+    }
   }
 }
