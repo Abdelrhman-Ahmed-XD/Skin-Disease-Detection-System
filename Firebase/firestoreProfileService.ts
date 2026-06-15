@@ -9,6 +9,7 @@ import { doc, getDoc, getFirestore, setDoc, updateDoc } from 'firebase/firestore
 const STORAGE_KEY = 'signupDraft';
 
 export type UserProfile = {
+    age: any;
     firstName:    string;
     lastName:     string;
     email:        string;
