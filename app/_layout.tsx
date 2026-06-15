@@ -43,7 +43,6 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" />
-
           <Stack.Screen
             name="StartUp"
             options={{ animation: "none", animationDuration: 100 }}
@@ -164,20 +163,39 @@ export default function RootLayout() {
               animationDuration: 100,
             }}
           />
-          <Stack.Screen name="Guest/Guest" options={{ animation: "none", animationDuration: 100 }} />
+          <Stack.Screen name="Guest/Guest" options={{ animation: "fade" }} />
           <Stack.Screen
             name="Guest/reportguest"
-            options={{ animation: "none", animationDuration: 100 }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="Guest/histroyguest"
-            options={{ animation: "none", animationDuration: 100 }}
+            options={{ animation: "fade" }}
           />
           <Stack.Screen
             name="Guest/settingsguest"
-            options={{ animation: "none", animationDuration: 100 }}
+            options={{ animation: "fade" }}
           />
-
+<Stack.Screen
+  name="Guest/cameraguest"
+  options={{ animation: "fade" }}
+/>
+<Stack.Screen
+  name="Guest/GuestResultsScreen"
+  options={{ animation: "fade" }}
+/>
+<Stack.Screen
+  name="Guest/aboutguest"
+  options={{ animation: "fade" }}
+/>
+<Stack.Screen
+  name="Guest/helpguest"
+  options={{ animation: "fade" }}
+/>
+<Stack.Screen
+  name="Guest/notificationguest"
+  options={{ animation: "fade" }}
+/>
           <Stack.Screen
             name="Settingsoptions/Customize"
             options={{

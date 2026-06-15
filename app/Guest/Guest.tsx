@@ -20,9 +20,6 @@ import { useTheme } from '../ThemeContext';
 const { width, height } = Dimensions.get('window');
 
 export const GUEST_FREE_SCAN_KEY = 'guestFreeScanUsed';
-
-let guestOnboardingShownThisSession = false;
-
 const Icons = {
   home:         require('../../assets/Icons/home.png'),
   reports:      require('../../assets/Icons/Reports.png'),
@@ -238,26 +235,28 @@ export default function Guest() {
   })).current;
 
   useFocusEffect(
-    React.useCallback(() => {
-      setActiveTab('Home');
+  React.useCallback(() => {
+    setActiveTab('Home');
 
-      AsyncStorage.getItem(GUEST_FREE_SCAN_KEY).then((val) => {
-        setFreeScanUsed(val === 'true');
-      });
+    AsyncStorage.getItem(GUEST_FREE_SCAN_KEY).then((val) => {
+      setFreeScanUsed(val === 'true');
+    });
 
-      if (guestOnboardingShownThisSession) return;
-      guestOnboardingShownThisSession = true;
+    // ✅ الحل: استخدم AsyncStorage بدل متغير session
+    AsyncStorage.getItem('guestOnboardingSeen').then((seen) => {
+      if (seen === 'true') return; // سبق وشافه
+      // أول مرة بس
+      AsyncStorage.setItem('guestOnboardingSeen', 'true');
       setOnboardingStep(0);
       setShowOnboarding(false);
-
       const t = setTimeout(() => {
         setShowOnboarding(true);
         animateIn();
       }, 350);
-
       return () => clearTimeout(t);
-    }, [])
-  );
+    });
+  }, [])
+);
 
   const animateIn = () => {
     fadeAnim.setValue(0);

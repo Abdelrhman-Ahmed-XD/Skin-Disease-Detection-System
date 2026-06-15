@@ -180,7 +180,7 @@ export default function GuestReportsPage() {
       <View style={[styles.header, { backgroundColor: colors.card }]}>
         <TouchableOpacity
           style={[styles.backButton, { borderColor: colors.border }]}
-          onPress={() => router.back()}
+          onPress={() => router.replace('/Guest/Guest')}
         >
           <Ionicons name="chevron-back" size={24} color={isDark ? '#FFFFFF' : '#1F2937'} />
         </TouchableOpacity>

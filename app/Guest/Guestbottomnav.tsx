@@ -69,15 +69,17 @@ export default function GuestBottomNav({ activeTab, onCameraPress }: Props) {
     ]).start();
   };
 
-  const handleTabPress = (tabName: string) => {
-    animatePress(tabName);
-    if (tabName === 'Camera') {
-      onCameraPress?.();
-      return;
-    }
-    if (tabName === activeTab) return;
-    router.replace(TAB_ROUTES[tabName] as any);
-  };
+const handleTabPress = (tabName: string) => {
+  animatePress(tabName);
+  if (tabName === 'Camera') {
+    onCameraPress?.();
+    return;
+  }
+  if (tabName === activeTab) return;
+  
+  // بدل router.replace استخدم:
+  router.navigate(TAB_ROUTES[tabName] as any);
+};
 
   return (
     <View style={styles.bottomNavContainer}>
@@ -228,14 +230,14 @@ const styles = StyleSheet.create({
   navCenterSpacer: { flex: 1 },
   navItem:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
   navIcon: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
   },
-  navIconImg: { width: 32, height: 32 },
+  navIconImg: { width: 42, height: 42 },
   navText:    { fontSize: 11, fontWeight: '500' },
   cameraButton: {
     position: 'absolute',

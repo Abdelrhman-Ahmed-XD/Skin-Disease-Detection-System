@@ -19,7 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../ThemeContext';
 import { FONT_FAMILY_MAP, useCustomize } from '../Customize/Customizecontext';
 import { useTranslation } from '../Customize/translations';
-import { collection, query, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, updateDoc, doc,writeBatch } from 'firebase/firestore';
 import { db, auth } from '../../Firebase/firebaseConfig';
 
 if (Platform.OS === 'android') {
@@ -41,6 +41,25 @@ export interface AppNotification {
 }
 
 export default function NotificationsPage() {
+  const markAllAsRead = async () => {
+  const user = auth.currentUser;
+  const unreadNotifs = notifications.filter((n) => !n.isRead);
+
+  // لو مفيش مستخدم أو مفيش إشعارات جديدة، ميعملش حاجة
+  if (!user || unreadNotifs.length === 0) return;
+
+  try {
+    const batch = writeBatch(db);
+    unreadNotifs.forEach((notif) => {
+      const notifRef = doc(db, 'users', user.uid, 'notifications', notif.id);
+      batch.update(notifRef, { isRead: true });
+    });
+    
+    await batch.commit(); // تنفيذ كل التحديثات في خطوة واحدة
+  } catch (error) {
+    console.error('Failed to mark all as read:', error);
+  }
+};
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const { settings } = useCustomize();
@@ -121,15 +140,19 @@ export default function NotificationsPage() {
 
     return () => unsubscribe();
   }, []);
-
+const hasUnread = notifications.some((n) => !n.isRead);
   return (
+    
     <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={pageBg} />
 
       {/* ── Header — نفس شكل باقي الصفحات ── */}
+{/* ── Header ── */}
       <View style={[styles.header, { backgroundColor: colors.card }]}>
+        
+        {/* زر الرجوع */}
         <TouchableOpacity
-          style={[styles.backButton, { borderColor: colors.border }]}
+          style={[styles.backButton, { borderColor: colors.border, zIndex: 10 }]}
           onPress={() => router.back()}
         >
           <Ionicons
@@ -138,16 +161,41 @@ export default function NotificationsPage() {
             color={colors.text}
           />
         </TouchableOpacity>
-        <Text
-          style={[
-            styles.headerTitle,
-            customText,
-            { fontWeight: 'bold', color: isDark ? '#fff' : '#1F2937' },
-          ]}
-        >
-          {t('notifications')}
-        </Text>
-        <View style={{ width: 40 }} />
+
+        {/* العنوان في المنتصف تماماً (Absolute) */}
+        <View style={styles.absoluteTitleContainer} pointerEvents="none">
+          <Text
+            style={[
+              styles.headerTitle,
+              customText,
+              { fontWeight: 'bold', color: isDark ? '#fff' : '#1F2937' },
+            ]}
+          >
+            {t('notifications')}
+          </Text>
+        </View>
+
+        {/* زر تحديد الكل */}
+        {hasUnread ? (
+          <TouchableOpacity 
+            style={[
+              styles.markAllButton, 
+              { backgroundColor: isDark ? '#1E3A4A' : '#E8F4F8', zIndex: 10 } 
+            ]} 
+            onPress={markAllAsRead}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="checkmark-done" size={18} color="#00A3A3" />
+            <Text style={[
+              styles.markAllText, 
+              { fontFamily: customText.fontFamily }
+            ]}>
+              {isArabic ? 'تحديد الكل' : 'Mark All'}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       {/* ── المحتوى ── */}
@@ -413,5 +461,28 @@ const styles = StyleSheet.create({
   disabledTitle:       { textAlign: 'center', marginBottom: 12 },
   disabledSub:         { textAlign: 'center', marginBottom: 32 },
   settingsBtn:         { paddingVertical: 16, paddingHorizontal: 40, borderRadius: 14, width: '100%', alignItems: 'center' },
-  settingsBtnText:     { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  settingsBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+markAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20, // بيخليه واخد شكل الحباية (Pill)
+    gap: 4, // مسافة صغيرة بين الأيقونة والنص
+  },
+  markAllText: {
+    color: '#00A3A3',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  absoluteTitleContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

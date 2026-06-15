@@ -199,7 +199,7 @@ export default function SignUp() {
                     showsVerticalScrollIndicator={false}
                 >
                     {/* Back */}
-                    <Pressable onPress={() => router.back()} style={styles.backBtn}>
+                    <Pressable onPress={() => router.replace("/StartUp")} style={styles.backBtn}>
                         <Ionicons name="arrow-back" size={28} color="black" />
                     </Pressable>
 

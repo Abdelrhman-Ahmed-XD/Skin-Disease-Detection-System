@@ -396,7 +396,7 @@ export default function Login1() {
             </Modal>
 
             {/* Back button fixed outside scroll so it doesn't shift form content */}
-                <Pressable onPress={() => router.back()} style={[styles.backBtn, { top: insets.top + 12 }]}>
+                <Pressable onPress={() => router.replace("/StartUp")} style={[styles.backBtn, { top: insets.top + 12 }]}>
                     <Ionicons name="arrow-back" size={28} color="black" />
                 </Pressable>
 

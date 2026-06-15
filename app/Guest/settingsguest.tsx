@@ -155,7 +155,7 @@ export default function GuestSettingsPage() {
       <StatusBar barStyle={colors.statusBar} backgroundColor={pageBg} />
 
       <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.back()}>
+        <TouchableOpacity style={[styles.backButton, { borderColor: colors.border }]} onPress={() => router.replace('/Guest/Guest')}>
           <Ionicons name="chevron-back" size={24} color={isDark ? '#FFFFFF' : '#1F2937'} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]}>Settings</Text>

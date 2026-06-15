@@ -33,7 +33,7 @@ export default function GuestResultsScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.push('/Guest/Guest')} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => router.replace('/Guest/Guest')} style={styles.backBtn}>
                     <Ionicons name="close" size={28} color="#004F7F" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Scan Results</Text>
