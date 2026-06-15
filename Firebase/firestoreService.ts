@@ -201,7 +201,7 @@ export const deleteMole = async (moleId: string): Promise<void> => {
             const moles: Mole[] = JSON.parse(molesSaved);
             await AsyncStorage.setItem(
                 MOLES_STORAGE_KEY,
-                JSON.stringify(moles.map(m => m.id === moleId ? { ...m, isDeleted: true } : m))
+                JSON.stringify(moles.map(m => (m.id === moleId || m.firestoreId === moleId) ? { ...m, isDeleted: true } : m))
             );
         }
 
