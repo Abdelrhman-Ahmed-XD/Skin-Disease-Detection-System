@@ -410,7 +410,10 @@ export default function FirstHomePage() {
             const loadMoles = async () => {
                 try {
                     const saved = await AsyncStorage.getItem(MOLES_STORAGE_KEY);
-                    if (saved) setMoles(JSON.parse(saved));
+                    if (saved) {
+                        const all = JSON.parse(saved);
+                        setMoles(all.filter((m: any) => !m.isDeleted));
+                    }
                 } catch (err) { console.log('Error loading moles:', err); }
             };
             loadMoles();
