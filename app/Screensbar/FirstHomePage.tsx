@@ -571,12 +571,16 @@ const bottomTabs = [
               });
             }}
           >
-            <Animated.View
-              style={[
-                styles.bodyImageWrapper,
-                { backgroundColor: pageBg, transform: [{ scale }, { translateX }, { translateY }] },
-              ]}
-            >
+<Animated.View
+  style={[
+    styles.bodyImageWrapper,
+    { 
+      backgroundColor: pageBg, 
+      // تم تعديل الترتيب ليصبح التحريك أولاً ثم الزوم
+      transform: [{ translateX }, { translateY }, { scale }] 
+    },
+  ]}
+>
               <Image
                 source={bodyView === "front"
                   ? require("../../assets/images/body-front.png")
