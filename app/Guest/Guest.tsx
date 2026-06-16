@@ -379,6 +379,7 @@ export default function Guest() {
   ];
 
   // ── Onboarding overlay ─────────────────────────────────────
+  // ── Onboarding overlay ─────────────────────────────────────
   const renderOnboarding = () => {
     if (!showOnboarding) return null;
     const step   = ONBOARDING_STEPS[onboardingStep];
@@ -387,19 +388,26 @@ export default function Guest() {
     // Get the true icon center in page coordinates
     const { x: iconCX, y: iconCY } = getNavIconCenter(step.navSlot);
 
-    const SPOT = 70; // spotlight diameter
+    // التعديل 1: تحديد هل الخطوة دي للكاميرا ولا تاب عادي
+    const isCamera = step.navSlot === 2;
+
+    // التعديل 2: تكبير حجم الدايرة لـ 90
+    const SPOT = 90; 
+    
+    // التعديل 3: ننزل الدايرة لتحت شوية في التابات العادية علشان تغطي الكلمة 
+    // الكاميرا هتفضل زي ما هي في السنتر بتاعها
+    const adjustedCY = isCamera ? iconCY : iconCY + 12;
+
     const spotLeft   = iconCX - SPOT / 2;
-    const spotTop    = iconCY - SPOT / 2;
+    const spotTop    = adjustedCY - SPOT / 2;
 
     // Tooltip width and horizontal clamp
     const TW      = 215;
     let   tLeft   = iconCX - TW / 2;
     tLeft         = Math.max(12, Math.min(width - TW - 12, tLeft));
 
-    // Tooltip sits above the spotlight with a small gap
-    const tBottom_fromScreen = height - spotTop + 14;  // how far from bottom
-    // We render tooltip using `bottom:` so:
-    const tBottomVal = height - spotTop + 14;
+    // التعديل 4: رفع المربع الأزرق لفوق شوية علشان مساحة الدايرة الجديدة
+    const tooltipTop = spotTop - 175; 
 
     // Arrow points down toward the spotlight; offset within tooltip
     const arrowLeft = Math.max(14, Math.min(TW - 34, iconCX - tLeft - 14));
@@ -408,7 +416,7 @@ export default function Guest() {
       <View style={[StyleSheet.absoluteFill, ob.root]} pointerEvents="box-none">
         <View style={[StyleSheet.absoluteFill, ob.overlay]} pointerEvents="none" />
 
-        {/* Spotlight centered exactly on the icon */}
+        {/* Spotlight centered exactly on the icon/text */}
         <Animated.View
           pointerEvents="none"
           style={[
@@ -431,8 +439,7 @@ export default function Guest() {
             {
               left:      tLeft,
               width:     TW,
-              // position from top so we can use exact coordinates
-              top:       spotTop - 14 - 160, // 160 ≈ tooltip height
+              top:       tooltipTop,
               opacity:   fadeAnim,
               transform: [{ scale: scaleTooltip }],
             },
@@ -833,8 +840,9 @@ export default function Guest() {
             styles.cameraButton,
             {
               backgroundColor: colors.navBg,
+              // التعديل هنا: تم تغيير اللون ليكون أحمر صريح وثابت (Opacity 100%) في الوضعين
               borderColor: freeScanUsed
-                ? (isDark ? '#EF4444' : '#FCA5A5')
+                ? '#EF4444' 
                 : (isDark ? '#374151' : '#C5E3ED'),
             },
             activeTab === "Camera" && { borderColor: "#004F7F", backgroundColor: isDark ? "#1A3A4A" : "#E8F4F8" },
@@ -846,7 +854,7 @@ export default function Guest() {
             name={freeScanUsed ? "lock-closed-outline" : "camera-outline"}
             size={30}
             color={
-              freeScanUsed ? '#EF4444'
+              freeScanUsed ? '#EF4444' // اللون هنا كمان أحمر صريح للقفل نفسه
                 : activeTab === "Camera" ? "#004F7F"
                 : isDark ? "#FFFFFF" : "#6B7280"
             }

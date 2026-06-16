@@ -324,69 +324,99 @@ export default function Nextscreens() {
         }
     };
 
-    const renderOnboarding = () => {
-        if (!showOnboarding) return null;
+const renderOnboarding = () => {
+  if (!showOnboarding) return null;
 
-        const step   = ONBOARDING_STEPS[onboardingStep];
-        const isLast = onboardingStep === ONBOARDING_STEPS.length - 1;
-        const navX   = getNavX(step.navSlot);
-const spotY = height - 34 + (step.navSlot === 2 ? -30 : 0);
-        const TW     = 210;
-        let   tLeft  = navX - TW / 2;
-        tLeft = Math.max(12, Math.min(width - TW - 12, tLeft));
-        const tBottom = NAV_BAR_HEIGHT + 50;
-        const arrowLeft = Math.max(14, Math.min(TW - 34, navX - tLeft - 14));
+  const step = ONBOARDING_STEPS[onboardingStep];
+  const isLast = onboardingStep === ONBOARDING_STEPS.length - 1;
+  const navX = getNavX(step.navSlot);
 
-        return (
-            <View style={[StyleSheet.absoluteFill, ob.root]} pointerEvents="box-none">
-                <View style={[StyleSheet.absoluteFill, ob.overlay]} pointerEvents="none" />
-                <Animated.View
-                    pointerEvents="none"
-                    style={[ob.spotlight, {
-                        left: navX - 32,
-                        top:  spotY - 28,
-                        transform: [{ scale: pulseAnim }],
-                    }]}
-                />
-                <Animated.View style={[ob.tooltipWrapper, {
-                    bottom: tBottom,
-                    left:   tLeft,
-                    width:  TW,
-                    opacity:   fadeAnim,
-                    transform: [{ scale: scaleTooltip }],
-                }]}>
-                    <View style={ob.tooltip}>
-                        <View style={ob.header}>
-                            <View style={ob.iconCircle}>
-                                <Ionicons name={step.tabIcon} size={15} color="#004F7F" />
-                            </View>
-                            <Text style={ob.titleText}>{step.title}</Text>
-                            <TouchableOpacity onPress={handleNext} style={ob.nextBtn} activeOpacity={0.8}>
-                                <Text style={ob.nextBtnText}>{isLast ? 'Done' : 'Next'}</Text>
-                                {!isLast && <Ionicons name="arrow-forward" size={12} color="#fff" />}
-                            </TouchableOpacity>
-                        </View>
-                        <Text style={ob.desc}>{step.description}</Text>
-                        <View style={ob.footer}>
-                            <View style={ob.dots}>
-                                {ONBOARDING_STEPS.map((_, i) => (
-                                    <View key={i} style={[
-                                        ob.dot,
-                                        i === onboardingStep && ob.dotActive,
-                                        i <  onboardingStep && ob.dotDone,
-                                    ]} />
-                                ))}
-                            </View>
-                            <TouchableOpacity onPress={handleSkipAll} activeOpacity={0.7}>
-                                <Text style={ob.skip}>Skip all</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                    <View style={[ob.arrow, { left: arrowLeft }]} />
-                </Animated.View>
+  const isCamera = step.navSlot === 2;
+
+  // حجم الدايرة الجديد (90) فنص القطر هيكون 45
+  const SPOTLIGHT_RADIUS = 45;
+
+  // نزلنا الـ bottom شوية علشان الدايرة تنزل تغطي مساحة النص اللي تحت الأيقونة
+  const spotBottom = isCamera ? 45 : 22;
+
+  const TW = 210;
+  let tLeft = navX - TW / 2;
+  tLeft = Math.max(12, Math.min(width - TW - 12, tLeft));
+
+  // رفعنا التول تيب (المربع الأزرق) حاجة بسيطة علشان مابخبطش في الدايرة الكبيرة
+  const tBottom = isCamera ? 145 : 125;
+  const arrowLeft = Math.max(14, Math.min(TW - 34, navX - tLeft - 14));
+
+  return (
+    <View style={[StyleSheet.absoluteFill, ob.root]} pointerEvents="box-none">
+      <View
+        style={[StyleSheet.absoluteFill, ob.overlay]}
+        pointerEvents="none"
+      />
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          ob.spotlight,
+          {
+            left: navX - SPOTLIGHT_RADIUS, // بنطرح 45 علشان تفضل مسنترة بالضبط
+            bottom: spotBottom,
+            transform: [{ scale: pulseAnim }],
+          },
+        ]}
+      />
+      <Animated.View
+        style={[
+          ob.tooltipWrapper,
+          {
+            bottom: tBottom,
+            left: tLeft,
+            width: TW,
+            opacity: fadeAnim,
+            transform: [{ scale: scaleTooltip }],
+          },
+        ]}
+      >
+        <View style={ob.tooltip}>
+          <View style={ob.header}>
+            <View style={ob.iconCircle}>
+              <Ionicons name={step.tabIcon} size={15} color="#004F7F" />
             </View>
-        );
-    };
+            <Text style={ob.titleText}>{step.title}</Text>
+            <TouchableOpacity
+              onPress={handleNext}
+              style={ob.nextBtn}
+              activeOpacity={0.8}
+            >
+              <Text style={ob.nextBtnText}>{isLast ? "Done" : "Next"}</Text>
+              {!isLast && (
+                <Ionicons name="arrow-forward" size={12} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
+          <Text style={ob.desc}>{step.description}</Text>
+          <View style={ob.footer}>
+            <View style={ob.dots}>
+              {ONBOARDING_STEPS.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    ob.dot,
+                    i === onboardingStep && ob.dotActive,
+                    i < onboardingStep && ob.dotDone,
+                  ]}
+                />
+              ))}
+            </View>
+            <TouchableOpacity onPress={handleSkipAll} activeOpacity={0.7}>
+              <Text style={ob.skip}>Skip all</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={[ob.arrow, { left: arrowLeft }]} />
+      </Animated.View>
+    </View>
+  );
+};
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
@@ -542,8 +572,11 @@ const spotY = height - 34 + (step.navSlot === 2 ? -30 : 0);
 const ob = StyleSheet.create({
     root:    { zIndex: 9999, elevation: 9999 },
     overlay: { backgroundColor: 'rgba(0,10,20,0.60)', zIndex: 1 },
-    spotlight: {
-        position: 'absolute', width: 68, height: 68, borderRadius: 34,
+spotlight: {
+        position: 'absolute', 
+        width: 90,          // كبرنا العرض
+        height: 90,         // كبرنا الطول
+        borderRadius: 45,   // لازم يكون نص العرض علشان تفضل دائرة مثالية
         backgroundColor: 'rgba(0,163,163,0.15)',
         borderWidth: 2.5, borderColor: '#00A3A3', zIndex: 2,
         shadowColor: '#00A3A3', shadowOffset: { width: 0, height: 0 },

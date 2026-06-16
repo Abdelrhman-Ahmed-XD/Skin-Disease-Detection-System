@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   backButton:     { width: 40, height: 40, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   headerTitle:    { fontSize: 20, fontWeight: 'bold' },
   scrollView:     { flex: 1 },
-  scrollContent:  { padding: 16, paddingBottom: 110 },
+  scrollContent:  { padding: 16, paddingBottom: 115 },
   profileCard:    { borderRadius: 16, padding: 16, alignItems: 'center', marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
   profileAvatar:  { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   profileAvatarIcon: { width: 52, height: 52 },
