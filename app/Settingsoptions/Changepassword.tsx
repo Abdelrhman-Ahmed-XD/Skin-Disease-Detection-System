@@ -99,6 +99,12 @@ export default function ChangePassword() {
       await reauthenticateWithCredential(user, credential);
       console.log('✅ Re-authentication successful');
 
+      // Step 1.5 — Block setting the same password again (currentPassword is now confirmed correct)
+      if (newPassword === currentPassword) {
+        setNewPasswordError(t('passwordSameAsCurrent'));
+        return;
+      }
+
       // Step 2 — Update password in Firebase Auth
       console.log('🔑 Updating password...');
       await updatePassword(user, newPassword);
