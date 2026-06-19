@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../ThemeContext';
 import GuestBottomNav from './Guestbottomnav';
+import Login1 from './../Login1';
 
 const { width, height } = Dimensions.get('window');
 
@@ -167,7 +168,7 @@ export default function GuestSettingsPage() {
         {/* Guest profile card */}
         <TouchableOpacity
           style={[styles.profileCard, { backgroundColor: colors.card, flexDirection: 'row' }]}
-          onPress={() => router.push('/SignUp')}
+          onPress={() => router.push('/Login1')}
           activeOpacity={0.8}
         >
           <View style={[styles.profileAvatar, { backgroundColor: isDark ? '#2A3F50' : '#fff', marginRight: 14 }]}>
