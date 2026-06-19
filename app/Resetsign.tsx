@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     elevation: 3,
   },
-    Continue: {
+  Continue: {
     marginTop: "50%",
     padding: 14,
     borderRadius: 8,

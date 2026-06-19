@@ -70,34 +70,15 @@ const TAB_ROUTES: Record<string, string> = {
   Settings: '/Guest/settingsguest',
 };
 
-// ── Nav pill geometry ──────────────────────────────────────────
-// pill: left:16, right:16, height≈70, bottom:16 from screen
-// 4 tabs + 1 center spacer → each tab = navWidth/5
-const NAV_PILL_BOTTOM = 16;          // pill bottom edge from screen bottom
-const NAV_PILL_HEIGHT = 70;          // approx pill height
-const NAV_PILL_TOP    = height - NAV_PILL_BOTTOM - NAV_PILL_HEIGHT;
-
-// Icon is 44px tall with 4px marginBottom inside the pill.
-// paddingVertical:10 at top → icon top = pillTop + 10
-// icon center Y = pillTop + 10 + 22 = pillTop + 32
-const ICON_CENTER_Y = NAV_PILL_TOP + 10 + 22;  // page-absolute Y of nav icon center
-
-function getNavIconCenter(slot: number): { x: number; y: number } {
-  const navWidth = width - 32; // left:16 + right:16
+// ── المخطط الهندسي الموحد للـ Spotlight والـ Navigation ────────────────
+function getNavX(slot: number): number {
+  const navWidth = width - 32; // الأطراف (left: 16, right: 16)
   const tabW     = navWidth / 5;
-  let x: number;
-  if      (slot === 0) x = 16 + tabW * 0.5;  // Home
-  else if (slot === 1) x = 16 + tabW * 1.5;  // Reports
-  else if (slot === 2) x = width / 2;          // Camera FAB (absolute center)
-  else if (slot === 3) x = 16 + tabW * 3.5;  // History
-  else                 x = 16 + tabW * 4.5;  // Settings
-
-  // Camera FAB center Y is higher (it sits above the pill)
-  const y = slot === 2
-    ? NAV_PILL_TOP - 26 + 30   // FAB top = pillTop - 26; FAB center = +30
-    : ICON_CENTER_Y;
-
-  return { x, y };
+  if      (slot === 0) return 16 + tabW * 0.5;  // Home
+  else if (slot === 1) return 16 + tabW * 1.5;  // Reports
+  else if (slot === 2) return width / 2;         // Camera FAB
+  else if (slot === 3) return 16 + tabW * 3.5;  // History
+  else                 return 16 + tabW * 4.5;  // Settings
 }
 
 type Mole     = { id: string; x: number; y: number; timestamp: number; photoUri?: string; bodyView: 'front' | 'back' };
@@ -111,9 +92,7 @@ export default function Guest() {
   const [bodyView,  setBodyView]  = useState<BodyView>('front');
   const [moles,     setMoles]     = useState<Mole[]>([]);
   const [activeTab, setActiveTab] = useState<string>('Home');
-
   const [freeScanUsed, setFreeScanUsed] = useState<boolean>(false);
-
   const [showLoginModal,  setShowLoginModal]  = useState(false);
 
   // Toast
@@ -129,7 +108,7 @@ export default function Guest() {
   const pulseAnim    = useRef(new Animated.Value(1)).current;
   const pulseLoop    = useRef<Animated.CompositeAnimation | null>(null);
 
-  // Tips modal (shown after onboarding)
+  // Tips modal
   const [showTips, setShowTips] = useState(false);
 
   // Camera modal
@@ -235,28 +214,24 @@ export default function Guest() {
   })).current;
 
   useFocusEffect(
-  React.useCallback(() => {
-    setActiveTab('Home');
-
-    AsyncStorage.getItem(GUEST_FREE_SCAN_KEY).then((val) => {
-      setFreeScanUsed(val === 'true');
-    });
-
-    // ✅ الحل: استخدم AsyncStorage بدل متغير session
-    AsyncStorage.getItem('guestOnboardingSeen').then((seen) => {
-      if (seen === 'true') return; // سبق وشافه
-      // أول مرة بس
-      AsyncStorage.setItem('guestOnboardingSeen', 'true');
-      setOnboardingStep(0);
-      setShowOnboarding(false);
-      const t = setTimeout(() => {
-        setShowOnboarding(true);
-        animateIn();
-      }, 350);
-      return () => clearTimeout(t);
-    });
-  }, [])
-);
+    React.useCallback(() => {
+      setActiveTab('Home');
+      AsyncStorage.getItem(GUEST_FREE_SCAN_KEY).then((val) => {
+        setFreeScanUsed(val === 'true');
+      });
+      AsyncStorage.getItem('guestOnboardingSeen').then((seen) => {
+        if (seen === 'true') return;
+        AsyncStorage.setItem('guestOnboardingSeen', 'true');
+        setOnboardingStep(0);
+        setShowOnboarding(false);
+        const t = setTimeout(() => {
+          setShowOnboarding(true);
+          animateIn();
+        }, 350);
+        return () => clearTimeout(t);
+      });
+    }, [])
+  );
 
   const animateIn = () => {
     fadeAnim.setValue(0);
@@ -291,7 +266,6 @@ export default function Guest() {
       setOnboardingStep(prev => prev + 1);
       setTimeout(animateIn, 30);
     } else {
-      // Last step → show Tips
       setShowOnboarding(false);
       pulseLoop.current?.stop();
       setShowTips(true);
@@ -378,68 +352,48 @@ export default function Guest() {
     { name: 'Settings', iconImg: Icons.settings },
   ];
 
-  // ── Onboarding overlay ─────────────────────────────────────
-  // ── Onboarding overlay ─────────────────────────────────────
+  // ── المزامنة الفعليّة لشاشة الـ Onboarding ─────────────────────────
   const renderOnboarding = () => {
     if (!showOnboarding) return null;
     const step   = ONBOARDING_STEPS[onboardingStep];
     const isLast = onboardingStep === ONBOARDING_STEPS.length - 1;
 
-    // Get the true icon center in page coordinates
-    const { x: iconCX, y: iconCY } = getNavIconCenter(step.navSlot);
-
-    // التعديل 1: تحديد هل الخطوة دي للكاميرا ولا تاب عادي
+    const navX   = getNavX(step.navSlot);
     const isCamera = step.navSlot === 2;
 
-    // التعديل 2: تكبير حجم الدايرة لـ 90
-    const SPOT = 90; 
-    
-    // التعديل 3: ننزل الدايرة لتحت شوية في التابات العادية علشان تغطي الكلمة 
-    // الكاميرا هتفضل زي ما هي في السنتر بتاعها
-    const adjustedCY = isCamera ? iconCY : iconCY + 12;
+    const SPOT_RADIUS = 45; // قُطر كامل 90
+    const spotBottom  = isCamera ? 45 : 22; // سنترة دقيقة للدايرة لتغطية الأيقونة والاسم تماماً
 
-    const spotLeft   = iconCX - SPOT / 2;
-    const spotTop    = adjustedCY - SPOT / 2;
-
-    // Tooltip width and horizontal clamp
-    const TW      = 215;
-    let   tLeft   = iconCX - TW / 2;
+    const TW      = 210;
+    let tLeft     = navX - TW / 2;
     tLeft         = Math.max(12, Math.min(width - TW - 12, tLeft));
 
-    // التعديل 4: رفع المربع الأزرق لفوق شوية علشان مساحة الدايرة الجديدة
-    const tooltipTop = spotTop - 175; 
-
-    // Arrow points down toward the spotlight; offset within tooltip
-    const arrowLeft = Math.max(14, Math.min(TW - 34, iconCX - tLeft - 14));
+    const tBottom   = isCamera ? 145 : 125;
+    const arrowLeft = Math.max(14, Math.min(TW - 34, navX - tLeft - 14));
 
     return (
       <View style={[StyleSheet.absoluteFill, ob.root]} pointerEvents="box-none">
         <View style={[StyleSheet.absoluteFill, ob.overlay]} pointerEvents="none" />
 
-        {/* Spotlight centered exactly on the icon/text */}
         <Animated.View
           pointerEvents="none"
           style={[
             ob.spotlight,
             {
-              width:        SPOT,
-              height:       SPOT,
-              borderRadius: SPOT / 2,
-              left:         spotLeft,
-              top:          spotTop,
+              left:      navX - SPOT_RADIUS,
+              bottom:    spotBottom,
               transform: [{ scale: pulseAnim }],
             },
           ]}
         />
 
-        {/* Tooltip above spotlight, using absolute top positioning */}
         <Animated.View
           style={[
             ob.tooltipWrapper,
             {
+              bottom:    tBottom,
               left:      tLeft,
               width:     TW,
-              top:       tooltipTop,
               opacity:   fadeAnim,
               transform: [{ scale: scaleTooltip }],
             },
@@ -463,54 +417,36 @@ export default function Guest() {
                   <View key={i} style={[ob.dot, i === onboardingStep && ob.dotActive, i < onboardingStep && ob.dotDone]} />
                 ))}
               </View>
-              {/* X close button */}
-              <TouchableOpacity onPress={handleSkipAll} activeOpacity={0.7} style={ob.skipBtn}>
-                <Ionicons name="close" size={14} color="rgba(255,255,255,0.6)" />
+              <TouchableOpacity onPress={handleSkipAll} activeOpacity={0.7}>
+                <Text style={ob.skip}>Skip all</Text>
               </TouchableOpacity>
             </View>
           </View>
-          {/* Arrow pointing down toward spotlight */}
           <View style={[ob.arrow, { left: arrowLeft }]} />
         </Animated.View>
       </View>
     );
   };
 
-  // ── Tips modal ─────────────────────────────────────────────
   const renderTips = () => (
-    <Modal
-      visible={showTips}
-      transparent
-      animationType="fade"
-      onRequestClose={() => setShowTips(false)}
-    >
+    <Modal visible={showTips} transparent animationType="fade" onRequestClose={() => setShowTips(false)}>
       <View style={tipsStyles.overlay}>
         <View style={[tipsStyles.card, { backgroundColor: isDark ? '#1A2A35' : '#FFFFFF' }]}>
           <Ionicons name="hand-left-outline" size={40} color="#004F7F" style={{ marginBottom: 12 }} />
           <Text style={[tipsStyles.title, { color: isDark ? '#fff' : '#1F2937' }]}>Tips</Text>
           <View style={tipsStyles.row}>
             <Ionicons name="search-outline" size={20} color="#00A3A3" />
-            <Text style={[tipsStyles.text, { color: isDark ? '#ccc' : '#374151' }]}>
-              You can pinch to zoom in/out on the body map.
-            </Text>
+            <Text style={[tipsStyles.text, { color: isDark ? '#ccc' : '#374151' }]}>You can pinch to zoom in/out on the body map.</Text>
           </View>
           <View style={tipsStyles.row}>
             <Ionicons name="finger-print-outline" size={20} color="#00A3A3" />
-            <Text style={[tipsStyles.text, { color: isDark ? '#ccc' : '#374151' }]}>
-              Tap on your body to mark a skin area and scan it.
-            </Text>
+            <Text style={[tipsStyles.text, { color: isDark ? '#ccc' : '#374151' }]}>Tap on your body to mark a skin area and scan it.</Text>
           </View>
           <View style={tipsStyles.row}>
             <Ionicons name="camera-outline" size={20} color="#00A3A3" />
-            <Text style={[tipsStyles.text, { color: isDark ? '#ccc' : '#374151' }]}>
-              You have 1 free guest scan — use the camera button!
-            </Text>
+            <Text style={[tipsStyles.text, { color: isDark ? '#ccc' : '#374151' }]}>You have 1 free guest scan — use the camera button!</Text>
           </View>
-          <TouchableOpacity
-            style={tipsStyles.btn}
-            onPress={() => setShowTips(false)}
-            activeOpacity={0.85}
-          >
+          <TouchableOpacity style={tipsStyles.btn} onPress={() => setShowTips(false)} activeOpacity={0.85}>
             <Text style={tipsStyles.btnText}>Got it!</Text>
           </TouchableOpacity>
         </View>
@@ -518,7 +454,6 @@ export default function Guest() {
     </Modal>
   );
 
-  // ── Free-scan-used toast ───────────────────────────────────
   const renderFreeScanToast = () => {
     if (!showFreeScanToast) return null;
     return (
@@ -548,13 +483,10 @@ export default function Guest() {
     );
   };
 
-  // ── Camera modal (two modes) ──────────────────────────────
   const renderCameraModal = () => {
     if (!showCameraModal) return null;
-
-    // Camera FAB spotlight position
-    const fabCX = width / 2;
-    const fabCY = NAV_PILL_TOP - 26 + 30; // FAB center Y
+    const navX = getNavX(2);
+    const spotBottom = 45;
 
     if (cameraModalMode === 'locked') {
       return (
@@ -563,9 +495,9 @@ export default function Guest() {
           <Animated.View
             pointerEvents="none"
             style={[ob.spotlight, {
-              width: 58, height: 58, borderRadius: 29,
-              left: fabCX - 29,
-              top:  fabCY - 29,
+              width: 90, height: 90, borderRadius: 45,
+              left: navX - 45,
+              bottom: spotBottom,
               transform: [{ scale: pulseAnim }],
             }]}
           />
@@ -590,17 +522,13 @@ export default function Guest() {
               <View style={ob.progressTrack}>
                 <View style={ob.progressFill} />
               </View>
-              <Text style={ob.desc}>
-                You&#39;ve used your free scan. Sign up to unlock unlimited AI skin analyses, full reports, and scan history.
-              </Text>
+              <Text style={ob.desc}>You&#39;ve used your free scan. Sign up to unlock unlimited AI skin analyses.</Text>
               <View style={ob.cameraActions}>
-                <TouchableOpacity style={ob.signUpBtn} activeOpacity={0.85}
-                  onPress={() => { closeCameraModal(); router.push('/SignUp'); }}>
+                <TouchableOpacity style={ob.signUpBtn} activeOpacity={0.85} onPress={() => { closeCameraModal(); router.push('/SignUp'); }}>
                   <Ionicons name="person-add-outline" size={14} color="#fff" />
                   <Text style={ob.signUpBtnText}>Create Account</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={ob.loginBtn} activeOpacity={0.85}
-                  onPress={() => { closeCameraModal(); router.push('/Login1'); }}>
+                <TouchableOpacity style={ob.loginBtn} activeOpacity={0.85} onPress={() => { closeCameraModal(); router.push('/Login1'); }}>
                   <Ionicons name="log-in-outline" size={14} color="#004F7F" />
                   <Text style={ob.loginBtnText}>Log In</Text>
                 </TouchableOpacity>
@@ -617,9 +545,9 @@ export default function Guest() {
         <Animated.View
           pointerEvents="none"
           style={[ob.spotlight, {
-            width: 58, height: 58, borderRadius: 29,
-            left: fabCX - 29,
-            top:  fabCY - 29,
+            width: 90, height: 90, borderRadius: 45,
+            left: navX - 45,
+            bottom: spotBottom,
             transform: [{ scale: pulseAnim }],
           }]}
         />
@@ -644,22 +572,17 @@ export default function Guest() {
             <View style={ob.progressTrack}>
               <View style={[ob.progressFill, { width: '0%' }]} />
             </View>
-            <Text style={ob.desc}>
-              You have 1 free scan as a guest. Use it now, or create an account to get unlimited AI skin analyses.
-            </Text>
-            <TouchableOpacity style={[ob.signUpBtn, { marginBottom: 8 }]} activeOpacity={0.85}
-              onPress={handleUseFreeScan}>
+            <Text style={ob.desc}>You have 1 free scan as a guest. Use it now, or create an account.</Text>
+            <TouchableOpacity style={[ob.signUpBtn, { marginBottom: 8 }]} activeOpacity={0.85} onPress={handleUseFreeScan}>
               <Ionicons name="camera-outline" size={14} color="#fff" />
               <Text style={ob.signUpBtnText}>Use Free Scan</Text>
             </TouchableOpacity>
             <View style={ob.cameraActions}>
-              <TouchableOpacity style={[ob.loginBtn, { backgroundColor: '#004F7F' }]} activeOpacity={0.85}
-                onPress={() => { closeCameraModal(); router.push('/SignUp'); }}>
+              <TouchableOpacity style={[ob.loginBtn, { backgroundColor: '#004F7F' }]} activeOpacity={0.85} onPress={() => { closeCameraModal(); router.push('/SignUp'); }}>
                 <Ionicons name="person-add-outline" size={14} color="#fff" />
                 <Text style={[ob.loginBtnText, { color: '#fff' }]}>Sign Up Free</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={ob.loginBtn} activeOpacity={0.85}
-                onPress={() => { closeCameraModal(); router.push('/Login1'); }}>
+              <TouchableOpacity style={ob.loginBtn} activeOpacity={0.85} onPress={() => { closeCameraModal(); router.push('/Login1'); }}>
                 <Ionicons name="log-in-outline" size={14} color="#004F7F" />
                 <Text style={ob.loginBtnText}>Log In</Text>
               </TouchableOpacity>
@@ -670,35 +593,24 @@ export default function Guest() {
     );
   };
 
-  // ── Login modal ───────────────────────────────────────────
   const renderLoginModal = () => (
-    <Modal
-      visible={showLoginModal}
-      transparent
-      animationType="fade"
-      onRequestClose={() => setShowLoginModal(false)}
-    >
+    <Modal visible={showLoginModal} transparent animationType="fade" onRequestClose={() => setShowLoginModal(false)}>
       <View style={loginModal.overlay}>
         <View style={[loginModal.card, { backgroundColor: isDark ? '#1A2A35' : '#FFFFFF' }]}>
           <View style={loginModal.iconWrap}>
             <Ionicons name="lock-closed" size={32} color="#004F7F" />
           </View>
           <Text style={[loginModal.title, { color: isDark ? '#FFFFFF' : '#111827' }]}>Feature Locked</Text>
-          <Text style={[loginModal.message, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>
-            Mole mapping is available only for registered users.
-          </Text>
-          <TouchableOpacity style={loginModal.primaryBtn} activeOpacity={0.85}
-            onPress={() => { setShowLoginModal(false); router.push('/SignUp'); }}>
+          <Text style={[loginModal.message, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>Mole mapping is available only for registered users.</Text>
+          <TouchableOpacity style={loginModal.primaryBtn} activeOpacity={0.85} onPress={() => { setShowLoginModal(false); router.push('/SignUp'); }}>
             <Ionicons name="person-add-outline" size={16} color="#fff" />
             <Text style={loginModal.primaryBtnText}>Create Free Account</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={loginModal.secondaryBtn} activeOpacity={0.85}
-            onPress={() => { setShowLoginModal(false); router.push('/Login1'); }}>
+          <TouchableOpacity style={loginModal.secondaryBtn} activeOpacity={0.85} onPress={() => { setShowLoginModal(false); router.push('/Login1'); }}>
             <Ionicons name="log-in-outline" size={16} color="#004F7F" />
             <Text style={loginModal.secondaryBtnText}>Log In</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={loginModal.ghostBtn} activeOpacity={0.7}
-            onPress={() => setShowLoginModal(false)}>
+          <TouchableOpacity style={loginModal.ghostBtn} activeOpacity={0.7} onPress={() => setShowLoginModal(false)}>
             <Text style={[loginModal.ghostBtnText, { color: isDark ? '#6B7280' : '#9CA3AF' }]}>Maybe Later</Text>
           </TouchableOpacity>
         </View>
@@ -718,15 +630,9 @@ export default function Guest() {
           </TouchableOpacity>
           <View style={styles.welcomeContainer}>
             <Text style={[styles.welcomeLabel, { color: "#00A3A3" }]}>Welcome,</Text>
-            <Text style={{ fontWeight: "bold", marginLeft: 4, marginTop: 3, fontSize: 17, color: isDark ? "#fff" : "#000" }}>
-              {userName}
-            </Text>
+            <Text style={{ fontWeight: "bold", marginLeft: 4, marginTop: 3, fontSize: 17, color: isDark ? "#fff" : "#000" }}>{userName}</Text>
           </View>
-          <TouchableOpacity
-            style={[styles.notificationButton, { backgroundColor: isDark ? "#1E2A35" : "#fff" }]}
-            onPress={() => router.push("/Guest/notificationguest")}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity style={[styles.notificationButton, { backgroundColor: isDark ? "#1E2A35" : "#fff" }]} onPress={() => router.push("/Guest/notificationguest")} activeOpacity={0.8}>
             <Image source={Icons.notification} style={styles.notifIconImg} resizeMode="contain" />
           </TouchableOpacity>
         </View>
@@ -734,47 +640,23 @@ export default function Guest() {
 
       {/* Title */}
       <View style={styles.titleContainer}>
-        <Text style={[styles.title, { color: isDark ? "#fff" : "#000" }]}>
-          Let&#39;s Check your{" "}
+        <Text style={[styles.title, { color: isDark ? "#fff" : "#000" }]}> Let&#39;s Check your{" "}
           <Text style={[styles.titleBold, { color: isDark ? "#00A3A3" : "#004F7F" }]}>Skin</Text>
         </Text>
       </View>
 
       {/* Body map */}
       <View style={[styles.bodyMainContainer, { backgroundColor: colors.background }]}>
-        <View
-          style={[styles.bodyClipWrapper, { backgroundColor: colors.background }]}
-          {...panResponder.panHandlers}
-          ref={(r) => { bodyWrapperRef.current = r; }}
-        >
-          <Animated.View
-            style={[
-              styles.bodyImageWrapper,
-              { backgroundColor: colors.background, transform: [{ scale }, { translateX }, { translateY }] },
-            ]}
-          >
-            <Image
-              source={bodyView === "front"
-                ? require("../../assets/images/body-front.png")
-                : require("../../assets/images/body-back.png")}
-              style={[styles.bodyImage, { backgroundColor: colors.background }]}
-              resizeMode="contain"
-            />
+        <View style={[styles.bodyClipWrapper, { backgroundColor: colors.background }]} {...panResponder.panHandlers} ref={(r) => { bodyWrapperRef.current = r; }}>
+          <Animated.View style={[styles.bodyImageWrapper, { backgroundColor: colors.background, transform: [{ scale }, { translateX }, { translateY }] }]}>
+            <Image source={bodyView === "front" ? require("../../assets/images/body-front.png") : require("../../assets/images/body-back.png")} style={[styles.bodyImage, { backgroundColor: colors.background }]} resizeMode="contain" />
             {currentMoles.map((mole) => {
               const S = 28;
               return (
                 <View key={mole.id} style={[styles.moleContainer, { left: mole.x - S / 2, top: mole.y - S / 2 }]} pointerEvents="box-none">
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-                    onPress={() => setShowLoginModal(true)}
-                  >
-                    <View style={styles.moleInner}>
-                      <Text style={styles.moleIcon}>+</Text>
-                    </View>
-                    {mole.photoUri && (
-                      <Image source={{ uri: mole.photoUri }} style={styles.moleThumbnail} />
-                    )}
+                  <TouchableOpacity activeOpacity={0.8} style={{ flexDirection: "row", alignItems: "center", gap: 4 }} onPress={() => setShowLoginModal(true)}>
+                    <View style={styles.moleInner}><Text style={styles.moleIcon}>+</Text></View>
+                    {mole.photoUri && <Image source={{ uri: mole.photoUri }} style={styles.moleThumbnail} />}
                   </TouchableOpacity>
                 </View>
               );
@@ -797,22 +679,16 @@ export default function Guest() {
 
       {/* Bottom Nav */}
       <View style={styles.bottomNavContainer}>
-        <View style={[styles.bottomNav, {
-          backgroundColor: colors.navBg,
-          borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-        }]}>
+        <View style={[styles.bottomNav, { backgroundColor: colors.navBg, borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }]}>
           {["Home", "Reports"].map((tabName) => {
             const tab = bottomTabs.find((t) => t.name === tabName)!;
             const isActive = activeTab === tab.name;
             return (
               <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
-                  isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
+                <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" }, isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
                   <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                 </View>
-                <Text style={[styles.navText, { color: isActive ? colors.navActive : isDark ? "#FFFFFF" : "#6B7280" }, isActive && { fontWeight: "700" }]}>
-                  {tab.name}
-                </Text>
+                <Text style={[styles.navText, { color: isActive ? colors.navActive : isDark ? "#FFFFFF" : "#6B7280" }, isActive && { fontWeight: "700" }]}>{tab.name}</Text>
               </TouchableOpacity>
             );
           })}
@@ -822,13 +698,10 @@ export default function Guest() {
             const isActive = activeTab === tab.name;
             return (
               <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" },
-                  isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
+                <View style={[styles.navIcon, { backgroundColor: isDark ? "#152030" : "#F9FAFB" }, isActive && { backgroundColor: isDark ? "#1E3A4A" : "#E8F4F8", borderWidth: 2, borderColor: isDark ? "#00A3A3" : "#C5E3ED" }]}>
                   <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                 </View>
-                <Text style={[styles.navText, { color: isActive ? colors.navActive : isDark ? "#FFFFFF" : "#6B7280" }, isActive && { fontWeight: "700" }]}>
-                  {tab.name}
-                </Text>
+                <Text style={[styles.navText, { color: isActive ? colors.navActive : isDark ? "#FFFFFF" : "#6B7280" }, isActive && { fontWeight: "700" }]}>{tab.name}</Text>
               </TouchableOpacity>
             );
           })}
@@ -836,29 +709,11 @@ export default function Guest() {
 
         {/* Camera FAB */}
         <TouchableOpacity
-          style={[
-            styles.cameraButton,
-            {
-              backgroundColor: colors.navBg,
-              // التعديل هنا: تم تغيير اللون ليكون أحمر صريح وثابت (Opacity 100%) في الوضعين
-              borderColor: freeScanUsed
-                ? '#EF4444' 
-                : (isDark ? '#374151' : '#C5E3ED'),
-            },
-            activeTab === "Camera" && { borderColor: "#004F7F", backgroundColor: isDark ? "#1A3A4A" : "#E8F4F8" },
-          ]}
+          style={[styles.cameraButton, { backgroundColor: colors.navBg, borderColor: freeScanUsed ? '#EF4444' : (isDark ? '#374151' : '#C5E3ED') }, activeTab === "Camera" && { borderColor: "#004F7F", backgroundColor: isDark ? "#1A3A4A" : "#E8F4F8" }]}
           onPress={() => handleTabPress("Camera")}
           activeOpacity={0.85}
         >
-          <Ionicons
-            name={freeScanUsed ? "lock-closed-outline" : "camera-outline"}
-            size={30}
-            color={
-              freeScanUsed ? '#EF4444' // اللون هنا كمان أحمر صريح للقفل نفسه
-                : activeTab === "Camera" ? "#004F7F"
-                : isDark ? "#FFFFFF" : "#6B7280"
-            }
-          />
+          <Ionicons name={freeScanUsed ? "lock-closed-outline" : "camera-outline"} size={30} color={freeScanUsed ? '#EF4444' : activeTab === "Camera" ? "#004F7F" : isDark ? "#FFFFFF" : "#6B7280"} />
         </TouchableOpacity>
       </View>
 
@@ -896,12 +751,13 @@ const ob = StyleSheet.create({
   overlay: { backgroundColor: 'rgba(0,10,20,0.60)', zIndex: 1 },
   spotlight: {
     position: 'absolute',
+    width: 90, height: 90, borderRadius: 45,
     backgroundColor: 'rgba(0,163,163,0.15)',
     borderWidth: 2.5, borderColor: '#00A3A3', zIndex: 2,
     shadowColor: '#00A3A3', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 12, elevation: 8,
   },
   tooltipWrapper:     { position: 'absolute', zIndex: 3 },
-  cameraModalWrapper: { position: 'absolute', zIndex: 3, width: 270, left: (width - 270) / 2, top: height * 0.25 },
+  cameraModalWrapper: { position: 'absolute', zIndex: 3, width: 270, left: (width - 270) / 2, bottom: 145 },
   tooltip: {
     backgroundColor: '#004F7F', borderRadius: 18, padding: 14,
     shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 14,
@@ -918,10 +774,10 @@ const ob = StyleSheet.create({
   dot:         { width: 5, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.25)' },
   dotActive:   { width: 14, backgroundColor: '#00A3A3' },
   dotDone:     { backgroundColor: 'rgba(255,255,255,0.55)' },
-  skipBtn:     { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  skip:        { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '600' },
   arrow:       { position: 'absolute', bottom: -10, width: 0, height: 0, borderLeftWidth: 12, borderRightWidth: 12, borderTopWidth: 11, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#004F7F' },
   cameraActions:      { flexDirection: 'row', gap: 8, marginTop: 4 },
-  signUpBtn:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#00A3A3', paddingVertical: 10, borderRadius: 14 },
+  signUpBtn:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#00A3A3', paddingVertical: 10, borderRadius: 14, flex: 1 },
   signUpBtnText:      { color: '#fff', fontSize: 12, fontWeight: '700' },
   loginBtn:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#C5E3ED', paddingVertical: 10, borderRadius: 14 },
   loginBtnText:       { color: '#004F7F', fontSize: 12, fontWeight: '700' },
@@ -956,15 +812,15 @@ const styles = StyleSheet.create({
   bottomNav:           { flexDirection: 'row', paddingVertical: 10, paddingBottom: 14, borderRadius: 28, borderWidth: 1, width: '100%', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 8 },
   navCenterSpacer:     { flex: 1 },
   navItem:             { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  navIcon:             { width: 42, height: 42, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  navIconImg:          { width: 42, height: 42 },
-  headerIconImg:       { width: 55, height: 55 },
-  notifIconImg:        { width: 56, height: 56 },
+  navIcon:             { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  navIconImg:          { width: 32, height: 32 },
+  headerIconImg:       { width: 50, height: 50 },
+  notifIconImg:        { width: 36, height: 36 },
   navText:             { fontSize: 11, fontWeight: '500' },
   cameraButton:        { position: 'absolute', top: -26, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', borderWidth: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 8 },
   headerCard:          { marginHorizontal: 16, marginTop: 12, marginBottom: 8, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
   headerContent:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  profileIconContainer:{ width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#C5E3ED' },
+  profileIconContainer:{ width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#C5E3ED', overflow: 'hidden' },
   welcomeContainer:    { flex: 1, marginLeft: 12, flexDirection: 'row', alignItems: 'center' },
   welcomeLabel:        { fontSize: 18, fontStyle: 'italic' },
   notificationButton:  { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },

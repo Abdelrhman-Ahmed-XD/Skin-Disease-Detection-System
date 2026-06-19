@@ -19,7 +19,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCustomize } from '../Customize/Customizecontext';
 import { useTheme } from '../ThemeContext';
 
-// ── Custom Icon Images ─────────────────────────────────────────
 const Icons = {
   home:         require('../../assets/Icons/home.png'),
   reports:      require('../../assets/Icons/Reports.png'),
@@ -29,7 +28,7 @@ const Icons = {
   person:       require('../../assets/Icons/Account person.png'),
 };
 
-const STORAGE_KEY      = 'signupDraft';
+const STORAGE_KEY       = 'signupDraft';
 const MOLES_STORAGE_KEY = 'savedMoles';
 
 const { width, height } = Dimensions.get('window');
@@ -66,15 +65,14 @@ const ONBOARDING_STEPS = [
 
 function getNavX(slot: number): number {
     const navWidth = width - 32;
-    const tabW = navWidth / 5; // 4 tabs + spacer بيأخد مكان tab
-    if (slot === 0) return 16 + tabW * 0.5;           // Home
-    if (slot === 1) return 16 + tabW * 1.5;           // Reports
-    if (slot === 2) return width / 2;                  // Camera FAB
-    if (slot === 3) return 16 + tabW * 3.5;           // History
-    if (slot === 4) return 16 + tabW * 4.5;           // Settings
+    const tabW = navWidth / 5;
+    if (slot === 0) return 16 + tabW * 0.5;
+    if (slot === 1) return 16 + tabW * 1.5;
+    if (slot === 2) return width / 2;
+    if (slot === 3) return 16 + tabW * 3.5;
+    if (slot === 4) return 16 + tabW * 4.5;
     return width / 2;
 }
-const NAV_BAR_HEIGHT = 55;
 
 type Mole     = { id: string; x: number; y: number; timestamp: number; photoUri?: string; bodyView: 'front' | 'back'; };
 type BodyView = 'front' | 'back';
@@ -97,8 +95,6 @@ export default function Nextscreens() {
     const pulseAnim    = useRef(new Animated.Value(1)).current;
     const pulseLoop    = useRef<Animated.CompositeAnimation | null>(null);
 
-    useEffect(() => { bodyViewRef.current = bodyView; }, [bodyView]);
-
     const scale        = useRef(new Animated.Value(1)).current;
     const translateX   = useRef(new Animated.Value(0)).current;
     const translateY   = useRef(new Animated.Value(0)).current;
@@ -110,6 +106,7 @@ export default function Nextscreens() {
     const containerLayout = useRef({ px: 0, py: 0, fw: 0, fh: 0 });
     const routerRef       = useRef(router);
 
+    useEffect(() => { bodyViewRef.current = bodyView; }, [bodyView]);
     useEffect(() => { routerRef.current = router; }, [router]);
 
     useEffect(() => {
@@ -214,7 +211,6 @@ export default function Nextscreens() {
         }).catch(() => {});
     }, []);
 
-    // ── FIX: line 205 — cast result to Mole[] ─────────────────
     useEffect(() => {
         const loadMoles = async () => {
             try {
@@ -227,7 +223,6 @@ export default function Nextscreens() {
         loadMoles();
     }, []);
 
-    // ── FIX: line 224 — cast result to Mole[] ─────────────────
     useFocusEffect(
         React.useCallback(() => {
             setActiveTab('Home');
@@ -324,99 +319,78 @@ export default function Nextscreens() {
         }
     };
 
-const renderOnboarding = () => {
-  if (!showOnboarding) return null;
+    const renderOnboarding = () => {
+        if (!showOnboarding) return null;
 
-  const step = ONBOARDING_STEPS[onboardingStep];
-  const isLast = onboardingStep === ONBOARDING_STEPS.length - 1;
-  const navX = getNavX(step.navSlot);
+        const step = ONBOARDING_STEPS[onboardingStep];
+        const isLast = onboardingStep === ONBOARDING_STEPS.length - 1;
+        const navX = getNavX(step.navSlot);
+        const isCamera = step.navSlot === 2;
 
-  const isCamera = step.navSlot === 2;
+        const SPOTLIGHT_RADIUS = 45; 
+        const spotBottom = isCamera ? 45 : 22; 
 
-  // حجم الدايرة الجديد (90) فنص القطر هيكون 45
-  const SPOTLIGHT_RADIUS = 45;
+        const TW = 210;
+        let tLeft = navX - TW / 2;
+        tLeft = Math.max(12, Math.min(width - TW - 12, tLeft));
 
-  // نزلنا الـ bottom شوية علشان الدايرة تنزل تغطي مساحة النص اللي تحت الأيقونة
-  const spotBottom = isCamera ? 45 : 22;
+        const tBottom = isCamera ? 145 : 125;
+        const arrowLeft = Math.max(14, Math.min(TW - 34, navX - tLeft - 14));
 
-  const TW = 210;
-  let tLeft = navX - TW / 2;
-  tLeft = Math.max(12, Math.min(width - TW - 12, tLeft));
-
-  // رفعنا التول تيب (المربع الأزرق) حاجة بسيطة علشان مابخبطش في الدايرة الكبيرة
-  const tBottom = isCamera ? 145 : 125;
-  const arrowLeft = Math.max(14, Math.min(TW - 34, navX - tLeft - 14));
-
-  return (
-    <View style={[StyleSheet.absoluteFill, ob.root]} pointerEvents="box-none">
-      <View
-        style={[StyleSheet.absoluteFill, ob.overlay]}
-        pointerEvents="none"
-      />
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          ob.spotlight,
-          {
-            left: navX - SPOTLIGHT_RADIUS, // بنطرح 45 علشان تفضل مسنترة بالضبط
-            bottom: spotBottom,
-            transform: [{ scale: pulseAnim }],
-          },
-        ]}
-      />
-      <Animated.View
-        style={[
-          ob.tooltipWrapper,
-          {
-            bottom: tBottom,
-            left: tLeft,
-            width: TW,
-            opacity: fadeAnim,
-            transform: [{ scale: scaleTooltip }],
-          },
-        ]}
-      >
-        <View style={ob.tooltip}>
-          <View style={ob.header}>
-            <View style={ob.iconCircle}>
-              <Ionicons name={step.tabIcon} size={15} color="#004F7F" />
-            </View>
-            <Text style={ob.titleText}>{step.title}</Text>
-            <TouchableOpacity
-              onPress={handleNext}
-              style={ob.nextBtn}
-              activeOpacity={0.8}
-            >
-              <Text style={ob.nextBtnText}>{isLast ? "Done" : "Next"}</Text>
-              {!isLast && (
-                <Ionicons name="arrow-forward" size={12} color="#fff" />
-              )}
-            </TouchableOpacity>
-          </View>
-          <Text style={ob.desc}>{step.description}</Text>
-          <View style={ob.footer}>
-            <View style={ob.dots}>
-              {ONBOARDING_STEPS.map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    ob.dot,
-                    i === onboardingStep && ob.dotActive,
-                    i < onboardingStep && ob.dotDone,
-                  ]}
+        return (
+            <View style={[StyleSheet.absoluteFill, ob.root]} pointerEvents="box-none">
+                <View style={[StyleSheet.absoluteFill, ob.overlay]} pointerEvents="none" />
+                <Animated.View
+                    pointerEvents="none"
+                    style={[
+                        ob.spotlight,
+                        {
+                            left: navX - SPOTLIGHT_RADIUS, 
+                            bottom: spotBottom,
+                            transform: [{ scale: pulseAnim }],
+                        },
+                    ]}
                 />
-              ))}
+                <Animated.View
+                    style={[
+                        ob.tooltipWrapper,
+                        {
+                            bottom: tBottom,
+                            left: tLeft,
+                            width: TW,
+                            opacity: fadeAnim,
+                            transform: [{ scale: scaleTooltip }],
+                        },
+                    ]}
+                >
+                    <View style={ob.tooltip}>
+                        <View style={ob.header}>
+                            <View style={ob.iconCircle}>
+                                <Ionicons name={step.tabIcon} size={15} color="#004F7F" />
+                            </View>
+                            <Text style={ob.titleText}>{step.title}</Text>
+                            <TouchableOpacity onPress={handleNext} style={ob.nextBtn} activeOpacity={0.8}>
+                                <Text style={ob.nextBtnText}>{isLast ? "Done" : "Next"}</Text>
+                                {!isLast && <Ionicons name="arrow-forward" size={12} color="#fff" />}
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={ob.desc}>{step.description}</Text>
+                        <View style={ob.footer}>
+                            <View style={ob.dots}>
+                                {ONBOARDING_STEPS.map((_, i) => (
+                                    <View key={i} style={[ob.dot, i === onboardingStep && ob.dotActive, i < onboardingStep && ob.dotDone]} />
+                                ))}
+                            </View>
+                            <TouchableOpacity onPress={handleSkipAll} activeOpacity={0.7}>
+                                <Text style={ob.skip}>Skip all</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                    <View style={[ob.arrow, { left: arrowLeft }]} />
+                </Animated.View>
             </View>
-            <TouchableOpacity onPress={handleSkipAll} activeOpacity={0.7}>
-              <Text style={ob.skip}>Skip all</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        <View style={[ob.arrow, { left: arrowLeft }]} />
-      </Animated.View>
-    </View>
-  );
-};
+        );
+    };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
@@ -426,7 +400,6 @@ const renderOnboarding = () => {
             <View style={styles.headerCard}>
                 <View style={styles.headerContent}>
                     <TouchableOpacity style={styles.profileIconContainer}>
-                        {/* ── Custom person icon ── */}
                         <Image source={Icons.person} style={styles.headerIconImg} resizeMode="contain" />
                     </TouchableOpacity>
                     <View style={styles.welcomeContainer}>
@@ -434,7 +407,6 @@ const renderOnboarding = () => {
                         <Text style={{ fontWeight: 'bold', marginLeft: 4, marginTop: 3, fontSize: 17 }}>{userName}</Text>
                     </View>
                     <TouchableOpacity style={styles.notificationButton}>
-                        {/* ── Custom notification icon ── */}
                         <Image source={Icons.notification} style={styles.notifIconImg} resizeMode="contain" />
                     </TouchableOpacity>
                 </View>
@@ -447,38 +419,14 @@ const renderOnboarding = () => {
 
             {/* Body + gestures */}
             <View style={styles.bodyMainContainer}>
-                <View
-                    style={styles.bodyTouchable}
-                    {...panResponder.panHandlers}
-                    ref={r => { bodyWrapperRef.current = r; }}
-                    onLayout={() => {
-                        bodyWrapperRef.current?.measure((_fx: number, _fy: number, fw: number, fh: number, px: number, py: number) => {
-                            containerLayout.current = { px, py, fw, fh };
-                        });
-                    }}
-                >
+                <View style={styles.bodyTouchable} {...panResponder.panHandlers} ref={r => { bodyWrapperRef.current = r; }} onLayout={() => { bodyWrapperRef.current?.measure((_fx: number, _fy: number, fw: number, fh: number, px: number, py: number) => { containerLayout.current = { px, py, fw, fh }; }); }}>
                     <Animated.View style={[styles.bodyImageWrapper, { transform: [{ scale }, { translateX }, { translateY }] }]}>
-                        <Image
-                            source={bodyView === 'front'
-                                ? require('../../assets/images/body-front.png')
-                                : require('../../assets/images/body-back.png')}
-                            style={styles.bodyImage}
-                            resizeMode="contain"
-                        />
+                        <Image source={bodyView === 'front' ? require('../../assets/images/body-front.png') : require('../../assets/images/body-back.png')} style={styles.bodyImage} resizeMode="contain" />
                         {currentMoles.map(mole => {
                             const S = 28;
                             return (
                                 <View key={mole.id} style={[styles.moleContainer, { left: mole.x - S / 2, top: mole.y - S / 2 }]} pointerEvents="box-none">
-                                    <TouchableOpacity
-                                        activeOpacity={0.8}
-                                        delayLongPress={500}
-                                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-                                        onPress={() => router.push({ pathname: '/Screensbar/Camera', params: { tapX: mole.x.toFixed(2), tapY: mole.y.toFixed(2), bodyView: mole.bodyView, moleId: mole.id, existingPhotoUri: mole.photoUri || '' } })}
-                                        onLongPress={() => Alert.alert('Delete Point', 'Are you sure?', [
-                                            { text: 'Cancel', style: 'cancel' },
-                                            { text: 'Delete', style: 'destructive', onPress: () => deleteMole(mole.id) },
-                                        ])}
-                                    >
+                                    <TouchableOpacity activeOpacity={0.8} delayLongPress={500} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} onPress={() => router.push({ pathname: '/Screensbar/Camera', params: { tapX: mole.x.toFixed(2), tapY: mole.y.toFixed(2), bodyView: mole.bodyView, moleId: mole.id, existingPhotoUri: mole.photoUri || '' } })} onLongPress={() => Alert.alert('Delete Point', 'Are you sure?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => deleteMole(mole.id) }])}>
                                         <View style={styles.moleInner}><Text style={styles.moleIcon}>+</Text></View>
                                         {mole.photoUri && <Image source={{ uri: mole.photoUri }} style={styles.moleThumbnail} />}
                                     </TouchableOpacity>
@@ -509,20 +457,8 @@ const renderOnboarding = () => {
                         const isActive = activeTab === tab.name;
                         return (
                             <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                                <View style={[
-                                    styles.navIcon,
-                                    { backgroundColor: colors.navBg },
-                                    isActive && {
-                                        backgroundColor: isDark ? '#1E3A4A' : pageBg,
-                                        borderWidth: 2,
-                                        borderColor: isDark ? '#00A3A3' : '#2A7DA0',
-                                    },
-                                ]}>
-                                    <Image
-                                        source={tab.iconImg}
-                                        style={styles.navIconImg}
-                                        resizeMode="contain"
-                                    />
+                                <View style={[styles.navIcon, { backgroundColor: colors.navBg }, isActive && { backgroundColor: isDark ? '#1E3A4A' : pageBg, borderWidth: 2, borderColor: isDark ? '#00A3A3' : '#2A7DA0' }]}>
+                                    <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                                 </View>
                                 <Text style={[styles.navText, { color: isActive ? (isDark ? colors.navActive : '#004F7F') : (isDark ? '#FFFFFF' : '#6B7280') }, isActive && { fontWeight: '700' }]}>{tab.name}</Text>
                             </TouchableOpacity>
@@ -534,37 +470,20 @@ const renderOnboarding = () => {
                         const isActive = activeTab === tab.name;
                         return (
                             <TouchableOpacity key={tab.name} style={styles.navItem} onPress={() => handleTabPress(tab.name)}>
-                                <View style={[
-                                    styles.navIcon,
-                                    { backgroundColor: colors.navBg },
-                                    isActive && {
-                                        backgroundColor: isDark ? '#1E3A4A' : pageBg,
-                                        borderWidth: 2,
-                                        borderColor: isDark ? '#00A3A3' : '#2A7DA0',
-                                    },
-                                ]}>
-                                    <Image
-                                        source={tab.iconImg}
-                                        style={styles.navIconImg}
-                                        resizeMode="contain"
-                                    />
+                                <View style={[styles.navIcon, { backgroundColor: colors.navBg }, isActive && { backgroundColor: isDark ? '#1E3A4A' : pageBg, borderWidth: 2, borderColor: isDark ? '#00A3A3' : '#2A7DA0' }]}>
+                                    <Image source={tab.iconImg} style={styles.navIconImg} resizeMode="contain" />
                                 </View>
                                 <Text style={[styles.navText, { color: isActive ? (isDark ? colors.navActive : '#004F7F') : (isDark ? '#FFFFFF' : '#6B7280') }, isActive && { fontWeight: '700' }]}>{tab.name}</Text>
                             </TouchableOpacity>
                         );
                     })}
                 </View>
-                <TouchableOpacity
-                    style={[styles.cameraButton, activeTab === 'Camera' && styles.cameraButtonActive]}
-                    onPress={() => handleTabPress('Camera')}
-                    activeOpacity={0.85}
-                >
+                <TouchableOpacity style={[styles.cameraButton, activeTab === 'Camera' && styles.cameraButtonActive]} onPress={() => handleTabPress('Camera')} activeOpacity={0.85}>
                     <Ionicons name="camera-outline" size={30} color={activeTab === 'Camera' ? '#004F7F' : '#6B7280'} />
                 </TouchableOpacity>
             </View>
 
             {renderOnboarding()}
-
         </SafeAreaView>
     );
 }
@@ -572,11 +491,9 @@ const renderOnboarding = () => {
 const ob = StyleSheet.create({
     root:    { zIndex: 9999, elevation: 9999 },
     overlay: { backgroundColor: 'rgba(0,10,20,0.60)', zIndex: 1 },
-spotlight: {
+    spotlight: {
         position: 'absolute', 
-        width: 90,          // كبرنا العرض
-        height: 90,         // كبرنا الطول
-        borderRadius: 45,   // لازم يكون نص العرض علشان تفضل دائرة مثالية
+        width: 90, height: 90, borderRadius: 45, 
         backgroundColor: 'rgba(0,163,163,0.15)',
         borderWidth: 2.5, borderColor: '#00A3A3', zIndex: 2,
         shadowColor: '#00A3A3', shadowOffset: { width: 0, height: 0 },
@@ -627,41 +544,21 @@ const styles = StyleSheet.create({
     toggleButtonActive:   { backgroundColor: '#004F7F' },
     toggleText:           { fontSize: 14, fontWeight: '600', color: '#6B7280' },
     toggleTextActive:     { color: '#FFFFFF', fontWeight: '700' },
-    bottomNavContainer: { position: 'absolute', bottom: 16, left: 16, right: 16, alignItems: 'center' },
-bottomNav: {
-  flexDirection: 'row', backgroundColor: '#FFFFFF', paddingVertical: 10,
-  paddingBottom: 14, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)',
-  width: '100%', shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.12, shadowRadius: 12, elevation: 8,
-  },
-  navCenterSpacer: { flex: 1 },
+    bottomNavContainer:   { position: 'absolute', bottom: 16, left: 16, right: 16, alignItems: 'center' },
+    bottomNav:            { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingVertical: 10, paddingBottom: 14, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)', width: '100%', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 8 },
+    navCenterSpacer:      { flex: 1 },
     navItem:              { flex: 1, alignItems: 'center', justifyContent: 'center' },
     navIcon:              { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-    navIconActive:        {},
     navIconImg:           { width: 32, height: 32 },
     headerIconImg:        { width: 50, height: 50 },
     notifIconImg:         { width: 36, height: 36 },
     navText:              { fontSize: 11, color: '#6B7280', fontWeight: '500' },
-    navTextActive:        { fontSize: 11, color: '#004F7F', fontWeight: '700' },
-    cameraButton: {
-        position: 'absolute', top: -26, alignSelf: 'center',
-        width: 60, height: 60, borderRadius: 30,
-        backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center',
-        borderWidth: 3, borderColor: '#C5E3ED',
-        shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.12, shadowRadius: 6, elevation: 6,
-    },
+    cameraButton:         { position: 'absolute', top: -26, alignSelf: 'center', width: 60, height: 60, borderRadius: 30, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#C5E3ED', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 6 },
     cameraButtonActive:   { borderColor: '#004F7F', backgroundColor: '#E8F4F8' },
-    headerCard: {
-        backgroundColor: '#FFFFFF', marginHorizontal: 16, marginTop: 12, marginBottom: 8,
-        borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
-    },
+    headerCard:           { backgroundColor: '#FFFFFF', marginHorizontal: 16, marginTop: 12, marginBottom: 8, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
     headerContent:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  profileIconContainer: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#E8F4F8', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#C5E3ED', overflow: 'hidden' },
-  welcomeContainer: { flex: 1, marginLeft: 12, flexDirection: 'row', alignItems: 'center' },
+    profileIconContainer: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#E8F4F8', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#C5E3ED', overflow: 'hidden' },
+    welcomeContainer:     { flex: 1, marginLeft: 12, flexDirection: 'row', alignItems: 'center' },
     welcomeLabel:         { fontSize: 18, color: '#00A3A3', fontStyle: 'italic' },
-    userName:             { fontSize: 18, fontWeight: '700', color: '#1F2937', marginTop: 2 },
     notificationButton:   { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F9FAFB', justifyContent: 'center', alignItems: 'center' },
 });
